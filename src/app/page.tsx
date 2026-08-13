@@ -15,14 +15,17 @@ import { WelcomeOverlay } from "@/components/lem/welcome";
 
 export default function Home() {
   const hydrated = useStore((s) => s.hydrated);
-  const seedDemoIfEmpty = useStore((s) => s.seedDemoIfEmpty);
+  const seedFromUserExcel = useStore((s) => s.seedFromUserExcel);
   const activeView = useStore((s) => s.activeView);
 
   useEffect(() => {
     if (hydrated) {
-      seedDemoIfEmpty();
+      // Carga el Excel real del usuario (stock HUB ALTAS - LIMA NORTE)
+      // precargado en /public/stock-lemcorp-inicial.xlsx. Si ya hay datos,
+      // no hace nada. Si falla, cae al seed demo.
+      seedFromUserExcel();
     }
-  }, [hydrated, seedDemoIfEmpty]);
+  }, [hydrated, seedFromUserExcel]);
 
   if (!hydrated) {
     return (

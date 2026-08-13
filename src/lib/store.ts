@@ -88,6 +88,7 @@ interface StoreState {
   recalcAutomation: () => void;
   setHydrated: () => void;
   seedDemoIfEmpty: () => void;
+  seedFromUserExcel: () => Promise<void>;
 }
 
 function snapshotOf(file: SheetFile): HistorySnapshot {
@@ -661,6 +662,52 @@ export const useStore = create<StoreState>()(
           get().importProductsBulk(demo);
         }
         void invId; void despId; void eqId;
+      },
+
+      seedFromUserExcel: async () => {
+        // Si ya hay archivos, no hacer nada (usuario ya tiene datos).
+        if (get().files.length > 0) return;
+        try {
+          // 1. Hacer fetch del Excel precargado en public/
+          const res = await fetch("/stock-lemcorp-inicial.xlsx");
+          if (!res.ok) {
+            // Si no está disponible, caer al seed demo.
+            get().seedDemoIfEmpty();
+            return;
+          }
+          const blob = await res.blob();
+          const file = new File(
+            [blob],
+            "Stock HUB ALTAS - LIMA NORTE.xlsx",
+            { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }
+          );
+          // 2. Importar el Excel (importFile detecta tag + tagConfirmed)
+          const fileId = await get().importFile(file);
+          // 3. Asegurar que se vea como inventario
+          get().setFileTag(fileId, "inventario");
+          // 4. Crear un archivo de Despachos vacío (para que la automatización
+          //    tenga dónde registrarse si el usuario agrega despachos).
+          const s = get();
+          s.createFile("Despachos del Día", "despachos");
+          s.createFile("Equipos Averiados", "equipos");
+          // 5. Generar el catálogo de productos automáticamente desde el Excel
+          //    (sugiere los SKUs detectados y los añade todos con su cantidad).
+          const suggestions = get().getSuggestions();
+          if (suggestions.length > 0) {
+            get().importProductsBulk(
+              suggestions.map((sg) => ({
+                sku: sg.sku,
+                name: sg.name,
+                quantity: sg.quantity,
+              }))
+            );
+          }
+          // 6. Vista inicial en Resumen.
+          set({ activeFileId: null, activeView: "resumen", histories: {}, redoes: {} });
+        } catch (err) {
+          console.error("No se pudo cargar el Excel inicial:", err);
+          get().seedDemoIfEmpty();
+        }
       },
     }),
     {

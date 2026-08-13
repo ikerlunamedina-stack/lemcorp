@@ -148,3 +148,38 @@ Stage Summary:
 - Reconoce columnas Físico/Disponible/Reservado/En Tránsito como cantidades (prioriza Físico)
 - Parsea correctamente números en formato español ("2,768.00" → 2768)
 - 68 productos del almacén HUB ALTAS - LIMA NORTE importados y catalogados con sus cantidades reales
+
+---
+Task ID: U1-U4
+Agent: main
+Task: Precargar el Excel real del usuario (Stock HUB ALTAS - LIMA NORTE) en la app
+
+Work Log:
+- Copiado el Excel del usuario a public/stock-lemcorp-inicial.xlsx (10KB) para que esté siempre accesible vía HTTP
+- Creada acción seedFromUserExcel() en el store (async):
+  1. Si ya hay archivos, no hace nada (respeta datos del usuario)
+  2. fetch('/stock-lemcorp-inicial.xlsx') → blob → File
+  3. importFile(file) — detecta tag + tagConfirmed automáticamente
+  4. setFileTag(fileId, "inventario") — asegura etiqueta
+  5. Crea también "Despachos del Día" y "Equipos Averiados" vacíos
+  6. Genera catálogo automáticamente: getSuggestions() → importProductsBulk() con SKU + nombre + cantidad de cada producto del Excel
+  7. Vista inicial en Resumen
+  8. Si falla el fetch, cae a seedDemoIfEmpty como fallback
+- page.tsx: useEffect ahora llama seedFromUserExcel() en vez de seedDemoIfEmpty()
+
+Verificación con Agent Browser (estado limpio):
+- Al abrir la app (sin datos), el Excel se cargó automáticamente:
+  - 3 archivos: Stock HUB ALTAS - LIMA NORTE + Despachos del Día + Equipos Averiados
+  - 54 productos en catálogo, TODOS con cantidad
+  - Ejemplos: DECODIFICADOR MOTOROLA HD DCX-525 = 10, MODEM SAGEMCOM V2.2 = 6, MODEM ARRIS TG2482 = 43
+  - SKU=1002900, Producto=CONECTOR PLUG RJ-45, Físico=2768, Disponible=2441 ✓
+- Resumen: 54 productos en catálogo, 999,199 unidades totales (stock real del almacén) ✓
+- Editor: muestra todos los encabezados (Almacén, Ubicación, SKU, Producto, Categoría, Propiedad, Físico, Reservado, En Tránsito, Disponible, UdM, Observaciones) y datos correctos ✓
+- VLM confirmó: stats visibles (54 productos, 999,199 unidades), archivo "Stock HUB ALTAS - LIMA NORTE" en lista, catálogo con SKUs numéricos y cantidades como badges, diseño gris corporativo ✓
+- Lint limpio, dev server sin errores
+
+Stage Summary:
+- El Excel real del usuario (Stock HUB ALTAS - LIMA NORTE) ahora se carga automáticamente al abrir la app
+- 54 productos del almacén se catalogaron automáticamente con sus cantidades reales (Físico)
+- 999,199 unidades totales visibles en el Resumen
+- Si el usuario borra datos desde Configuración y recarga, el Excel vuelve a cargarse automáticamente
