@@ -138,7 +138,7 @@ export function SummaryView() {
   const stats: { icon: React.ReactNode; label: string; value: string; sub: string; tone: string }[] = [
     {
       icon: <Package className="h-5 w-5" />,
-      label: "Productos en catálogo",
+      label: "Productos en inventario",
       value: products.length.toString(),
       sub: `${suggestions.length} SKU(s) sin catalogar`,
       tone: "text-foreground",
@@ -425,16 +425,16 @@ export function SummaryView() {
             size="sm"
             variant="outline"
             className="press h-7 rounded-lg text-[11px]"
-            onClick={() => setActiveView("productos")}
+            onClick={() => setActiveView("inventario")}
           >
-            Ver catálogo · {products.length}
+            Ver inventario · {products.length}
           </Button>
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="rounded-xl border border-border bg-muted/30 p-3">
             <p className="text-2xl font-semibold tabular-nums">{products.length}</p>
-            <p className="text-[11px] font-medium">Productos en catálogo</p>
+            <p className="text-[11px] font-medium">Productos en inventario</p>
             <p className="text-[10px] text-muted-foreground">SKUs registrados</p>
           </div>
           <div
@@ -498,7 +498,7 @@ export function SummaryView() {
                 …y {mismatches.length - 8} discrepancia(s) más.{" "}
                 <button
                   className="underline"
-                  onClick={() => setActiveView("productos")}
+                  onClick={() => setActiveView("inventario")}
                 >
                   Ver todas
                 </button>
@@ -520,7 +520,7 @@ export function SummaryView() {
             ))}
             <button
               className="text-[11px] underline text-muted-foreground"
-              onClick={() => setActiveView("productos")}
+              onClick={() => setActiveView("inventario")}
             >
               Añadir al catálogo
             </button>

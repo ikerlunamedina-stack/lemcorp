@@ -8,7 +8,7 @@ import {
   FileSpreadsheet,
   LayoutDashboard,
   Wrench,
-  Package,
+  Boxes,
   Hash,
   Settings as SettingsIcon,
 } from "lucide-react";
@@ -36,8 +36,8 @@ export function Topbar() {
   const viewMeta =
     activeView === "resumen"
       ? { icon: <LayoutDashboard className="h-4 w-4" />, title: "Resumen general" }
-      : activeView === "productos"
-      ? { icon: <Package className="h-4 w-4" />, title: "Catálogo de productos" }
+      : activeView === "inventario"
+      ? { icon: <Boxes className="h-4 w-4" />, title: "Inventario" }
       : activeView === "series"
       ? { icon: <Hash className="h-4 w-4" />, title: "Series de equipos" }
       : activeView === "equipos"

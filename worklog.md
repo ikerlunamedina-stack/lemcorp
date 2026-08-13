@@ -183,3 +183,40 @@ Stage Summary:
 - 54 productos del almacén se catalogaron automáticamente con sus cantidades reales (Físico)
 - 999,199 unidades totales visibles en el Resumen
 - Si el usuario borra datos desde Configuración y recarga, el Excel vuelve a cargarse automáticamente
+
+---
+Task ID: I1-I5
+Agent: main
+Task: Vista Inventario (datos del Excel pasan al sistema, renombrar Productos → Inventario)
+
+Work Log:
+- Creado src/lib/inventory.ts: extractUnifiedInventory() lee todos los archivos "inventario" y consolida filas en tabla viva con todas las columnas reales del Excel del usuario (SKU, Producto, Categoría, Físico, Reservado, En Tránsito, Disponible, UdM, Ubicación, Almacén, Observaciones). Detecta dinámicamente qué columnas existen. No es una copia: se lee directo del estado de los archivos en cada render.
+- Creado src/components/lem/inventario-view.tsx: tabla viva de stock con:
+  - 4 tarjetas de totales: Stock físico, Disponible, Reservado, En tránsito
+  - Buscador (SKU, producto, almacén, ubicación, categoría)
+  - Filtros por categoría (chips)
+  - Tabla con columnas dinámicas (solo muestra las que existen): SKU, Producto, Categoría, Físico (badge negro), Reservado, Tránsito, Disponible, UdM, Almacén, Ubicación, Origen
+  - Fila de totales al pie
+  - Botón "Ver archivo" por fila (abre el editor)
+  - Sugerencias de SKUs sin catalogar (con "Añadir todos")
+  - Botón "Catálogo" que abre diálogo del catálogo maestro de SKUs (add/edit/delete, discrepancias)
+- Renombrado nav "Productos" → "Inventario" en sidebar.tsx (icono Boxes)
+- Topbar: título "Inventario" para la vista
+- page.tsx: renderiza InventarioView (removido ProductsView)
+- seedFromUserExcel y seedDemoIfEmpty: vista inicial ahora "inventario" (antes "resumen")
+- summary-view.tsx: enlaces "Ver catálogo" → "Ver inventario", stat "Productos en catálogo" → "Productos en inventario"
+
+Verificación con Agent Browser (Excel real del usuario):
+- Vista Inventario muestra: 68 producto(s) en stock · 999,199 unidades físicas ✓
+- Tarjetas de totales: Stock físico 999,199 · Disponible 985,537 · Reservado 13,662 · En tránsito 125 ✓
+- Tabla con columnas: SKU, Producto, Categoría, Físico (badge), Reservado, Tránsito, Disponible, UdM, Almacén, Ubicación, Origen ✓
+- SKUs numéricos (1002900, 1002950) y cantidades correctas (2768) ✓
+- Catálogo maestro accesible vía botón "Catálogo" (54 SKUs, add/edit/delete, discrepancias) ✓
+- VLM confirmó: "interfaz de gestión de inventario (WMS/ERP) profesional para el control de stock en almacenes reales" ✓
+- Lint limpio, dev server sin errores, estado limpio restaurado
+
+Stage Summary:
+- Los datos del Excel ahora viven EN el sistema: la vista Inventario muestra el stock real del almacén HUB ALTAS - LIMA NORTE con todas sus columnas
+- Renombrado "Productos" → "Inventario" en toda la app (nav, topbar, resumen)
+- El catálogo maestro de SKUs sigue disponible (botón "Catálogo" en la vista Inventario) para validación de nombres
+- Tabla viva (no copia): cualquier edición en el editor se refleja al instante en la vista Inventario

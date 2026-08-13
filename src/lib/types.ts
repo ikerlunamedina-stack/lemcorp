@@ -91,6 +91,7 @@ export const DEFAULT_SETTINGS: Settings = {
 export type ActiveView =
   | "editor"
   | "resumen"
+  | "inventario"
   | "equipos"
   | "productos"
   | "config"

@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import {
   LayoutDashboard,
   Wrench,
-  Package,
+  Boxes,
   Hash,
   Settings as SettingsIcon,
   FilePlus2,
@@ -137,11 +137,11 @@ export function Sidebar() {
           badge={counts.inventario + counts.despachos + counts.equipos || undefined}
         />
         <NavButton
-          active={activeView === "productos"}
-          onClick={() => setActiveView("productos")}
-          icon={<Package className="h-4 w-4" />}
-          label="Productos"
-          badge={counts.productos || undefined}
+          active={activeView === "inventario"}
+          onClick={() => setActiveView("inventario")}
+          icon={<Boxes className="h-4 w-4" />}
+          label="Inventario"
+          badge={counts.inventario || undefined}
         />
         <NavButton
           active={activeView === "series"}

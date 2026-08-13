@@ -648,8 +648,8 @@ export const useStore = create<StoreState>()(
         const invId = s.createFile("Inventario Total", "inventario");
         const despId = s.createFile("Despachos del Día", "despachos");
         const eqId = s.createFile("Equipos Averiados", "equipos");
-        // Forzar vista inicial en resumen y ejecutar automatización inicial
-        set({ activeFileId: null, activeView: "resumen", histories: {}, redoes: {} });
+        // Forzar vista inicial en inventario y ejecutar automatización inicial
+        set({ activeFileId: null, activeView: "inventario", histories: {}, redoes: {} });
         // procesar despachos -> inventario con los datos demo
         get().recalcAutomation();
         // sembrar catálogo maestro de productos (solo si está vacío)
@@ -702,8 +702,8 @@ export const useStore = create<StoreState>()(
               }))
             );
           }
-          // 6. Vista inicial en Resumen.
-          set({ activeFileId: null, activeView: "resumen", histories: {}, redoes: {} });
+          // 6. Vista inicial en Inventario (los datos del Excel ya están en el sistema).
+          set({ activeFileId: null, activeView: "inventario", histories: {}, redoes: {} });
         } catch (err) {
           console.error("No se pudo cargar el Excel inicial:", err);
           get().seedDemoIfEmpty();
