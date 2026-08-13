@@ -41,3 +41,34 @@ Stage Summary:
 - 7 funcionalidades requeridas todas operativas y verificadas en navegador
 - Persistencia localStorage, datos demo precargados (3 archivos: Inventario Total, Despachos del Día, Equipos Averiados)
 - Estado limpio restaurado para el usuario final
+
+---
+Task ID: P1-P8
+Agent: main
+Task: Añadir apartado de Productos con SKU + validación cruzada de nombres
+
+Work Log:
+- Tipos: añadido Product {id, sku, name, category} y Mismatch a types.ts; ActiveView ahora incluye "productos"
+- validation.ts (nuevo): findCol con prioridad de candidatos; SKU_COLS (sku, codigo, código, cod, etc.); NAME_COLS (producto, descripcion, articulo, etc.); validateFiles() cruza archivos vs catálogo maestro y devuelve discrepancias (SKU existe pero nombre distinto, comparación tolerante a acentos/mayúsculas/espacios); suggestProducts() detecta SKUs en archivos no catalogados
+- Store extendido: products[] persistente; addProduct/updateProduct/deleteProduct con validación de SKU duplicado (no permite 2 productos con mismo SKU); importProductsBulk para añadir varios; getMismatches() y getSuggestions() como getters; migrate() añade products=[] en versiones anteriores (version: 1)
+- seedDemoIfEmpty: siembra 3 productos demo (RT-001 Router TP-Link WR840N, ONT-002 ONT Huawei HG8245, CAB-003 Cable UTP Cat6)
+- products-view.tsx (nuevo): catálogo con tabla agrupada por categoría, búsqueda SKU/nombre, añadir/editar/eliminar, banner de discrepancias con tabla (nombre tachado en archivo vs nombre catálogo), sugerencias de SKUs no catalogados como chips clicables + "Añadir todos", advertencia "Ya existe un producto con este SKU" al detectar duplicado
+- sidebar.tsx: botón nav "Productos" con badge de conteo
+- topbar.tsx: título "Catálogo de productos" para la vista
+- summary-view.tsx: tarjeta "Validación de catálogo" con 3 mini-tarjetas (productos, discrepancias, SKUs sin catalogar) y tabla de discrepancias con origen (archivo + fila)
+- page.tsx: renderiza ProductsView cuando activeView === "productos"
+
+Verificación con Agent Browser:
+- Seed: 3 productos sembrados automáticamente ✓
+- Añadir producto SKU 4076358 / "ROUTER ONT HG8145X6-13 HUAWEI" / categoría ONT → guardado ✓
+- Editar nombre del Router en Inventario a "Router TP-Link MODIFICADO" → discrepancia detectada en Resumen (tabla con RT-001, nombre tachado en rojo vs nombre catálogo) ✓ (confirmado con VLM)
+- Volver al nombre original con Ctrl+Z → validación limpia ("Todos los SKUs coinciden") ✓
+- SKU duplicado: intentar añadir RT-001 otra vez → advertencia "Ya existe un producto con este SKU", no se duplica (count sigue en 4) ✓
+- Sugerencias: SKUs en archivos no catalogados aparecen como chips clicables ✓
+- Lint limpio, dev server sin errores, estado limpio restaurado
+
+Stage Summary:
+- Nuevo apartado "Productos" operativo con catálogo maestro SKU + nombre + categoría
+- Validación cruzada: detecta SKU en archivos y avisa si un mismo SKU tiene distinto nombre
+- SKU tratado como identificador único (el "DNI" del producto): no permite duplicados
+- Persistencia localStorage con migración para versiones anteriores

@@ -7,6 +7,7 @@ import { Topbar } from "@/components/lem/topbar";
 import { SpreadsheetView } from "@/components/lem/spreadsheet";
 import { SummaryView } from "@/components/lem/summary-view";
 import { EquipmentView } from "@/components/lem/equipment-view";
+import { ProductsView } from "@/components/lem/products-view";
 import { Footer } from "@/components/lem/footer";
 import { WelcomeOverlay } from "@/components/lem/welcome";
 
@@ -49,6 +50,11 @@ export default function Home() {
           {activeView === "equipos" && (
             <div className="h-full overflow-y-auto scroll-thin">
               <EquipmentView />
+            </div>
+          )}
+          {activeView === "productos" && (
+            <div className="h-full overflow-y-auto scroll-thin">
+              <ProductsView />
             </div>
           )}
         </main>

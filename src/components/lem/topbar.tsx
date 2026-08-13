@@ -8,6 +8,7 @@ import {
   FileSpreadsheet,
   LayoutDashboard,
   Wrench,
+  Package,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useEditorUI } from "@/lib/editor-store";
@@ -32,6 +33,8 @@ export function Topbar() {
   const viewMeta =
     activeView === "resumen"
       ? { icon: <LayoutDashboard className="h-4 w-4" />, title: "Resumen general" }
+      : activeView === "productos"
+      ? { icon: <Package className="h-4 w-4" />, title: "Catálogo de productos" }
       : activeView === "equipos"
       ? { icon: <Wrench className="h-4 w-4" />, title: "Equipos" }
       : { icon: <FileSpreadsheet className="h-4 w-4" />, title: file?.name ?? "Editor" };

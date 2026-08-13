@@ -4,7 +4,14 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { SheetFile, FileTag, HistorySnapshot, ActiveView } from "./types";
+import type {
+  SheetFile,
+  FileTag,
+  HistorySnapshot,
+  ActiveView,
+  Product,
+  Mismatch,
+} from "./types";
 import { emptyFile, importFile as importXlsx, uid } from "./excel";
 import { detectTag, getHeaderColumns } from "./detection";
 import {
@@ -12,11 +19,13 @@ import {
   findInventarioFile,
   type AppliedMap,
 } from "./automation";
+import { validateFiles, suggestProducts } from "./validation";
 
 const HISTORY_LIMIT = 50;
 
 interface StoreState {
   files: SheetFile[];
+  products: Product[]; // catálogo maestro de productos (SKU -> nombre)
   activeFileId: string | null;
   activeView: ActiveView;
   histories: Record<string, HistorySnapshot[]>;
@@ -38,6 +47,17 @@ interface StoreState {
   renameFile: (id: string, name: string) => void;
   duplicateFile: (id: string) => void;
   setFileTag: (id: string, tag: FileTag) => void;
+
+  // productos (catálogo maestro)
+  addProduct: (sku: string, name: string, category?: string) => string | null;
+  updateProduct: (id: string, sku: string, name: string, category?: string) => void;
+  deleteProduct: (id: string) => void;
+  importProductsBulk: (items: { sku: string; name: string; category?: string }[]) => number;
+  findProductBySku: (sku: string) => Product | null;
+
+  // validación
+  getMismatches: () => Mismatch[];
+  getSuggestions: () => ReturnType<typeof suggestProducts>;
 
   // edición de celdas
   setCell: (fileId: string, row: number, col: number, value: string) => void;
@@ -106,6 +126,7 @@ export const useStore = create<StoreState>()(
   persist(
     (set, get) => ({
       files: [],
+      products: [],
       activeFileId: null,
       activeView: "resumen",
       histories: {},
@@ -201,6 +222,87 @@ export const useStore = create<StoreState>()(
         set({ files });
         // recalcular automatización por si cambió
         get().recalcAutomation();
+      },
+
+      // ---------- Catálogo de productos ----------
+      findProductBySku: (sku) => {
+        const key = sku.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        return get().products.find((p) => p.sku.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === key) ?? null;
+      },
+
+      addProduct: (sku, name, category) => {
+        const skuTrim = sku.trim();
+        const nameTrim = name.trim();
+        if (!skuTrim || !nameTrim) return null;
+        // SKU duplicado -> no agregar
+        if (get().findProductBySku(skuTrim)) return null;
+        const p: Product = {
+          id: uid(),
+          sku: skuTrim,
+          name: nameTrim,
+          category: category?.trim() || undefined,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+        set({ products: [...get().products, p] });
+        return p.id;
+      },
+
+      updateProduct: (id, sku, name, category) => {
+        const skuTrim = sku.trim();
+        const nameTrim = name.trim();
+        if (!skuTrim || !nameTrim) return;
+        // si el SKU nuevo choca con otro producto distinto, no permitir
+        const clash = get().findProductBySku(skuTrim);
+        if (clash && clash.id !== id) return;
+        set({
+          products: get().products.map((p) =>
+            p.id === id
+              ? {
+                  ...p,
+                  sku: skuTrim,
+                  name: nameTrim,
+                  category: category?.trim() || undefined,
+                  updatedAt: Date.now(),
+                }
+              : p
+          ),
+        });
+      },
+
+      deleteProduct: (id) => {
+        set({ products: get().products.filter((p) => p.id !== id) });
+      },
+
+      importProductsBulk: (items) => {
+        let added = 0;
+        const current = [...get().products];
+        for (const it of items) {
+          const skuTrim = it.sku.trim();
+          const nameTrim = it.name.trim();
+          if (!skuTrim || !nameTrim) continue;
+          const key = skuTrim.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          if (current.some((p) => p.sku.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === key)) continue;
+          current.push({
+            id: uid(),
+            sku: skuTrim,
+            name: nameTrim,
+            category: it.category?.trim() || undefined,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          });
+          added++;
+        }
+        if (added > 0) set({ products: current });
+        return added;
+      },
+
+      getMismatches: () => {
+        return validateFiles(get().files, get().products);
+      },
+
+      getSuggestions: () => {
+        return suggestProducts(get().files, get().products);
       },
 
       snapshot: (fileId, label) => {
@@ -501,7 +603,7 @@ export const useStore = create<StoreState>()(
       setHydrated: () => set({ hydrated: true }),
 
       seedDemoIfEmpty: () => {
-        const { files } = get();
+        const { files, products } = get();
         if (files.length > 0) return;
         const s = get();
         const invId = s.createFile("Inventario Total", "inventario");
@@ -511,6 +613,15 @@ export const useStore = create<StoreState>()(
         set({ activeFileId: null, activeView: "resumen", histories: {}, redoes: {} });
         // procesar despachos -> inventario con los datos demo
         get().recalcAutomation();
+        // sembrar catálogo maestro de productos (solo si está vacío)
+        if (products.length === 0) {
+          const demo: { sku: string; name: string; category?: string }[] = [
+            { sku: "RT-001", name: "Router TP-Link WR840N", category: "Router" },
+            { sku: "ONT-002", name: "ONT Huawei HG8245", category: "ONT" },
+            { sku: "CAB-003", name: "Cable UTP Cat6 (m)", category: "Cable" },
+          ];
+          get().importProductsBulk(demo);
+        }
         void invId; void despId; void eqId;
       },
     }),
@@ -518,6 +629,7 @@ export const useStore = create<StoreState>()(
       name: "lemcorp-excel-v1",
       partialize: (s) => ({
         files: s.files,
+        products: s.products,
         appliedMap: s.appliedMap,
         activeView: s.activeView,
         activeFileId: s.activeFileId,
@@ -525,6 +637,13 @@ export const useStore = create<StoreState>()(
       onRehydrateStorage: () => (state) => {
         state?.setHydrated();
       },
+      // migración: añadir products si era una versión anterior
+      migrate: (persisted: any) => {
+        if (!persisted) return persisted;
+        if (!persisted.products) persisted.products = [];
+        return persisted;
+      },
+      version: 1,
     }
   )
 );

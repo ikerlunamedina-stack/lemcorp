@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import {
   LayoutDashboard,
   Wrench,
+  Package,
   FilePlus2,
   Upload,
   FileSpreadsheet,
@@ -96,10 +97,13 @@ export function Sidebar() {
     void id;
   };
 
+  const products = useStore((s) => s.products);
+
   const counts = {
     inventario: files.filter((f) => f.tag === "inventario").length,
     despachos: files.filter((f) => f.tag === "despachos").length,
     equipos: files.filter((f) => f.tag === "equipos").length,
+    productos: products.length,
   };
 
   return (
@@ -129,6 +133,13 @@ export function Sidebar() {
           icon={<LayoutDashboard className="h-4 w-4" />}
           label="Resumen"
           badge={counts.inventario + counts.despachos + counts.equipos || undefined}
+        />
+        <NavButton
+          active={activeView === "productos"}
+          onClick={() => setActiveView("productos")}
+          icon={<Package className="h-4 w-4" />}
+          label="Productos"
+          badge={counts.productos || undefined}
         />
         <NavButton
           active={activeView === "equipos"}

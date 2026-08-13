@@ -53,4 +53,26 @@ export interface HistorySnapshot {
   ts: number;
 }
 
-export type ActiveView = "editor" | "resumen" | "equipos";
+// Producto del catálogo maestro de LEMCORP.
+// El SKU es el identificador único (el "DNI" del producto).
+export interface Product {
+  id: string;
+  sku: string; // código único, ej. "4076358"
+  name: string; // nombre canónico, ej. "ROUTER ONT HG8145X6-13 HUAWEI"
+  category?: string; // categoría opcional, ej. "Router", "ONT", "Cable"
+  createdAt: number;
+  updatedAt: number;
+}
+
+// Discrepancia detectada al cruzar archivos contra el catálogo maestro.
+export interface Mismatch {
+  fileId: string;
+  fileName: string;
+  fileTag: FileTag;
+  row: number; // fila en el archivo (base 0)
+  sku: string;
+  expectedName: string; // nombre canónico del catálogo
+  actualName: string; // nombre que aparece en el archivo
+}
+
+export type ActiveView = "editor" | "resumen" | "equipos" | "productos";

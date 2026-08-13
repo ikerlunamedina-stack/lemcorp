@@ -89,9 +89,12 @@ function extractInventory(file: SheetFile): InvItem[] {
 
 export function SummaryView() {
   const files = useStore((s) => s.files);
+  const products = useStore((s) => s.products);
   const openFile = useStore((s) => s.openFile);
   const createFile = useStore((s) => s.createFile);
   const setActiveView = useStore((s) => s.setActiveView);
+  const getMismatches = useStore((s) => s.getMismatches);
+  const getSuggestions = useStore((s) => s.getSuggestions);
   const { toast } = useToast();
 
   const invFiles = files.filter((f) => f.tag === "inventario");
@@ -105,6 +108,15 @@ export function SummaryView() {
   const totalUnits = allItems.reduce((s, i) => s + i.qty, 0);
   const distinctSkus = new Set(allItems.map((i) => i.sku || i.product)).size;
   const lowStock = allItems.filter((i) => i.min > 0 && i.qty <= i.min);
+
+  const mismatches = useMemo(
+    () => getMismatches(),
+    [getMismatches, files, products]
+  );
+  const suggestions = useMemo(
+    () => getSuggestions(),
+    [getSuggestions, files, products]
+  );
 
   // alertas por archivo
   const alertsByFile = useMemo(() => {
@@ -387,6 +399,129 @@ export function SummaryView() {
               </tbody>
             </table>
           </div>
+        )}
+      </div>
+
+      {/* Validación de catálogo de productos */}
+      <div className="mt-6 anim-fade-up rounded-2xl border border-border bg-card p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className="flex items-center gap-2 text-sm font-semibold">
+              <Package className="h-4 w-4" />
+              Validación de catálogo
+            </h2>
+            <p className="text-[11px] text-muted-foreground">
+              Cruza los SKUs de tus archivos contra el catálogo maestro de productos
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="press h-7 rounded-lg text-[11px]"
+            onClick={() => setActiveView("productos")}
+          >
+            Ver catálogo · {products.length}
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="rounded-xl border border-border bg-muted/30 p-3">
+            <p className="text-2xl font-semibold tabular-nums">{products.length}</p>
+            <p className="text-[11px] font-medium">Productos en catálogo</p>
+            <p className="text-[10px] text-muted-foreground">SKUs registrados</p>
+          </div>
+          <div
+            className={cn(
+              "rounded-xl border p-3",
+              mismatches.length > 0
+                ? "border-destructive/30 bg-destructive/5"
+                : "border-border bg-muted/30"
+            )}
+          >
+            <p
+              className={cn(
+                "text-2xl font-semibold tabular-nums",
+                mismatches.length > 0 && "text-destructive"
+              )}
+            >
+              {mismatches.length}
+            </p>
+            <p className="text-[11px] font-medium">Discrepancias de nombre</p>
+            <p className="text-[10px] text-muted-foreground">
+              SKU con nombre distinto al catálogo
+            </p>
+          </div>
+          <div className="rounded-xl border border-border bg-muted/30 p-3">
+            <p className="text-2xl font-semibold tabular-nums">{suggestions.length}</p>
+            <p className="text-[11px] font-medium">SKUs sin catalogar</p>
+            <p className="text-[10px] text-muted-foreground">
+              En archivos pero no en catálogo
+            </p>
+          </div>
+        </div>
+
+        {mismatches.length > 0 ? (
+          <div className="mt-4 overflow-x-auto scroll-thin">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted-foreground">
+                  <th className="pb-2 pr-3 font-medium">SKU</th>
+                  <th className="pb-2 pr-3 font-medium">En archivo</th>
+                  <th className="pb-2 pr-3 font-medium">En catálogo</th>
+                  <th className="pb-2 pr-3 font-medium">Origen</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mismatches.slice(0, 8).map((m, i) => (
+                  <tr key={i} className="border-b border-border/50 last:border-0">
+                    <td className="py-2 pr-3 font-mono text-[11px]">{m.sku}</td>
+                    <td className="py-2 pr-3 text-destructive line-through">
+                      {m.actualName}
+                    </td>
+                    <td className="py-2 pr-3 font-medium">{m.expectedName}</td>
+                    <td className="py-2 pr-3 text-[11px] text-muted-foreground">
+                      {m.fileName} · fila {m.row + 1}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {mismatches.length > 8 && (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                …y {mismatches.length - 8} discrepancia(s) más.{" "}
+                <button
+                  className="underline"
+                  onClick={() => setActiveView("productos")}
+                >
+                  Ver todas
+                </button>
+              </p>
+            )}
+          </div>
+        ) : suggestions.length > 0 ? (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className="text-[11px] text-muted-foreground">
+              {suggestions.length} SKU(s) detectados en archivos sin catalogar:
+            </span>
+            {suggestions.slice(0, 6).map((s) => (
+              <span
+                key={s.sku}
+                className="rounded-full border border-border bg-muted/40 px-2 py-0.5 font-mono text-[10px]"
+              >
+                {s.sku}
+              </span>
+            ))}
+            <button
+              className="text-[11px] underline text-muted-foreground"
+              onClick={() => setActiveView("productos")}
+            >
+              Añadir al catálogo
+            </button>
+          </div>
+        ) : (
+          <p className="mt-4 text-[11px] text-muted-foreground">
+            Todos los SKUs de tus archivos coinciden con el catálogo maestro.
+          </p>
         )}
       </div>
     </div>
