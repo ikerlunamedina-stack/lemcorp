@@ -62,6 +62,12 @@ export function ConfigView() {
       title: "Automatización despachos → inventario",
       desc: "Descuenta automáticamente del inventario cuando registras un despacho. Al desactivar, los despachos se guardan pero no modifican el inventario.",
     },
+    {
+      key: "highlightDuplicates",
+      icon: <ScanSearch className="h-4 w-4" />,
+      title: "Resaltar duplicados en el editor",
+      desc: "Colorea automáticamente las celdas cuyo valor se repite en la hoja. Útil para detectar SKUs o series repetidos.",
+    },
   ];
 
   return (

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useStore } from "@/lib/store";
-import { useEditorUI } from "@/lib/editor-store";
+import { useEditorUI, isInRange } from "@/lib/editor-store";
 import { recalcFile, columnToLetter, coordToRef } from "@/lib/formulas";
 import { cn } from "@/lib/utils";
 import { FileSpreadsheet } from "lucide-react";
@@ -19,6 +19,7 @@ import {
   MenuIcons,
   type MenuItem,
 } from "./custom-context-menu";
+import { FormatToolbar } from "./format-toolbar";
 import { useToast } from "@/hooks/use-toast";
 
 const COL_W = 120;
@@ -28,6 +29,7 @@ const ROW_NUM_W = 48;
 
 export function SpreadsheetView() {
   const file = useStore((s) => s.files.find((f) => f.id === s.activeFileId));
+  const settings = useStore((s) => s.settings);
   const setCell = useStore((s) => s.setCell);
   const setCells = useStore((s) => s.setCells);
   const addRow = useStore((s) => s.addRow);
@@ -36,6 +38,8 @@ export function SpreadsheetView() {
   const deleteColumn = useStore((s) => s.deleteColumn);
   const fillSeries = useStore((s) => s.fillSeries);
   const clearRange = useStore((s) => s.clearRange);
+  const setColWidth = useStore((s) => s.setColWidth);
+  const setRowHeight = useStore((s) => s.setRowHeight);
   const undo = useStore((s) => s.undo);
   const redo = useStore((s) => s.redo);
   const setActiveView = useStore((s) => s.setActiveView);
@@ -51,6 +55,12 @@ export function SpreadsheetView() {
   const setEditValueUI = useEditorUI((s) => s.setEditValue);
   const commitEdit = useEditorUI((s) => s.commitEdit);
   const cancelEdit = useEditorUI((s) => s.cancelEdit);
+  const range = useEditorUI((s) => s.range);
+  const selecting = useEditorUI((s) => s.selecting);
+  const setRange = useEditorUI((s) => s.setRange);
+  const startRange = useEditorUI((s) => s.startRange);
+  const extendRange = useEditorUI((s) => s.extendRange);
+  const endRange = useEditorUI((s) => s.endRange);
 
   const gridRef = useRef<HTMLDivElement>(null);
   const editRef = useRef<HTMLInputElement>(null);
@@ -58,11 +68,50 @@ export function SpreadsheetView() {
   // portapapeles interno (una sola celda por ahora)
   const clipboardRef = useRef<string | null>(null);
 
+  // helpers de dimensiones (con override por columna/fila)
+  const colWidth = useCallback(
+    (c: number) => file?.colWidths?.[c] ?? COL_W,
+    [file]
+  );
+  const rowHeight = useCallback(
+    (r: number) => file?.rowHeights?.[r] ?? ROW_H,
+    [file]
+  );
+  const totalColWidth = useMemo(() => {
+    if (!file) return 0;
+    let w = 0;
+    for (let c = 0; c < file.colCount; c++) w += colWidth(c);
+    return w;
+  }, [file, colWidth]);
+  const totalRowHeight = useMemo(() => {
+    if (!file) return 0;
+    let h = 0;
+    for (let r = 0; r < file.rowCount; r++) h += rowHeight(r);
+    return h;
+  }, [file, rowHeight]);
+
   // valores calculados (memo por contenido del archivo)
   const computed = useMemo(() => {
     if (!file) return {};
     return recalcFile(file);
   }, [file]);
+
+  // detección de duplicados: mapa de valores -> conteo
+  const dupSet = useMemo(() => {
+    const set = new Set<string>();
+    if (!file || !settings.highlightDuplicates) return set;
+    const counts = new Map<string, number>();
+    for (const k of Object.keys(file.cells)) {
+      const v = (file.cells[k] ?? "").trim();
+      if (!v || v.startsWith("=")) continue;
+      counts.set(v, (counts.get(v) ?? 0) + 1);
+    }
+    for (const [v, n] of counts) {
+      if (n > 1) set.add(v);
+    }
+    return set;
+  }, [file, settings.highlightDuplicates]);
+  const highlightDup = settings.highlightDuplicates;
 
   // reset celda activa al cambiar de archivo
   useEffect(() => {
@@ -327,6 +376,60 @@ export function SpreadsheetView() {
         { type: "separator" },
         {
           type: "submenu",
+          label: "Formato",
+          icon: <MenuIcons.Type className="h-3.5 w-3.5" />,
+          children: [
+            {
+              label: "Negrita",
+              icon: <MenuIcons.Copy className="h-3.5 w-3.5" />,
+              onClick: () => {
+                useStore.getState().setCellStyle(file.id, [{ row: r, col: c }], { bold: true });
+              },
+            },
+            {
+              label: "Cursiva",
+              onClick: () => {
+                useStore.getState().setCellStyle(file.id, [{ row: r, col: c }], { italic: true });
+              },
+            },
+            { type: "separator" },
+            {
+              label: "Fondo amarillo",
+              onClick: () => {
+                useStore.getState().setCellStyle(file.id, [{ row: r, col: c }], { bg: "#fef3c7" });
+              },
+            },
+            {
+              label: "Fondo verde",
+              onClick: () => {
+                useStore.getState().setCellStyle(file.id, [{ row: r, col: c }], { bg: "#bbf7d0" });
+              },
+            },
+            {
+              label: "Fondo rojo",
+              onClick: () => {
+                useStore.getState().setCellStyle(file.id, [{ row: r, col: c }], { bg: "#fecaca" });
+              },
+            },
+            {
+              label: "Fondo gris oscuro",
+              onClick: () => {
+                useStore.getState().setCellStyle(file.id, [{ row: r, col: c }], { bg: "#1f2937", color: "#ffffff" });
+              },
+            },
+            { type: "separator" },
+            {
+              label: "Quitar formato",
+              icon: <MenuIcons.Eraser className="h-3.5 w-3.5" />,
+              onClick: () => {
+                useStore.getState().clearCellStyle(file.id, [{ row: r, col: c }]);
+              },
+            },
+          ],
+        },
+        { type: "separator" },
+        {
+          type: "submenu",
           label: "Insertar fórmula",
           icon: <MenuIcons.Sigma className="h-3.5 w-3.5" />,
           children: formulaItems,
@@ -504,16 +607,20 @@ export function SpreadsheetView() {
         </div>
       </div>
 
+      {/* Barra de formato (tipo Excel) */}
+      <FormatToolbar />
+
       {/* Grilla */}
       <div
         ref={gridRef}
         className="relative flex-1 overflow-auto scroll-thin bg-background"
+        onMouseUp={() => endRange()}
       >
         <div
           className="relative"
           style={{
-            minWidth: ROW_NUM_W + file.colCount * COL_W,
-            minHeight: HEADER_H + file.rowCount * ROW_H,
+            minWidth: ROW_NUM_W + totalColWidth,
+            minHeight: HEADER_H + totalRowHeight,
           }}
         >
           {/* Esquina */}
@@ -536,18 +643,21 @@ export function SpreadsheetView() {
               <ColumnHeader
                 key={c}
                 col={c}
+                width={colWidth(c)}
                 active={active?.col === c}
                 onContextMenu={(e) => openCellMenu(e, 0, c)}
+                onResize={(w) => setColWidth(file.id, c, w)}
               />
             ))}
           </div>
 
           {/* Filas */}
           {Array.from({ length: file.rowCount }).map((_, r) => (
-            <div key={r} className="flex" style={{ height: ROW_H }}>
+            <div key={r} className="flex" style={{ height: rowHeight(r) }}>
               {/* número de fila */}
               <RowHeader
                 row={r}
+                height={rowHeight(r)}
                 active={active?.row === r}
                 onContextMenu={(e) => {
                   e.preventDefault();
@@ -576,6 +686,7 @@ export function SpreadsheetView() {
                     ],
                   });
                 }}
+                onResize={(h) => setRowHeight(file.id, r, h)}
               />
               {/* celdas */}
               {Array.from({ length: file.colCount }).map((_, c) => {
@@ -584,6 +695,9 @@ export function SpreadsheetView() {
                 const raw = file.cells[`${r},${c}`] ?? "";
                 const disp = displayFor(r, c);
                 const isFormula = raw.startsWith("=");
+                const inRange = isInRange(r, c, range);
+                const isDup = highlightDup && dupSet.has(disp.trim()) && disp.trim() !== "";
+                const style = file.cellStyles?.[`${r},${c}`];
                 return (
                   <div
                     key={c}
@@ -591,21 +705,43 @@ export function SpreadsheetView() {
                     onContextMenu={(e) => openCellMenu(e, r, c)}
                     onMouseDown={(e) => {
                       e.preventDefault();
-                      if (!isEditingThis) {
-                        setActive(r, c);
+                      if (e.shiftKey && active) {
+                        // extender selección
+                        setRange({
+                          startRow: active.row,
+                          startCol: active.col,
+                          endRow: r,
+                          endCol: c,
+                        });
+                      } else if (!isEditingThis) {
+                        startRange(r, c);
                       }
+                    }}
+                    onMouseEnter={() => {
+                      if (selecting) extendRange(r, c);
                     }}
                     onDoubleClick={() => {
                       setActive(r, c);
                       startEdit(raw);
                     }}
                     className={cn(
-                      "cell-base relative cursor-cell select-none border-b border-r border-border bg-card px-2 text-[12px] leading-[28px]",
+                      "cell-base relative cursor-cell select-none overflow-hidden border-b border-r border-border px-2 text-[12px]",
                       r === 0 && "bg-muted/40 font-medium",
-                      isActive && !isEditingThis && "cell-active bg-accent/40",
+                      isActive && !isEditingThis && "cell-active z-[3]",
+                      inRange && !isActive && "bg-accent/30",
+                      isDup && !style?.bg && "bg-amber-100 dark:bg-amber-900/30",
                       isFormula && "text-foreground"
                     )}
-                    style={{ width: COL_W, height: ROW_H }}
+                    style={{
+                      width: colWidth(c),
+                      height: rowHeight(r),
+                      backgroundColor: style?.bg,
+                      color: style?.color,
+                      fontWeight: style?.bold ? 700 : 400,
+                      fontStyle: style?.italic ? "italic" : "normal",
+                      fontSize: `${style?.fontSize ?? 12}px`,
+                      textAlign: style?.align ?? (isNumeric(disp) ? "right" : "left"),
+                    }}
                   >
                     {isEditingThis ? (
                       <input
@@ -617,11 +753,8 @@ export function SpreadsheetView() {
                       />
                     ) : (
                       <span
-                        className={cn(
-                          "block truncate",
-                          isFormula ? "font-medium" : "",
-                          isNumeric(disp) ? "text-right tabular-nums" : ""
-                        )}
+                        className="block truncate leading-[inherit]"
+                        style={{ lineHeight: `${rowHeight(r)}px` }}
                       >
                         {disp}
                       </span>
@@ -642,7 +775,7 @@ export function SpreadsheetView() {
           <code className="font-mono">=A1+B1</code>
         </span>
         <span className="ml-auto text-[10px] text-muted-foreground">
-          Clic derecho en una celda para más acciones · Tab ↦ derecha · Enter ↦ abajo · Ctrl+Z deshacer
+          Clic derecho para más acciones · Shift+click selecciona rango · Arrastra para seleccionar · Ctrl+Z deshacer
         </span>
       </div>
 
@@ -661,46 +794,115 @@ export function SpreadsheetView() {
 
 function ColumnHeader({
   col,
+  width,
   active,
   onContextMenu,
+  onResize,
 }: {
   col: number;
+  width: number;
   active: boolean;
   onContextMenu: (e: React.MouseEvent) => void;
+  onResize: (w: number) => void;
 }) {
+  const startX = useRef(0);
+  const startW = useRef(width);
+  const dragging = useRef(false);
+
+  const onMouseDownResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragging.current = true;
+    startX.current = e.clientX;
+    startW.current = width;
+    document.body.style.cursor = "col-resize";
+    const onMove = (ev: MouseEvent) => {
+      if (!dragging.current) return;
+      const delta = ev.clientX - startX.current;
+      onResize(startW.current + delta);
+    };
+    const onUp = () => {
+      dragging.current = false;
+      document.body.style.cursor = "";
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
   return (
     <div
       onContextMenu={onContextMenu}
       className={cn(
-        "sticky top-0 z-10 flex shrink-0 items-center justify-center border-b border-r border-border bg-card text-[11px] font-medium text-muted-foreground cursor-pointer transition-colors",
+        "group sticky top-0 z-10 flex shrink-0 items-center justify-center border-b border-r border-border bg-card text-[11px] font-medium text-muted-foreground cursor-pointer transition-colors",
         active && "bg-accent text-foreground"
       )}
-      style={{ width: COL_W, height: HEADER_H }}
+      style={{ width, height: HEADER_H }}
     >
       {columnToLetter(col)}
+      {/* Resize handle */}
+      <div
+        onMouseDown={onMouseDownResize}
+        className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize bg-transparent transition-colors hover:bg-ring/40 group-hover:bg-ring/20"
+      />
     </div>
   );
 }
 
 function RowHeader({
   row,
+  height,
   active,
   onContextMenu,
+  onResize,
 }: {
   row: number;
+  height: number;
   active: boolean;
   onContextMenu: (e: React.MouseEvent) => void;
+  onResize: (h: number) => void;
 }) {
+  const startY = useRef(0);
+  const startH = useRef(height);
+  const dragging = useRef(false);
+
+  const onMouseDownResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragging.current = true;
+    startY.current = e.clientY;
+    startH.current = height;
+    document.body.style.cursor = "row-resize";
+    const onMove = (ev: MouseEvent) => {
+      if (!dragging.current) return;
+      const delta = ev.clientY - startY.current;
+      onResize(startH.current + delta);
+    };
+    const onUp = () => {
+      dragging.current = false;
+      document.body.style.cursor = "";
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
   return (
     <div
       onContextMenu={onContextMenu}
       className={cn(
-        "sticky left-0 z-10 flex shrink-0 items-center justify-center border-b border-r border-border bg-card text-[11px] font-medium text-muted-foreground cursor-pointer transition-colors",
+        "group sticky left-0 z-10 flex shrink-0 items-center justify-center border-b border-r border-border bg-card text-[11px] font-medium text-muted-foreground cursor-pointer transition-colors",
         active && "bg-accent text-foreground"
       )}
-      style={{ width: ROW_NUM_W, height: ROW_H }}
+      style={{ width: ROW_NUM_W, height }}
     >
       {row + 1}
+      <div
+        onMouseDown={onMouseDownResize}
+        className="absolute bottom-0 left-0 w-full h-1.5 cursor-row-resize bg-transparent transition-colors hover:bg-ring/40 group-hover:bg-ring/20"
+      />
     </div>
   );
 }

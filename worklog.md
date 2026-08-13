@@ -256,3 +256,45 @@ Stage Summary:
 - No aparece el menú del navegador/Google, solo el de LEMCORP
 - Acciones: copiar/pegar/cortar (con portapapeles real), editar, borrar, rellenar serie, insertar fórmulas frecuentes, insertar/eliminar filas y columnas
 - Submenús para fórmulas y para filas/columnas
+
+---
+Task ID: X1-X8
+Agent: main
+Task: Funciones avanzadas tipo Excel (resize, formato, duplicados, selección rango)
+
+Work Log:
+- Tipos: añadido CellStyle {bg, color, bold, italic, fontSize, align} y SheetFile.colWidths/rowHeights/cellStyles. HistorySnapshot extendido para incluir formatos. Settings.highlightDuplicates añadido.
+- Store v3: nuevas acciones setCellStyle (con toggle bold/italic), clearCellStyle, setColWidth, setRowHeight. snapshotOf y undo/redo restauran estilos/dimensiones. Migración v2→v3 añade highlightDuplicates y campos de formato en archivos.
+- editor-store.ts extendido: selección de rango (range, selecting, startRange, extendRange, endRange), helpers isInRange y rangeCells.
+- format-toolbar.tsx (nuevo): barra de herramientas tipo Excel con:
+  - Negrita (toggle), Cursiva (toggle)
+  - Tamaño de fuente (input + botones +/-)
+  - Color de fondo (paleta 20 colores: grises + acentos)
+  - Color de texto (paleta 13 colores)
+  - Alineación (izquierda/centro/derecha)
+  - Quitar formato
+  - Resaltar duplicados (toggle global)
+  - Aplica formato a la celda activa o a toda la selección de rango
+- spreadsheet.tsx: integrado FormatToolbar arriba de la grilla; celdas aplican estilos (bg, color, bold, italic, fontSize, align); selección de rango con mousedown+drag y shift+click; resaltado de duplicados (bg-amber-100); headers con resize handles arrastrables.
+- ColumnHeader/RowHeader reescritos con resize handles (drag para cambiar ancho/alto, límites 40-600px / 24-200px).
+- Menú contextual: añadido submenú "Formato" con Negrita, Cursiva, Fondo amarillo/verde/rojo/gris oscuro, Quitar formato.
+- config-view.tsx: añadido toggle "Resaltar duplicados en el editor".
+
+Verificación con Agent Browser (Excel real del usuario):
+- Barra de formato visible al seleccionar celda: Negrita, Cursiva, Tamaño, Color fondo, Color texto, Alineación, Quitar formato, Duplicados ✓
+- Aplicar negrita → style 1,3 = {bold:true} ✓
+- Aplicar color fondo amarillo → style 1,3 = {bold:true, bg:"#fef3c7"} ✓
+- Resaltar duplicados → 598 celdas repetidas coloreadas automáticamente ✓
+- Resize de columna D arrastrando → colWidths = {3: 200} (de 120 a 200) ✓
+- Submenú "Formato" del menú contextual con opciones de colores ✓
+- VLM confirmó: "barra de herramientas de formato con negrita, cursiva, tamaño, colores, alineación y botón Duplicados; celdas resaltadas en amarillo; columna D más ancha; diseño gris corporativo" ✓
+- Lint limpio, dev server sin errores, estado limpio restaurado
+
+Stage Summary:
+- Editor ahora con funciones avanzadas tipo Excel:
+  - Resize de columnas y filas (arrastrar bordes)
+  - Barra de formato: negrita, cursiva, tamaño de fuente, color de fondo (paleta 20 colores), color de texto (13 colores), alineación, quitar formato
+  - Resaltado automático de duplicados (toggle, colorear celdas repetidas)
+  - Selección de rango (arrastrar o shift+click)
+  - Submenú Formato en menú contextual con colores rápidos
+  - Formato persistente (se guarda en localStorage, entra en historial undo/redo)

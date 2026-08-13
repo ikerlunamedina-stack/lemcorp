@@ -12,6 +12,7 @@ import type {
   Product,
   Mismatch,
   Settings,
+  CellStyle,
 } from "./types";
 import { DEFAULT_SETTINGS } from "./types";
 import { emptyFile, importFile as importXlsx, uid } from "./excel";
@@ -80,6 +81,12 @@ interface StoreState {
   // limpiar contenido de un rango
   clearRange: (fileId: string, r1: number, c1: number, r2: number, c2: number) => void;
 
+  // formato de celdas (tipo Excel)
+  setCellStyle: (fileId: string, cells: { row: number; col: number }[], style: Partial<CellStyle>) => void;
+  clearCellStyle: (fileId: string, cells: { row: number; col: number }[]) => void;
+  setColWidth: (fileId: string, col: number, width: number) => void;
+  setRowHeight: (fileId: string, row: number, height: number) => void;
+
   // historial
   undo: (fileId: string) => void;
   redo: (fileId: string) => void;
@@ -100,6 +107,9 @@ function snapshotOf(file: SheetFile): HistorySnapshot {
     cells: { ...file.cells },
     rowCount: file.rowCount,
     colCount: file.colCount,
+    colWidths: file.colWidths ? { ...file.colWidths } : undefined,
+    rowHeights: file.rowHeights ? { ...file.rowHeights } : undefined,
+    cellStyles: file.cellStyles ? { ...file.cellStyles } : undefined,
     label: "",
     ts: Date.now(),
   };
@@ -612,6 +622,89 @@ export const useStore = create<StoreState>()(
         }
       },
 
+      // ---------- Formato de celdas (tipo Excel) ----------
+      setCellStyle: (fileId, cells, style) => {
+        const target = get().files.find((f) => f.id === fileId);
+        if (!target) return;
+        get().snapshot(fileId, "Aplicar formato");
+        const newStyles: Record<string, CellStyle> = { ...(target.cellStyles ?? {}) };
+        for (const { row, col } of cells) {
+          const key = `${row},${col}`;
+          const current = newStyles[key] ?? {};
+          const merged: CellStyle = { ...current };
+          (Object.keys(style) as (keyof CellStyle)[]).forEach((k) => {
+            const v = style[k];
+            if (v === undefined) {
+              delete merged[k];
+            } else {
+              // toggle para bold/italic: si ya está true y viene true, quítalo
+              if (k === "bold" || k === "italic") {
+                merged[k] = !current[k];
+              } else {
+                (merged as Record<string, unknown>)[k] = v;
+              }
+            }
+          });
+          const hasAny = (Object.keys(merged) as (keyof CellStyle)[]).some(
+            (k) => merged[k] !== undefined && merged[k] !== false
+          );
+          if (hasAny) newStyles[key] = merged;
+          else delete newStyles[key];
+        }
+        const updated: SheetFile = {
+          ...target,
+          cellStyles: newStyles,
+          updatedAt: Date.now(),
+        };
+        set({ files: get().files.map((f) => (f.id === fileId ? updated : f)) });
+      },
+
+      clearCellStyle: (fileId, cells) => {
+        const target = get().files.find((f) => f.id === fileId);
+        if (!target) return;
+        get().snapshot(fileId, "Quitar formato");
+        const newStyles: Record<string, CellStyle> = { ...(target.cellStyles ?? {}) };
+        for (const { row, col } of cells) {
+          delete newStyles[`${row},${col}`];
+        }
+        const updated: SheetFile = {
+          ...target,
+          cellStyles: Object.keys(newStyles).length > 0 ? newStyles : undefined,
+          updatedAt: Date.now(),
+        };
+        set({ files: get().files.map((f) => (f.id === fileId ? updated : f)) });
+      },
+
+      setColWidth: (fileId, col, width) => {
+        const target = get().files.find((f) => f.id === fileId);
+        if (!target) return;
+        const w = Math.max(40, Math.min(600, Math.round(width)));
+        const newWidths = { ...(target.colWidths ?? {}) };
+        if (w === 120) delete newWidths[col];
+        else newWidths[col] = w;
+        const updated: SheetFile = {
+          ...target,
+          colWidths: Object.keys(newWidths).length > 0 ? newWidths : undefined,
+          updatedAt: Date.now(),
+        };
+        set({ files: get().files.map((f) => (f.id === fileId ? updated : f)) });
+      },
+
+      setRowHeight: (fileId, row, height) => {
+        const target = get().files.find((f) => f.id === fileId);
+        if (!target) return;
+        const h = Math.max(24, Math.min(200, Math.round(height)));
+        const newHeights = { ...(target.rowHeights ?? {}) };
+        if (h === 30) delete newHeights[row];
+        else newHeights[row] = h;
+        const updated: SheetFile = {
+          ...target,
+          rowHeights: Object.keys(newHeights).length > 0 ? newHeights : undefined,
+          updatedAt: Date.now(),
+        };
+        set({ files: get().files.map((f) => (f.id === fileId ? updated : f)) });
+      },
+
       undo: (fileId) => {
         const h = get().histories[fileId] ?? [];
         if (h.length === 0) return;
@@ -626,6 +719,9 @@ export const useStore = create<StoreState>()(
           cells: { ...snap.cells },
           rowCount: snap.rowCount,
           colCount: snap.colCount,
+          colWidths: snap.colWidths ? { ...snap.colWidths } : undefined,
+          rowHeights: snap.rowHeights ? { ...snap.rowHeights } : undefined,
+          cellStyles: snap.cellStyles ? { ...snap.cellStyles } : undefined,
           updatedAt: Date.now(),
         };
         const files = get().files.map((f) => (f.id === fileId ? restored : f));
@@ -659,6 +755,9 @@ export const useStore = create<StoreState>()(
           cells: { ...snap.cells },
           rowCount: snap.rowCount,
           colCount: snap.colCount,
+          colWidths: snap.colWidths ? { ...snap.colWidths } : undefined,
+          rowHeights: snap.rowHeights ? { ...snap.rowHeights } : undefined,
+          cellStyles: snap.cellStyles ? { ...snap.cellStyles } : undefined,
           updatedAt: Date.now(),
         };
         const files = get().files.map((f) => (f.id === fileId ? restored : f));
@@ -807,10 +906,22 @@ export const useStore = create<StoreState>()(
           return { ...rest, quantity: rest.quantity };
         });
         if (!persisted.settings) persisted.settings = { ...DEFAULT_SETTINGS };
+        // v2 -> v3: añadir highlightDuplicates + campos de formato en archivos
+        if (persisted.settings.highlightDuplicates === undefined) {
+          persisted.settings.highlightDuplicates = false;
+        }
+        if (Array.isArray(persisted.files)) {
+          persisted.files = persisted.files.map((f: any) => ({
+            ...f,
+            colWidths: f.colWidths ?? undefined,
+            rowHeights: f.rowHeights ?? undefined,
+            cellStyles: f.cellStyles ?? undefined,
+          }));
+        }
         if (!persisted.seenNotificationKeys) persisted.seenNotificationKeys = [];
         return persisted;
       },
-      version: 2,
+      version: 3,
     }
   )
 );

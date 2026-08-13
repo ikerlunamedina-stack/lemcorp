@@ -41,14 +41,33 @@ export interface SheetFile {
   rowCount: number;
   colCount: number;
   cells: Record<string, string>; // raw value (puede ser fórmula con =)
+  // Ancho por columna (en px). Si no está, usa COL_W por defecto.
+  colWidths?: Record<number, number>;
+  // Alto por fila (en px). Si no está, usa ROW_H por defecto.
+  rowHeights?: Record<number, number>;
+  // Estilos por celda: clave `${row},${col}` -> CellStyle
+  cellStyles?: Record<string, CellStyle>;
   createdAt: number;
   updatedAt: number;
+}
+
+// Estilo de una celda (formato visual tipo Excel).
+export interface CellStyle {
+  bg?: string; // color de fondo (hex)
+  color?: string; // color de texto (hex)
+  bold?: boolean;
+  italic?: boolean;
+  fontSize?: number; // px
+  align?: "left" | "center" | "right";
 }
 
 export interface HistorySnapshot {
   cells: Record<string, string>;
   rowCount: number;
   colCount: number;
+  colWidths?: Record<number, number>;
+  rowHeights?: Record<number, number>;
+  cellStyles?: Record<string, CellStyle>;
   label: string;
   ts: number;
 }
@@ -80,12 +99,14 @@ export interface Settings {
   skuDetection: boolean; // validar SKUs de archivos contra catálogo
   lowStockAlerts: boolean; // alertar bajo stock
   automation: boolean; // despachos -> inventario automático
+  highlightDuplicates: boolean; // resaltar valores duplicados en el editor
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   skuDetection: true,
   lowStockAlerts: true,
   automation: true,
+  highlightDuplicates: false,
 };
 
 export type ActiveView =
