@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useStore } from "@/lib/store";
 import { getHeaderColumns } from "@/lib/detection";
 import { recalcFile } from "@/lib/formulas";
+import { parseNum, fmtNum } from "@/lib/num";
 import type { SheetFile } from "@/lib/types";
 import {
   Package,
@@ -24,7 +25,12 @@ const PRODUCT_COLS = [
   "producto", "sku", "codigo", "código", "articulo", "artículo",
   "descripcion", "descripción", "material", "item",
 ];
-const QTY_COLS = ["cantidad", "stock", "existencia", "saldo", "cant", "qty"];
+// Priorizamos Físico y Disponible porque los reportes reales de almacén
+// (ej. HUB ALTAS - LIMA NORTE) usan esos nombres de columna.
+const QTY_COLS = [
+  "fisico", "disponible", "cantidad", "stock", "existencia", "saldo",
+  "stock actual", "cant", "qty",
+];
 const MIN_COLS = ["stock minimo", "stock mínimo", "minimo", "mínimo", "min", "reorder"];
 
 function normalize(s: string): string {
@@ -71,9 +77,11 @@ function extractInventory(file: SheetFile): InvItem[] {
     const product = (file.cells[`${r},${prodCol}`] ?? "").trim();
     if (!product) continue;
     const qtyRaw = computed[`${r},${qtyCol}`] ?? file.cells[`${r},${qtyCol}`] ?? "";
-    const qty = parseFloat(String(qtyRaw).replace(",", ".")) || 0;
+    const qtyNum = parseNum(qtyRaw);
+    const qty = isNaN(qtyNum) ? 0 : qtyNum;
     const minRaw = minCol >= 0 ? (file.cells[`${r},${minCol}`] ?? "") : "";
-    const min = parseFloat(String(minRaw).replace(",", ".")) || 0;
+    const minNum = parseNum(minRaw);
+    const min = isNaN(minNum) ? 0 : minNum;
     const sku = skuCol >= 0 ? (file.cells[`${r},${skuCol}`] ?? "").trim() : undefined;
     items.push({
       fileId: file.id,

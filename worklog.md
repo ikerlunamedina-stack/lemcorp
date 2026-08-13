@@ -108,3 +108,43 @@ Stage Summary:
 - Vista Series separada (lista plana de todas las series, no saturada en Equipos)
 - Catálogo de productos con columna Cantidad (lee automáticamente del Excel al importar)
 - Stat "SKUs distintos" eliminado; las advertencias van por la campana
+
+---
+Task ID: F1-F6
+Agent: main
+Task: Corregir detección del Excel real del usuario (Stock HUB ALTAS - LIMA NORTE)
+
+Work Log:
+- Problema identificado al inspeccionar el Excel real del usuario:
+  1) El archivo usa columnas de cantidad llamadas "Físico", "Disponible", "Reservado", "En Tránsito" — la app solo reconocía "Cantidad", "Stock", etc.
+  2) Los números están en formato español con separador de miles ("2,768.00") — parseFloat los leía como 2.768 en vez de 2768
+- Creado src/lib/num.ts con parseNum() que maneja correctamente:
+  - "2,768.00" -> 2768 (coma miles, punto decimal)
+  - "2.768,00" -> 2768 (punto miles, coma decimal, formato es-ES)
+  - "2,5" -> 2.5 / "2.5" -> 2.5 / "2768" -> 2768
+  - Y fmtNum() para mostrar en formato es-PE
+- Expandido QTY_COLS en automation.ts, validation.ts, summary-view.tsx, notifications.ts para incluir: fisico, disponible, cantidad, stock, existencia, saldo, stock actual, cant, qty (en ese orden de prioridad — Físico primero porque es el reporte real de almacén)
+- Reemplazado parseFloat(x.replace(",",".")) por parseNum(x) en:
+  - automation.ts (getQty + adjust)
+  - validation.ts (suggestProducts)
+  - summary-view.tsx (extractInventory)
+  - notifications.ts (bajo stock)
+  - products-view.tsx (input cantidad)
+
+Verificación con el Excel real del usuario (Stock_HUB_ALTAS_-_LIMA_NORTE_Resumen.xlsx, 68 filas):
+- Importación: tag detectado como "inventario" (tagConfirmed=true) ✓
+- Headers leídos: Almacén | Ubicación | SKU | Producto | Categoría | Propiedad | Físico | Reservado | En Tránsito | Disponible | UdM | Observaciones ✓
+- Número "2,768.00" parseado como 2768 ✓
+- SKU=1002900, Producto=CONECTOR PLUG RJ-45, Físico=2768, Disponible=2441 ✓
+- Sugerencias: 54 SKUs detectados (sin catalogar) ✓
+- "Añadir todos": 57 productos en catálogo, TODOS con cantidad ✓
+- Ejemplo: CONECTOR PLUG RJ-45 (SKU 1002900) quantity=2768 ✓
+- Resumen: 57 productos en catálogo, 999,859 unidades totales (stock real del almacén) ✓
+- VLM confirmó: catálogo muestra SKUs numéricos (1002900, 1002950, 1003101) y cantidades correctas (2768, 1475, 6794, 136, 309, 1011) ✓
+- Lint limpio, dev server sin errores, estado limpio restaurado
+
+Stage Summary:
+- La app ahora detecta y lee correctamente Excels reales de almacén LEMCORP
+- Reconoce columnas Físico/Disponible/Reservado/En Tránsito como cantidades (prioriza Físico)
+- Parsea correctamente números en formato español ("2,768.00" → 2768)
+- 68 productos del almacén HUB ALTAS - LIMA NORTE importados y catalogados con sus cantidades reales

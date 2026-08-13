@@ -8,6 +8,7 @@
 import type { FileTag, Mismatch, Product, SheetFile } from "./types";
 import { getHeaderColumns } from "./detection";
 import { recalcFile } from "./formulas";
+import { parseNum } from "./num";
 
 // Candidatos para la columna SKU (en orden de prioridad).
 export const SKU_COLS = [
@@ -130,8 +131,8 @@ export function validateFiles(
 
 // Sugiere nuevos productos a partir de archivos que aún no están en el catálogo.
 // Devuelve SKU -> { name, quantity, fromFiles } para los SKUs no registrados.
-// La cantidad se detecta de la columna "Cantidad"/"Stock" del archivo (la última
-// vez que apareció el SKU; típicamente de inventario).
+// La cantidad se detecta de la columna de stock del archivo (prioriza Físico,
+// luego Disponible, luego Cantidad/Stock/Existencia).
 export interface SuggestedProduct {
   sku: string;
   name: string;
@@ -140,7 +141,18 @@ export interface SuggestedProduct {
   fromFiles: string[];
 }
 
-const QTY_COLS_SUGGEST = ["cantidad", "stock", "existencia", "saldo", "cant", "qty"];
+// Columnas candidatas a "cantidad" en orden de prioridad para inventario real.
+const QTY_COLS_SUGGEST = [
+  "fisico",
+  "disponible",
+  "cantidad",
+  "stock",
+  "existencia",
+  "saldo",
+  "stock actual",
+  "cant",
+  "qty",
+];
 
 export function suggestProducts(
   files: SheetFile[],
@@ -167,7 +179,7 @@ export function suggestProducts(
       let qty: number | undefined;
       if (qtyCol >= 0) {
         const qRaw = computed[`${r},${qtyCol}`] ?? file.cells[`${r},${qtyCol}`] ?? "";
-        const q = parseFloat(String(qRaw).replace(",", "."));
+        const q = parseNum(qRaw);
         if (!isNaN(q)) qty = q;
       }
       const existing = map.get(key);

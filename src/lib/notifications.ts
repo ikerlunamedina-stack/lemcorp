@@ -9,6 +9,7 @@ import type {
 import { getHeaderColumns } from "./detection";
 import { recalcFile } from "./formulas";
 import { validateFiles, suggestProducts } from "./validation";
+import { parseNum } from "./num";
 
 export type NotificationType = "danger" | "warning" | "info";
 
@@ -33,7 +34,17 @@ const PRODUCT_COLS = [
   "material",
   "item",
 ];
-const QTY_COLS = ["cantidad", "stock", "existencia", "saldo", "cant", "qty"];
+const QTY_COLS = [
+  "fisico",
+  "disponible",
+  "cantidad",
+  "stock",
+  "existencia",
+  "saldo",
+  "stock actual",
+  "cant",
+  "qty",
+];
 const MIN_COLS = ["stock minimo", "stock mínimo", "minimo", "mínimo", "min", "reorder"];
 
 function normalize(s: string): string {
@@ -85,9 +96,11 @@ export function computeNotifications(
         if (!product) continue;
         const qtyRaw =
           computed[`${r},${qtyCol}`] ?? f.cells[`${r},${qtyCol}`] ?? "";
-        const qty = parseFloat(String(qtyRaw).replace(",", ".")) || 0;
+        const qtyNum = parseNum(qtyRaw);
+        const qty = isNaN(qtyNum) ? 0 : qtyNum;
         const minRaw = f.cells[`${r},${minCol}`] ?? "";
-        const min = parseFloat(String(minRaw).replace(",", ".")) || 0;
+        const minNum = parseNum(minRaw);
+        const min = isNaN(minNum) ? 0 : minNum;
         if (min > 0 && qty <= min) {
           out.push({
             key: `low:${f.id}:${r}`,

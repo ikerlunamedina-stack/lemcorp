@@ -16,6 +16,7 @@ import {
 import { useStore } from "@/lib/store";
 import type { Product } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { parseNum } from "@/lib/num";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -92,7 +93,7 @@ export function ProductsView() {
 
   const handleSave = () => {
     if (!sku.trim() || !name.trim()) return;
-    const qtyNum = quantity.trim() === "" ? undefined : parseFloat(quantity.replace(",", "."));
+    const qtyNum = quantity.trim() === "" ? undefined : parseNum(quantity);
     if (editing) {
       const clash = findProductBySku(sku.trim());
       if (clash && clash.id !== editing.id) {

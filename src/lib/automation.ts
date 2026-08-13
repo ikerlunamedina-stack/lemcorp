@@ -13,6 +13,7 @@
 
 import type { SheetFile } from "./types";
 import { getHeaderColumns } from "./detection";
+import { parseNum } from "./num";
 
 export interface AppliedRow {
   product: string;
@@ -35,11 +36,16 @@ const PRODUCT_COLS = [
   "código",
 ];
 const QTY_COLS_DESPACHO = ["cantidad", "cant", "qty", "salida", "despachado"];
+// Para inventario priorizamos "Físico" (stock físico total) y "Disponible",
+// porque los reportes reales de almacén (ej. HUB ALTAS) usan esos nombres.
 const QTY_COLS_INVENTARIO = [
+  "fisico",
+  "disponible",
   "cantidad",
   "stock",
   "existencia",
   "saldo",
+  "stock actual",
   "cant",
   "qty",
 ];
@@ -84,7 +90,8 @@ export interface AutomationResult {
 function getQty(file: SheetFile, r: number, col: number): number {
   const raw = file.cells[`${r},${col}`] ?? "";
   if (raw.startsWith("=")) return 0; // no automatizamos celdas con fórmula
-  return parseFloat(raw.replace(",", ".")) || 0;
+  const n = parseNum(raw);
+  return isNaN(n) ? 0 : n;
 }
 
 // Ejecuta la automatización para un archivo despachos dado.
@@ -144,9 +151,9 @@ export function runAutomation(
     invRow: number,
     delta: number
   ): { matched: boolean; product: string } | null => {
-    const cur = parseFloat(
-      (newInv.cells[`${invRow},${invQtyCol}`] ?? "0").replace(",", ".")
-    ) || 0;
+    const curRaw = newInv.cells[`${invRow},${invQtyCol}`] ?? "0";
+    const curNum = parseNum(curRaw);
+    const cur = isNaN(curNum) ? 0 : curNum;
     newInv.cells[`${invRow},${invQtyCol}`] = String(cur + delta);
     return null;
   };
