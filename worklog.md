@@ -220,3 +220,39 @@ Stage Summary:
 - Renombrado "Productos" → "Inventario" en toda la app (nav, topbar, resumen)
 - El catálogo maestro de SKUs sigue disponible (botón "Catálogo" en la vista Inventario) para validación de nombres
 - Tabla viva (no copia): cualquier edición en el editor se refleja al instante en la vista Inventario
+
+---
+Task ID: M1-M6
+Agent: main
+Task: Menú contextual personalizado (clic derecho) con funcionalidades de la app
+
+Work Log:
+- Creado src/components/lem/custom-context-menu.tsx: menú contextual 100% personalizado (no del navegador) renderizado con createPortal en document.body. Soporta:
+  - Items con label, icono, shortcut, disabled
+  - Separadores
+  - Submenús (hover para abrir, posicionados a la derecha con CSS absolute)
+  - Cierre al click fuera, Escape, o scroll
+  - Ajuste de posición para no salir de la ventana
+  - Exporta MenuIcons (Copy, Paste, Scissors, Trash2, Eraser, Sigma, etc.) para construir menús
+- Store extendido con fillSeries (rellenar serie numérica con detección de paso) y clearRange (limpiar rango)
+- spreadsheet.tsx integrado:
+  - onContextMenu en cada celda → abre menú con: Copiar (Ctrl+C), Pegar (Ctrl+V), Cortar (Ctrl+X), Editar celda (Enter), Borrar contenido (Supr), Rellenar hacia abajo, Insertar fórmula (submenú), Fila (submenú), Columna (submenú)
+  - onContextMenu en headers de columna → menú simplificado (Agregar/Eliminar columna)
+  - onContextMenu en headers de fila → menú simplificado (Insertar/Eliminar fila)
+  - Portapapeles interno (clipboardRef) + integración con navigator.clipboard API (con fallback)
+- Submenú "Insertar fórmula": SUMA hasta esta celda, SUMA de toda la columna, PROMEDIO, MAX, MIN, CONTARA, SI (condicional), HOY (fecha)
+- Eliminado ContextMenu de radix (ya no se usa) de ColumnHeader y RowHeader
+
+Verificación con Agent Browser (Excel real del usuario):
+- Clic derecho en celda → menú personalizado aparece con todos los items ✓
+- Copiar (Ctrl+C) habilita Pegar en otras celdas ✓
+- Pegar copia el valor correctamente (celda 2,2 = "CONECTOR PLUG RJ-45") ✓
+- Submenú "Insertar fórmula" muestra: SUMA hasta esta celda, SUMA de toda la columna, PROMEDIO, MAX, MIN, CONTAR, SI, HOY ✓
+- VLM confirmó: "menú contextual personalizado (no el del navegador) con todas las opciones (Copiar, Pegar, Cortar, Editar celda, Borrar contenido, Rellenar hacia abajo, Insertar fórmula, Fila, Columna), estilo gris corporativo" ✓
+- Lint limpio, dev server sin errores, estado limpio restaurado
+
+Stage Summary:
+- El editor ahora tiene un menú contextual 100% personalizado (clic derecho) con todas las funcionalidades de la app
+- No aparece el menú del navegador/Google, solo el de LEMCORP
+- Acciones: copiar/pegar/cortar (con portapapeles real), editar, borrar, rellenar serie, insertar fórmulas frecuentes, insertar/eliminar filas y columnas
+- Submenús para fórmulas y para filas/columnas

@@ -75,6 +75,10 @@ interface StoreState {
   addColumn: (fileId: string) => void;
   deleteRow: (fileId: string, row: number) => void;
   deleteColumn: (fileId: string, col: number) => void;
+  // rellenar serie: copia el valor de (row,col) hacia abajo hasta endRow
+  fillSeries: (fileId: string, row: number, col: number, endRow: number) => void;
+  // limpiar contenido de un rango
+  clearRange: (fileId: string, r1: number, c1: number, r2: number, c2: number) => void;
 
   // historial
   undo: (fileId: string) => void;
@@ -537,6 +541,75 @@ export const useStore = create<StoreState>()(
           updatedAt: Date.now(),
         };
         set({ files: get().files.map((f) => (f.id === fileId ? updated : f)) });
+      },
+
+      fillSeries: (fileId, row, col, endRow) => {
+        const target = get().files.find((f) => f.id === fileId);
+        if (!target) return;
+        if (endRow <= row) return;
+        const source = target.cells[`${row},${col}`] ?? "";
+        if (source === "") return;
+        get().snapshot(fileId, "Rellenar serie");
+        const newCells = { ...target.cells };
+        // Si el origen es numérico, rellenar con incremento de 1.
+        const numMatch = /^(-?\d+(?:\.\d+)?)$/.exec(source.trim().replace(",", "."));
+        if (numMatch) {
+          const start = parseFloat(numMatch[1]);
+          let step = 1;
+          // detectar paso si hay dos valores consecutivos ya en la columna
+          const next = target.cells[`${row + 1},${col}`];
+          if (next) {
+            const nm = /^(-?\d+(?:\.\d+)?)$/.exec(next.trim().replace(",", "."));
+            if (nm) step = parseFloat(nm[1]) - start;
+          }
+          for (let r = row + 1; r <= endRow; r++) {
+            const v = start + step * (r - row);
+            newCells[`${r},${col}`] = Number.isInteger(v) ? String(v) : String(v);
+          }
+        } else {
+          // no numérico: copiar el valor
+          for (let r = row + 1; r <= endRow; r++) {
+            newCells[`${r},${col}`] = source;
+          }
+        }
+        const updated: SheetFile = { ...target, cells: newCells, updatedAt: Date.now() };
+        let nextFiles = get().files.map((f) => (f.id === fileId ? updated : f));
+        set({ files: nextFiles });
+        if (updated.tag === "despachos" && get().settings.automation) {
+          const inv = findInventarioFile(get().files);
+          const { inventario } = runAutomation(updated, inv, get().appliedMap);
+          if (inventario) {
+            nextFiles = get().files.map((f) =>
+              f.id === inventario.id ? inventario : f
+            );
+            set({ files: nextFiles, appliedMap: { ...get().appliedMap } });
+          }
+        }
+      },
+
+      clearRange: (fileId, r1, c1, r2, c2) => {
+        const target = get().files.find((f) => f.id === fileId);
+        if (!target) return;
+        get().snapshot(fileId, "Limpiar rango");
+        const newCells = { ...target.cells };
+        for (let r = r1; r <= r2; r++) {
+          for (let c = c1; c <= c2; c++) {
+            delete newCells[`${r},${c}`];
+          }
+        }
+        const updated: SheetFile = { ...target, cells: newCells, updatedAt: Date.now() };
+        let nextFiles = get().files.map((f) => (f.id === fileId ? updated : f));
+        set({ files: nextFiles });
+        if (updated.tag === "despachos" && get().settings.automation) {
+          const inv = findInventarioFile(get().files);
+          const { inventario } = runAutomation(updated, inv, get().appliedMap);
+          if (inventario) {
+            nextFiles = get().files.map((f) =>
+              f.id === inventario.id ? inventario : f
+            );
+            set({ files: nextFiles, appliedMap: { ...get().appliedMap } });
+          }
+        }
       },
 
       undo: (fileId) => {

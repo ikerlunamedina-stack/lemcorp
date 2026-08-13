@@ -8,18 +8,18 @@ import { cn } from "@/lib/utils";
 import { FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
+import {
+  CustomContextMenu,
+  MenuIcons,
+  type MenuItem,
+} from "./custom-context-menu";
+import { useToast } from "@/hooks/use-toast";
 
 const COL_W = 120;
 const ROW_H = 30;
@@ -29,14 +29,18 @@ const ROW_NUM_W = 48;
 export function SpreadsheetView() {
   const file = useStore((s) => s.files.find((f) => f.id === s.activeFileId));
   const setCell = useStore((s) => s.setCell);
+  const setCells = useStore((s) => s.setCells);
   const addRow = useStore((s) => s.addRow);
   const deleteRow = useStore((s) => s.deleteRow);
   const addColumn = useStore((s) => s.addColumn);
   const deleteColumn = useStore((s) => s.deleteColumn);
+  const fillSeries = useStore((s) => s.fillSeries);
+  const clearRange = useStore((s) => s.clearRange);
   const undo = useStore((s) => s.undo);
   const redo = useStore((s) => s.redo);
   const setActiveView = useStore((s) => s.setActiveView);
   const createFile = useStore((s) => s.createFile);
+  const { toast } = useToast();
 
   const active = useEditorUI((s) => s.active);
   const setActive = useEditorUI((s) => s.setActive);
@@ -50,6 +54,9 @@ export function SpreadsheetView() {
 
   const gridRef = useRef<HTMLDivElement>(null);
   const editRef = useRef<HTMLInputElement>(null);
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null);
+  // portapapeles interno (una sola celda por ahora)
+  const clipboardRef = useRef<string | null>(null);
 
   // valores calculados (memo por contenido del archivo)
   const computed = useMemo(() => {
@@ -163,6 +170,241 @@ export function SpreadsheetView() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [file, active, editing, editValue, move, commit, startEdit, cancelEdit, setCell, undo, redo]);
+
+  // Construye el menú contextual para una celda dada.
+  const buildCellMenu = useCallback(
+    (r: number, c: number): MenuItem[] => {
+      if (!file) return [];
+      const ref = coordToRef(r, c);
+      const raw = file.cells[`${r},${c}`] ?? "";
+      const hasValue = raw !== "";
+      const isFormula = raw.startsWith("=");
+      const inHeader = r === 0;
+
+      const formulaItems: MenuItem[] = [
+        {
+          label: `SUMA hasta esta celda`,
+          icon: <MenuIcons.Sigma className="h-3.5 w-3.5" />,
+          onClick: () => {
+            // =SUMA(col1:col_actual) en la fila actual
+            const colLetter = columnToLetter(c);
+            setCell(file.id, r, c, `=SUMA(${colLetter}1:${colLetter}${r})`);
+            toast({ title: "Fórmula insertada", description: `=SUMA(${colLetter}1:${colLetter}${r})` });
+          },
+        },
+        {
+          label: "SUMA de toda la columna",
+          icon: <MenuIcons.Sigma className="h-3.5 w-3.5" />,
+          onClick: () => {
+            const colLetter = columnToLetter(c);
+            const formula = `=SUMA(${colLetter}1:${colLetter}${file.rowCount})`;
+            setCell(file.id, r, c, formula);
+            toast({ title: "Fórmula insertada", description: formula });
+          },
+        },
+        { type: "separator" },
+        {
+          label: "PROMEDIO de la columna",
+          icon: <MenuIcons.TrendingUp className="h-3.5 w-3.5" />,
+          onClick: () => {
+            const colLetter = columnToLetter(c);
+            setCell(file.id, r, c, `=PROMEDIO(${colLetter}1:${colLetter}${file.rowCount})`);
+          },
+        },
+        {
+          label: "MAX de la columna",
+          onClick: () => {
+            const colLetter = columnToLetter(c);
+            setCell(file.id, r, c, `=MAX(${colLetter}1:${colLetter}${file.rowCount})`);
+          },
+        },
+        {
+          label: "MIN de la columna",
+          onClick: () => {
+            const colLetter = columnToLetter(c);
+            setCell(file.id, r, c, `=MIN(${colLetter}1:${colLetter}${file.rowCount})`);
+          },
+        },
+        {
+          label: "CONTAR no vacías",
+          icon: <MenuIcons.Hash className="h-3.5 w-3.5" />,
+          onClick: () => {
+            const colLetter = columnToLetter(c);
+            setCell(file.id, r, c, `=CONTARA(${colLetter}1:${colLetter}${file.rowCount})`);
+          },
+        },
+        { type: "separator" },
+        {
+          label: "SI (condicional)",
+          icon: <MenuIcons.Split className="h-3.5 w-3.5" />,
+          onClick: () => {
+            setCell(file.id, r, c, `=SI(${coordToRef(r, c - 1)}>0;"Sí";"No")`);
+            toast({ title: "Fórmula SI insertada", description: "Edita la condición en la barra fx" });
+          },
+        },
+        {
+          label: "HOY (fecha actual)",
+          icon: <MenuIcons.Calendar className="h-3.5 w-3.5" />,
+          onClick: () => {
+            setCell(file.id, r, c, "=HOY()");
+          },
+        },
+      ];
+
+      const items: MenuItem[] = [
+        {
+          label: "Copiar",
+          icon: <MenuIcons.Copy className="h-3.5 w-3.5" />,
+          shortcut: "Ctrl+C",
+          disabled: !hasValue,
+          onClick: async () => {
+            clipboardRef.current = raw;
+            try {
+              await navigator.clipboard.writeText(raw);
+            } catch {}
+            toast({ title: "Copiado", description: ref });
+          },
+        },
+        {
+          label: "Pegar",
+          icon: <MenuIcons.ClipboardPaste className="h-3.5 w-3.5" />,
+          shortcut: "Ctrl+V",
+          disabled: clipboardRef.current === null,
+          onClick: async () => {
+            // Priorizar portapapeles real si tiene contenido
+            let val = clipboardRef.current ?? "";
+            try {
+              const text = await navigator.clipboard.readText();
+              if (text) val = text;
+            } catch {}
+            if (val) {
+              setCell(file.id, r, c, val);
+              toast({ title: "Pegado", description: ref });
+            }
+          },
+        },
+        {
+          label: "Cortar",
+          icon: <MenuIcons.Scissors className="h-3.5 w-3.5" />,
+          shortcut: "Ctrl+X",
+          disabled: !hasValue,
+          onClick: async () => {
+            clipboardRef.current = raw;
+            try {
+              await navigator.clipboard.writeText(raw);
+            } catch {}
+            setCell(file.id, r, c, "");
+            toast({ title: "Cortado", description: ref });
+          },
+        },
+        { type: "separator" },
+        {
+          label: "Editar celda",
+          icon: <MenuIcons.Type className="h-3.5 w-3.5" />,
+          shortcut: "Enter",
+          onClick: () => {
+            setActive(r, c);
+            startEdit(raw);
+          },
+        },
+        {
+          label: "Borrar contenido",
+          icon: <MenuIcons.Eraser className="h-3.5 w-3.5" />,
+          shortcut: "Supr",
+          disabled: !hasValue,
+          onClick: () => setCell(file.id, r, c, ""),
+        },
+        { type: "separator" },
+        {
+          label: "Rellenar hacia abajo",
+          icon: <MenuIcons.ArrowDownToLine className="h-3.5 w-3.5" />,
+          disabled: !hasValue || r >= file.rowCount - 1,
+          onClick: () => {
+            fillSeries(file.id, r, c, Math.min(r + 10, file.rowCount - 1));
+            toast({ title: "Serie rellenada", description: `Hasta fila ${Math.min(r + 10, file.rowCount - 1) + 1}` });
+          },
+        },
+        { type: "separator" },
+        {
+          type: "submenu",
+          label: "Insertar fórmula",
+          icon: <MenuIcons.Sigma className="h-3.5 w-3.5" />,
+          children: formulaItems,
+        },
+        { type: "separator" },
+        {
+          type: "submenu",
+          label: "Fila",
+          icon: <MenuIcons.Plus className="h-3.5 w-3.5" />,
+          children: [
+            {
+              label: "Insertar fila arriba",
+              icon: <MenuIcons.ArrowUpToLine className="h-3.5 w-3.5" />,
+              onClick: () => addRow(file.id, r),
+            },
+            {
+              label: "Insertar fila abajo",
+              icon: <MenuIcons.ArrowDownToLine className="h-3.5 w-3.5" />,
+              onClick: () => addRow(file.id, r + 1),
+            },
+            { type: "separator" },
+            {
+              label: `Eliminar fila ${r + 1}`,
+              icon: <MenuIcons.Trash2 className="h-3.5 w-3.5" />,
+              disabled: r === 0,
+              onClick: () => deleteRow(file.id, r),
+            },
+          ],
+        },
+        {
+          type: "submenu",
+          label: "Columna",
+          icon: <MenuIcons.Plus className="h-3.5 w-3.5" />,
+          children: [
+            {
+              label: "Insertar columna antes",
+              icon: <MenuIcons.ArrowLeftToLine className="h-3.5 w-3.5" />,
+              onClick: () => addColumn(file.id),
+            },
+            { type: "separator" },
+            {
+              label: `Eliminar columna ${columnToLetter(c)}`,
+              icon: <MenuIcons.Trash2 className="h-3.5 w-3.5" />,
+              onClick: () => deleteColumn(file.id, c),
+            },
+          ],
+        },
+      ];
+
+      if (inHeader) {
+        // menú simplificado para fila de encabezados
+        return [
+          {
+            label: "Agregar columna",
+            icon: <MenuIcons.Plus className="h-3.5 w-3.5" />,
+            onClick: () => addColumn(file.id),
+          },
+          {
+            label: `Eliminar columna ${columnToLetter(c)}`,
+            icon: <MenuIcons.Trash2 className="h-3.5 w-3.5" />,
+            onClick: () => deleteColumn(file.id, c),
+          },
+        ];
+      }
+
+      return items;
+    },
+    [file, setCell, addRow, addColumn, deleteRow, deleteColumn, fillSeries, setActive, startEdit, toast]
+  );
+
+  const openCellMenu = useCallback(
+    (e: React.MouseEvent, r: number, c: number) => {
+      e.preventDefault();
+      setActive(r, c);
+      setCtxMenu({ x: e.clientX, y: e.clientY, items: buildCellMenu(r, c) });
+    },
+    [buildCellMenu, setActive]
+  );
 
   if (!file) {
     return (
@@ -295,8 +537,7 @@ export function SpreadsheetView() {
                 key={c}
                 col={c}
                 active={active?.col === c}
-                onAdd={() => addColumn(file.id)}
-                onDelete={() => deleteColumn(file.id, c)}
+                onContextMenu={(e) => openCellMenu(e, 0, c)}
               />
             ))}
           </div>
@@ -308,8 +549,33 @@ export function SpreadsheetView() {
               <RowHeader
                 row={r}
                 active={active?.row === r}
-                onAdd={() => addRow(file.id, r)}
-                onDelete={() => deleteRow(file.id, r)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setActive(r, 0);
+                  setCtxMenu({
+                    x: e.clientX,
+                    y: e.clientY,
+                    items: [
+                      {
+                        label: "Insertar fila arriba",
+                        icon: <MenuIcons.ArrowUpToLine className="h-3.5 w-3.5" />,
+                        onClick: () => addRow(file.id, r),
+                      },
+                      {
+                        label: "Insertar fila abajo",
+                        icon: <MenuIcons.ArrowDownToLine className="h-3.5 w-3.5" />,
+                        onClick: () => addRow(file.id, r + 1),
+                      },
+                      { type: "separator" },
+                      {
+                        label: `Eliminar fila ${r + 1}`,
+                        icon: <MenuIcons.Trash2 className="h-3.5 w-3.5" />,
+                        disabled: r === 0,
+                        onClick: () => deleteRow(file.id, r),
+                      },
+                    ],
+                  });
+                }}
               />
               {/* celdas */}
               {Array.from({ length: file.colCount }).map((_, c) => {
@@ -322,6 +588,7 @@ export function SpreadsheetView() {
                   <div
                     key={c}
                     data-cell={`${r},${c}`}
+                    onContextMenu={(e) => openCellMenu(e, r, c)}
                     onMouseDown={(e) => {
                       e.preventDefault();
                       if (!isEditingThis) {
@@ -375,9 +642,19 @@ export function SpreadsheetView() {
           <code className="font-mono">=A1+B1</code>
         </span>
         <span className="ml-auto text-[10px] text-muted-foreground">
-          Tab ↦ derecha · Enter ↦ abajo · Ctrl+Z deshacer
+          Clic derecho en una celda para más acciones · Tab ↦ derecha · Enter ↦ abajo · Ctrl+Z deshacer
         </span>
       </div>
+
+      {/* Menú contextual personalizado */}
+      {ctxMenu && (
+        <CustomContextMenu
+          x={ctxMenu.x}
+          y={ctxMenu.y}
+          items={ctxMenu.items}
+          onClose={() => setCtxMenu(null)}
+        />
+      )}
     </div>
   );
 }
@@ -385,76 +662,46 @@ export function SpreadsheetView() {
 function ColumnHeader({
   col,
   active,
-  onAdd,
-  onDelete,
+  onContextMenu,
 }: {
   col: number;
   active: boolean;
-  onAdd: () => void;
-  onDelete: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
 }) {
   return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>
-        <div
-          className={cn(
-            "sticky top-0 z-10 flex shrink-0 items-center justify-center border-b border-r border-border bg-card text-[11px] font-medium text-muted-foreground",
-            active && "bg-accent text-foreground"
-          )}
-          style={{ width: COL_W, height: HEADER_H }}
-        >
-          {columnToLetter(col)}
-        </div>
-      </ContextMenuTrigger>
-      <ContextMenuContent className="rounded-xl">
-        <ContextMenuItem onClick={onAdd}>Insertar columna</ContextMenuItem>
-        <ContextMenuItem
-          className="text-destructive focus:text-destructive"
-          onClick={onDelete}
-        >
-          Eliminar columna
-        </ContextMenuItem>
-      </ContextMenuContent>
-    </ContextMenu>
+    <div
+      onContextMenu={onContextMenu}
+      className={cn(
+        "sticky top-0 z-10 flex shrink-0 items-center justify-center border-b border-r border-border bg-card text-[11px] font-medium text-muted-foreground cursor-pointer transition-colors",
+        active && "bg-accent text-foreground"
+      )}
+      style={{ width: COL_W, height: HEADER_H }}
+    >
+      {columnToLetter(col)}
+    </div>
   );
 }
 
 function RowHeader({
   row,
   active,
-  onAdd,
-  onDelete,
+  onContextMenu,
 }: {
   row: number;
   active: boolean;
-  onAdd: () => void;
-  onDelete: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
 }) {
   return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>
-        <div
-          className={cn(
-            "sticky left-0 z-10 flex shrink-0 items-center justify-center border-b border-r border-border bg-card text-[11px] font-medium text-muted-foreground",
-            active && "bg-accent text-foreground"
-          )}
-          style={{ width: ROW_NUM_W, height: ROW_H }}
-        >
-          {row + 1}
-        </div>
-      </ContextMenuTrigger>
-      <ContextMenuContent className="rounded-xl">
-        <ContextMenuItem onClick={onAdd}>Insertar fila</ContextMenuItem>
-        {row > 0 && (
-          <ContextMenuItem
-            className="text-destructive focus:text-destructive"
-            onClick={onDelete}
-          >
-            Eliminar fila
-          </ContextMenuItem>
-        )}
-      </ContextMenuContent>
-    </ContextMenu>
+    <div
+      onContextMenu={onContextMenu}
+      className={cn(
+        "sticky left-0 z-10 flex shrink-0 items-center justify-center border-b border-r border-border bg-card text-[11px] font-medium text-muted-foreground cursor-pointer transition-colors",
+        active && "bg-accent text-foreground"
+      )}
+      style={{ width: ROW_NUM_W, height: ROW_H }}
+    >
+      {row + 1}
+    </div>
   );
 }
 
