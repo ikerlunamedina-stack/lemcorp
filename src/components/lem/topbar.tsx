@@ -9,6 +9,8 @@ import {
   LayoutDashboard,
   Wrench,
   Package,
+  Hash,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useEditorUI } from "@/lib/editor-store";
@@ -17,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { TagDialog } from "./tag-dialog";
+import { NotificationBell } from "./notification-bell";
 
 export function Topbar() {
   const activeView = useStore((s) => s.activeView);
@@ -35,8 +38,12 @@ export function Topbar() {
       ? { icon: <LayoutDashboard className="h-4 w-4" />, title: "Resumen general" }
       : activeView === "productos"
       ? { icon: <Package className="h-4 w-4" />, title: "Catálogo de productos" }
+      : activeView === "series"
+      ? { icon: <Hash className="h-4 w-4" />, title: "Series de equipos" }
       : activeView === "equipos"
       ? { icon: <Wrench className="h-4 w-4" />, title: "Equipos" }
+      : activeView === "config"
+      ? { icon: <SettingsIcon className="h-4 w-4" />, title: "Configuración" }
       : { icon: <FileSpreadsheet className="h-4 w-4" />, title: file?.name ?? "Editor" };
 
   return (
@@ -121,6 +128,8 @@ export function Topbar() {
             </Button>
           </>
         )}
+        <div className="mx-1 h-6 w-px bg-border" />
+        <NotificationBell />
       </div>
     </header>
   );

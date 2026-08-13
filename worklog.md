@@ -72,3 +72,39 @@ Stage Summary:
 - Validación cruzada: detecta SKU en archivos y avisa si un mismo SKU tiene distinto nombre
 - SKU tratado como identificador único (el "DNI" del producto): no permite duplicados
 - Persistencia localStorage con migración para versiones anteriores
+
+---
+Task ID: N1-N11
+Agent: main
+Task: Campana de notificaciones + Configuración + Series + catálogo con cantidades
+
+Work Log:
+- types.ts: Product.category → Product.quantity; nuevo Settings {skuDetection, lowStockAlerts, automation} + DEFAULT_SETTINGS; ActiveView += "config" | "series"
+- store.ts: settings persistente, seenNotificationKeys persistente, setSetting, markNotificationsSeen, clearAllData; addProduct/updateProduct/importProductsBulk usan quantity; getMismatches/getSuggestions respetan settings.skuDetection; automatización (setCell/setCells/addRow/deleteRow/undo/redo/recalcAutomation) respeta settings.automation; seedDemo siembra productos con quantity; migración v1→v2 (convierte category→eliminado, añade settings y seenNotificationKeys)
+- validation.ts: suggestProducts ahora detecta columna "Cantidad" y devuelve quantity; prioriza quantity de archivos inventario
+- notifications.ts (nuevo): computeNotifications() agrega bajo stock (si lowStockAlerts), discrepancias SKU (si skuDetection), SKUs sin catalogar (si skuDetection), y aviso de falta inventario; ordena por severidad
+- notification-bell.tsx (nuevo): campana lucide (Bell, monocroma) en topbar top-right con badge de no leídas; panel desplegable con lista de notificaciones, click navega a la vista/archivo relacionado; marcar vistas al abrir (400ms delay)
+- config-view.tsx (nuevo): 3 toggles (Detección SKU, Alertas bajo stock, Automatización) con Switch; sección Datos (stats + Restaurar demo + Borrar todo con confirmación); sección Acerca de
+- series-view.tsx (nuevo): lista plana de TODAS las series de equipos con buscador + filtros por estado (chips); columnas Serie/Modelo/Estado/Ubicación/Observación/Origen; estados negativos (Averiado, En retiro) en rojo
+- products-view.tsx: reescrito sin categoría, con columna Cantidad (badge numérico), lista plana ordenada por SKU, nota informativa sobre lectura automática de Excel, total de unidades en encabezado
+- summary-view.tsx: stat "SKUs distintos" reemplazado por "Productos en catálogo" (count + sugerencias sin catalogar)
+- sidebar.tsx: nav Series (icono Hash) entre Productos y Equipos; botón Configuración (icono Settings) al pie
+- topbar.tsx: títulos para vistas series y config; NotificationBell siempre visible arriba a la derecha (separada con divisor)
+- page.tsx: renderiza SeriesView y ConfigView
+
+Verificación con Agent Browser:
+- Migración v1→v2: products con quantity, settings completo ✓
+- Campana: badge muestra conteo de no leídas (1 tras crear bajo stock), panel desplegable lista notificaciones con emoji escala de grises ✓
+- Notificaciones: bajo stock (ONT 3 und mín 10) + discrepancia SKU (RT-001 «Router Modificado»≠«Router TP-Link WR840N») aparecen juntas ✓ (VLM confirmó diseño gris)
+- Toggle Configuración: desactivar "Detección de SKU" elimina notificación de discrepancia pero mantiene bajo stock ✓
+- Vista Series: lista plana con SN10001/SN10002, filtros por estado (Averiado, En retiro) ✓
+- Catálogo: columna Cantidad con badges 120/45/500, nota de lectura automática de Excel, 665 unidades totales ✓ (VLM confirmó)
+- Stat "SKUs distintos" eliminado del Resumen ✓
+- Lint limpio, dev server sin errores, estado limpio restaurado
+
+Stage Summary:
+- Campana de notificaciones (gris, top-right) con panel desplegable y badge de no leídas
+- Vista Configuración con toggles para desactivar detección SKU, alertas y automatización
+- Vista Series separada (lista plana de todas las series, no saturada en Equipos)
+- Catálogo de productos con columna Cantidad (lee automáticamente del Excel al importar)
+- Stat "SKUs distintos" eliminado; las advertencias van por la campana

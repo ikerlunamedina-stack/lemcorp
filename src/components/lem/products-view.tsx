@@ -10,10 +10,8 @@ import {
   AlertTriangle,
   Sparkles,
   Hash,
-  Tag as TagIcon,
   Upload,
-  Check,
-  X,
+  Info,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import type { Product } from "@/lib/types";
@@ -55,7 +53,7 @@ export function ProductsView() {
   const [createOpen, setCreateOpen] = useState(false);
   const [sku, setSku] = useState("");
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("");
+  const [quantity, setQuantity] = useState("");
   const [dupError, setDupError] = useState(false);
 
   const mismatches = useMemo(() => getMismatches(), [getMismatches, files, products]);
@@ -63,30 +61,22 @@ export function ProductsView() {
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
-    if (!q) return products;
-    return products.filter(
+    const sorted = [...products].sort((a, b) => a.sku.localeCompare(b.sku, undefined, { numeric: true }));
+    if (!q) return sorted;
+    return sorted.filter(
       (p) =>
         p.sku.toLowerCase().includes(q) ||
-        p.name.toLowerCase().includes(q) ||
-        (p.category ?? "").toLowerCase().includes(q)
+        p.name.toLowerCase().includes(q)
     );
   }, [products, query]);
 
-  const byCategory = useMemo(() => {
-    const m: Record<string, Product[]> = {};
-    for (const p of filtered) {
-      const k = p.category || "Sin categoría";
-      if (!m[k]) m[k] = [];
-      m[k].push(p);
-    }
-    return m;
-  }, [filtered]);
+  const totalQuantity = products.reduce((s, p) => s + (p.quantity ?? 0), 0);
 
   const openCreate = () => {
     setEditing(null);
     setSku("");
     setName("");
-    setCategory("");
+    setQuantity("");
     setDupError(false);
     setCreateOpen(true);
   };
@@ -95,27 +85,28 @@ export function ProductsView() {
     setEditing(p);
     setSku(p.sku);
     setName(p.name);
-    setCategory(p.category ?? "");
+    setQuantity(p.quantity !== undefined ? String(p.quantity) : "");
     setDupError(false);
     setCreateOpen(true);
   };
 
   const handleSave = () => {
     if (!sku.trim() || !name.trim()) return;
+    const qtyNum = quantity.trim() === "" ? undefined : parseFloat(quantity.replace(",", "."));
     if (editing) {
       const clash = findProductBySku(sku.trim());
       if (clash && clash.id !== editing.id) {
         setDupError(true);
         return;
       }
-      updateProduct(editing.id, sku, name, category);
+      updateProduct(editing.id, sku, name, qtyNum);
       toast({ title: "Producto actualizado", description: name });
     } else {
       if (findProductBySku(sku.trim())) {
         setDupError(true);
         return;
       }
-      const id = addProduct(sku, name, category);
+      const id = addProduct(sku, name, qtyNum);
       if (!id) {
         setDupError(true);
         return;
@@ -125,18 +116,18 @@ export function ProductsView() {
     setCreateOpen(false);
   };
 
-  const handleAddSuggestion = (s: { sku: string; name: string }) => {
+  const handleAddSuggestion = (s: { sku: string; name: string; quantity?: number }) => {
     if (findProductBySku(s.sku)) return;
-    addProduct(s.sku, s.name);
+    addProduct(s.sku, s.name, s.quantity);
     toast({
       title: "Producto añadido desde archivos",
-      description: `${s.sku} · ${s.name}`,
+      description: `${s.sku} · ${s.name}${s.quantity !== undefined ? ` · ${s.quantity} und` : ""}`,
     });
   };
 
   const handleAddAllSuggestions = () => {
     const added = importProductsBulk(
-      suggestions.map((s) => ({ sku: s.sku, name: s.name }))
+      suggestions.map((s) => ({ sku: s.sku, name: s.name, quantity: s.quantity }))
     );
     toast({
       title: `${added} producto(s) añadido(s)`,
@@ -163,9 +154,8 @@ export function ProductsView() {
             <h2 className="text-xl font-semibold">Catálogo de productos</h2>
             <p className="max-w-md text-sm text-muted-foreground">
               Registra aquí los productos de LEMCORP con su SKU (el código único,
-              como el DNI del producto) y su nombre canónico. La app detecta el
-              SKU en tus archivos y avisa si un mismo SKU aparece con distinto
-              nombre.
+              como el DNI del producto), su nombre y la cantidad en stock. La app
+              lee automáticamente la columna «Cantidad» al importar un Excel.
             </p>
           </div>
           <Button onClick={openCreate} className="press rounded-xl">
@@ -184,7 +174,8 @@ export function ProductsView() {
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Catálogo de productos</h1>
           <p className="text-sm text-muted-foreground">
-            {products.length} producto(s) registrado(s) · {mismatches.length} discrepancia(s) detectada(s)
+            {products.length} producto(s) · {totalQuantity.toLocaleString("es-PE")} unidades en catálogo ·{" "}
+            {mismatches.length} discrepancia(s)
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -202,6 +193,17 @@ export function ProductsView() {
             Añadir producto
           </Button>
         </div>
+      </div>
+
+      {/* Nota sobre lectura de Excel */}
+      <div className="anim-fade-up mb-4 flex items-start gap-2 rounded-xl border border-border bg-muted/30 p-3">
+        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <p className="text-[11px] leading-snug text-muted-foreground">
+          Al importar un Excel con una columna «Cantidad», la app lee las
+          cantidades automáticamente. Los SKUs que detecta en tus archivos pero
+          que no están en el catálogo aparecen abajo como sugerencias, ya con su
+          cantidad, listas para añadir con un clic.
+        </p>
       </div>
 
       {/* Banner de discrepancias */}
@@ -227,9 +229,7 @@ export function ProductsView() {
                       {m.sku}
                     </td>
                     <td className="py-1.5 pr-2">
-                      <span className="text-destructive line-through">
-                        {m.actualName}
-                      </span>
+                      <span className="text-destructive line-through">{m.actualName}</span>
                     </td>
                     <td className="py-1.5 pr-2 text-muted-foreground">→</td>
                     <td className="py-1.5 pr-2 font-medium">{m.expectedName}</td>
@@ -288,6 +288,11 @@ export function ProductsView() {
                 <span className="max-w-[180px] truncate text-muted-foreground">
                   {s.name}
                 </span>
+                {s.quantity !== undefined && (
+                  <span className="rounded-full bg-background px-1.5 text-[10px] tabular-nums">
+                    {s.quantity}
+                  </span>
+                )}
                 <Plus className="h-3 w-3 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
               </button>
             ))}
@@ -309,6 +314,11 @@ export function ProductsView() {
                       <span className="max-w-[220px] truncate text-muted-foreground">
                         {s.name}
                       </span>
+                      {s.quantity !== undefined && (
+                        <span className="ml-auto text-[10px] tabular-nums text-muted-foreground">
+                          {s.quantity} und
+                        </span>
+                      )}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
@@ -318,7 +328,7 @@ export function ProductsView() {
         </div>
       )}
 
-      {/* Lista de productos */}
+      {/* Lista de productos (plana, sin agrupar) */}
       {filtered.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">
           {products.length === 0
@@ -338,19 +348,46 @@ export function ProductsView() {
                     </span>
                   </th>
                   <th className="px-4 py-2.5 font-medium">Nombre del producto</th>
-                  <th className="px-4 py-2.5 font-medium">Categoría</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Cantidad</th>
                   <th className="px-4 py-2.5 text-right font-medium"></th>
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(byCategory).map(([cat, items]) => (
-                  <ProductGroup
-                    key={cat}
-                    category={cat}
-                    items={items}
-                    onEdit={openEdit}
-                    onDelete={handleDelete}
-                  />
+                {filtered.map((p) => (
+                  <tr
+                    key={p.id}
+                    className="border-b border-border/50 last:border-0 group hover:bg-accent/30"
+                  >
+                    <td className="px-4 py-2.5">
+                      <span className="font-mono text-[12px] font-semibold">{p.sku}</span>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <span className="text-[13px] font-medium">{p.name}</span>
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-[12px] font-semibold tabular-nums">
+                        {p.quantity ?? "—"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                        <button
+                          onClick={() => openEdit(p)}
+                          className="press rounded-md p-1.5 text-muted-foreground hover:bg-accent"
+                          title="Editar"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(p)}
+                          className="press rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
                 ))}
               </tbody>
             </table>
@@ -407,14 +444,18 @@ export function ProductsView() {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="p-cat">Categoría (opcional)</Label>
+              <Label htmlFor="p-qty">Cantidad</Label>
               <Input
-                id="p-cat"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                placeholder="Ej. Router, ONT, Cable, Conector…"
-                className="rounded-xl"
+                id="p-qty"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                placeholder="Ej. 120"
+                inputMode="decimal"
+                className="rounded-xl tabular-nums"
               />
+              <p className="text-[10px] text-muted-foreground">
+                Se rellena automáticamente al añadir desde archivos con columna «Cantidad».
+              </p>
             </div>
           </div>
           <DialogFooter>
@@ -436,71 +477,5 @@ export function ProductsView() {
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-function ProductGroup({
-  category,
-  items,
-  onEdit,
-  onDelete,
-}: {
-  category: string;
-  items: Product[];
-  onEdit: (p: Product) => void;
-  onDelete: (p: Product) => void;
-}) {
-  return (
-    <>
-      <tr className="border-b border-border bg-muted/20">
-        <td
-          colSpan={4}
-          className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
-        >
-          <span className="flex items-center gap-1.5">
-            <TagIcon className="h-3 w-3" />
-            {category} · {items.length}
-          </span>
-        </td>
-      </tr>
-      {items.map((p) => (
-        <tr
-          key={p.id}
-          className="border-b border-border/50 last:border-0 group hover:bg-accent/30"
-        >
-          <td className="px-4 py-2.5">
-            <span className="font-mono text-[12px] font-semibold">{p.sku}</span>
-          </td>
-          <td className="px-4 py-2.5">
-            <span className="text-[13px] font-medium">{p.name}</span>
-          </td>
-          <td className="px-4 py-2.5">
-            {p.category && (
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                {p.category}
-              </span>
-            )}
-          </td>
-          <td className="px-4 py-2.5">
-            <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-              <button
-                onClick={() => onEdit(p)}
-                className="press rounded-md p-1.5 text-muted-foreground hover:bg-accent"
-                title="Editar"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={() => onDelete(p)}
-                className="press rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                title="Eliminar"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </td>
-        </tr>
-      ))}
-    </>
   );
 }

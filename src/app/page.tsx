@@ -8,6 +8,8 @@ import { SpreadsheetView } from "@/components/lem/spreadsheet";
 import { SummaryView } from "@/components/lem/summary-view";
 import { EquipmentView } from "@/components/lem/equipment-view";
 import { ProductsView } from "@/components/lem/products-view";
+import { SeriesView } from "@/components/lem/series-view";
+import { ConfigView } from "@/components/lem/config-view";
 import { Footer } from "@/components/lem/footer";
 import { WelcomeOverlay } from "@/components/lem/welcome";
 
@@ -55,6 +57,16 @@ export default function Home() {
           {activeView === "productos" && (
             <div className="h-full overflow-y-auto scroll-thin">
               <ProductsView />
+            </div>
+          )}
+          {activeView === "series" && (
+            <div className="h-full overflow-y-auto scroll-thin">
+              <SeriesView />
+            </div>
+          )}
+          {activeView === "config" && (
+            <div className="h-full overflow-y-auto scroll-thin">
+              <ConfigView />
             </div>
           )}
         </main>

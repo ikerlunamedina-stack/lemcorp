@@ -5,6 +5,8 @@ import {
   LayoutDashboard,
   Wrench,
   Package,
+  Hash,
+  Settings as SettingsIcon,
   FilePlus2,
   Upload,
   FileSpreadsheet,
@@ -140,6 +142,12 @@ export function Sidebar() {
           icon={<Package className="h-4 w-4" />}
           label="Productos"
           badge={counts.productos || undefined}
+        />
+        <NavButton
+          active={activeView === "series"}
+          onClick={() => setActiveView("series")}
+          icon={<Hash className="h-4 w-4" />}
+          label="Series"
         />
         <NavButton
           active={activeView === "equipos"}
@@ -281,9 +289,21 @@ export function Sidebar() {
         )}
       </div>
 
-      {/* Pie de sidebar */}
-      <div className="border-t border-border px-4 py-3">
-        <p className="text-[10px] text-muted-foreground">
+      {/* Pie de sidebar con Configuración */}
+      <div className="border-t border-border px-3 py-3">
+        <button
+          onClick={() => setActiveView("config")}
+          className={cn(
+            "press flex h-9 w-full items-center gap-2.5 rounded-xl px-3 text-[13px] font-medium transition-colors",
+            activeView === "config"
+              ? "bg-primary text-primary-foreground"
+              : "text-foreground hover:bg-accent"
+          )}
+        >
+          <SettingsIcon className="h-4 w-4" />
+          <span className="flex-1 text-left">Configuración</span>
+        </button>
+        <p className="mt-2 px-3 text-[10px] text-muted-foreground">
           Datos guardados en este equipo
         </p>
       </div>

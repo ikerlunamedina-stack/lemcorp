@@ -59,7 +59,7 @@ export interface Product {
   id: string;
   sku: string; // código único, ej. "4076358"
   name: string; // nombre canónico, ej. "ROUTER ONT HG8145X6-13 HUAWEI"
-  category?: string; // categoría opcional, ej. "Router", "ONT", "Cable"
+  quantity?: number; // cantidad / stock registrado en el catálogo
   createdAt: number;
   updatedAt: number;
 }
@@ -75,4 +75,23 @@ export interface Mismatch {
   actualName: string; // nombre que aparece en el archivo
 }
 
-export type ActiveView = "editor" | "resumen" | "equipos" | "productos";
+// Configuración global de la aplicación (persistente).
+export interface Settings {
+  skuDetection: boolean; // validar SKUs de archivos contra catálogo
+  lowStockAlerts: boolean; // alertar bajo stock
+  automation: boolean; // despachos -> inventario automático
+}
+
+export const DEFAULT_SETTINGS: Settings = {
+  skuDetection: true,
+  lowStockAlerts: true,
+  automation: true,
+};
+
+export type ActiveView =
+  | "editor"
+  | "resumen"
+  | "equipos"
+  | "productos"
+  | "config"
+  | "series";

@@ -106,7 +106,6 @@ export function SummaryView() {
   }, [invFiles]);
 
   const totalUnits = allItems.reduce((s, i) => s + i.qty, 0);
-  const distinctSkus = new Set(allItems.map((i) => i.sku || i.product)).size;
   const lowStock = allItems.filter((i) => i.min > 0 && i.qty <= i.min);
 
   const mismatches = useMemo(
@@ -130,10 +129,10 @@ export function SummaryView() {
 
   const stats: { icon: React.ReactNode; label: string; value: string; sub: string; tone: string }[] = [
     {
-      icon: <Boxes className="h-5 w-5" />,
-      label: "SKUs distintos",
-      value: distinctSkus.toString(),
-      sub: `${invFiles.length} archivo(s) de inventario`,
+      icon: <Package className="h-5 w-5" />,
+      label: "Productos en catálogo",
+      value: products.length.toString(),
+      sub: `${suggestions.length} SKU(s) sin catalogar`,
       tone: "text-foreground",
     },
     {
@@ -144,7 +143,7 @@ export function SummaryView() {
       tone: "text-foreground",
     },
     {
-      icon: <Package className="h-5 w-5" />,
+      icon: <Boxes className="h-5 w-5" />,
       label: "Despachos hoy",
       value: despFiles.length.toString(),
       sub: "Archivos de despacho",

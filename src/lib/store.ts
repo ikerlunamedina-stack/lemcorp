@@ -11,7 +11,9 @@ import type {
   ActiveView,
   Product,
   Mismatch,
+  Settings,
 } from "./types";
+import { DEFAULT_SETTINGS } from "./types";
 import { emptyFile, importFile as importXlsx, uid } from "./excel";
 import { detectTag, getHeaderColumns } from "./detection";
 import {
@@ -25,7 +27,9 @@ const HISTORY_LIMIT = 50;
 
 interface StoreState {
   files: SheetFile[];
-  products: Product[]; // catálogo maestro de productos (SKU -> nombre)
+  products: Product[]; // catálogo maestro de productos (SKU -> nombre + cantidad)
+  settings: Settings;
+  seenNotificationKeys: string[]; // claves de notificaciones ya vistas (para el badge)
   activeFileId: string | null;
   activeView: ActiveView;
   histories: Record<string, HistorySnapshot[]>;
@@ -49,15 +53,20 @@ interface StoreState {
   setFileTag: (id: string, tag: FileTag) => void;
 
   // productos (catálogo maestro)
-  addProduct: (sku: string, name: string, category?: string) => string | null;
-  updateProduct: (id: string, sku: string, name: string, category?: string) => void;
+  addProduct: (sku: string, name: string, quantity?: number) => string | null;
+  updateProduct: (id: string, sku: string, name: string, quantity?: number) => void;
   deleteProduct: (id: string) => void;
-  importProductsBulk: (items: { sku: string; name: string; category?: string }[]) => number;
+  importProductsBulk: (items: { sku: string; name: string; quantity?: number }[]) => number;
   findProductBySku: (sku: string) => Product | null;
 
   // validación
   getMismatches: () => Mismatch[];
   getSuggestions: () => ReturnType<typeof suggestProducts>;
+
+  // configuración
+  setSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
+  markNotificationsSeen: (keys: string[]) => void;
+  clearAllData: () => void;
 
   // edición de celdas
   setCell: (fileId: string, row: number, col: number, value: string) => void;
@@ -127,6 +136,8 @@ export const useStore = create<StoreState>()(
     (set, get) => ({
       files: [],
       products: [],
+      settings: { ...DEFAULT_SETTINGS },
+      seenNotificationKeys: [],
       activeFileId: null,
       activeView: "resumen",
       histories: {},
@@ -230,7 +241,7 @@ export const useStore = create<StoreState>()(
         return get().products.find((p) => p.sku.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === key) ?? null;
       },
 
-      addProduct: (sku, name, category) => {
+      addProduct: (sku, name, quantity) => {
         const skuTrim = sku.trim();
         const nameTrim = name.trim();
         if (!skuTrim || !nameTrim) return null;
@@ -240,7 +251,7 @@ export const useStore = create<StoreState>()(
           id: uid(),
           sku: skuTrim,
           name: nameTrim,
-          category: category?.trim() || undefined,
+          quantity: typeof quantity === "number" && !isNaN(quantity) ? quantity : undefined,
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };
@@ -248,7 +259,7 @@ export const useStore = create<StoreState>()(
         return p.id;
       },
 
-      updateProduct: (id, sku, name, category) => {
+      updateProduct: (id, sku, name, quantity) => {
         const skuTrim = sku.trim();
         const nameTrim = name.trim();
         if (!skuTrim || !nameTrim) return;
@@ -262,7 +273,7 @@ export const useStore = create<StoreState>()(
                   ...p,
                   sku: skuTrim,
                   name: nameTrim,
-                  category: category?.trim() || undefined,
+                  quantity: typeof quantity === "number" && !isNaN(quantity) ? quantity : undefined,
                   updatedAt: Date.now(),
                 }
               : p
@@ -287,7 +298,7 @@ export const useStore = create<StoreState>()(
             id: uid(),
             sku: skuTrim,
             name: nameTrim,
-            category: it.category?.trim() || undefined,
+            quantity: typeof it.quantity === "number" && !isNaN(it.quantity) ? it.quantity : undefined,
             createdAt: Date.now(),
             updatedAt: Date.now(),
           });
@@ -298,11 +309,37 @@ export const useStore = create<StoreState>()(
       },
 
       getMismatches: () => {
+        if (!get().settings.skuDetection) return [];
         return validateFiles(get().files, get().products);
       },
 
       getSuggestions: () => {
+        if (!get().settings.skuDetection) return [];
         return suggestProducts(get().files, get().products);
+      },
+
+      // ---------- Configuración ----------
+      setSetting: (key, value) => {
+        set({ settings: { ...get().settings, [key]: value } });
+      },
+
+      markNotificationsSeen: (keys) => {
+        const set_ = new Set([...get().seenNotificationKeys, ...keys]);
+        // mantener solo las claves que siguen siendo relevantes + un límite
+        set({ seenNotificationKeys: Array.from(set_).slice(-500) });
+      },
+
+      clearAllData: () => {
+        set({
+          files: [],
+          products: [],
+          appliedMap: {},
+          histories: {},
+          redoes: {},
+          seenNotificationKeys: [],
+          activeFileId: null,
+          activeView: "resumen",
+        });
       },
 
       snapshot: (fileId, label) => {
@@ -337,7 +374,7 @@ export const useStore = create<StoreState>()(
         let nextFiles = get().files.map((f) => (f.id === fileId ? updated : f));
         set({ files: nextFiles });
         // automatización si es despachos
-        if (updated.tag === "despachos") {
+        if (updated.tag === "despachos" && get().settings.automation) {
           const inv = findInventarioFile(get().files);
           const { inventario } = runAutomation(updated, inv, get().appliedMap);
           if (inventario) {
@@ -369,7 +406,7 @@ export const useStore = create<StoreState>()(
         };
         let nextFiles = get().files.map((f) => (f.id === fileId ? updated : f));
         set({ files: nextFiles });
-        if (updated.tag === "despachos") {
+        if (updated.tag === "despachos" && get().settings.automation) {
           const inv = findInventarioFile(get().files);
           const { inventario } = runAutomation(updated, inv, get().appliedMap);
           if (inventario) {
@@ -415,7 +452,7 @@ export const useStore = create<StoreState>()(
         };
         const files = get().files.map((f) => (f.id === fileId ? updated : f));
         set({ files });
-        if (updated.tag === "despachos") {
+        if (updated.tag === "despachos" && get().settings.automation) {
           const inv = findInventarioFile(get().files);
           const { inventario } = runAutomation(updated, inv, get().appliedMap);
           if (inventario) {
@@ -463,7 +500,7 @@ export const useStore = create<StoreState>()(
           updatedAt: Date.now(),
         };
         set({ files: get().files.map((f) => (f.id === fileId ? updated : f)) });
-        if (updated.tag === "despachos") {
+        if (updated.tag === "despachos" && get().settings.automation) {
           const inv = findInventarioFile(get().files);
           const { inventario } = runAutomation(updated, inv, get().appliedMap);
           if (inventario) {
@@ -522,7 +559,7 @@ export const useStore = create<StoreState>()(
         histories[fileId] = histories[fileId].slice(0, -1);
         set({ files, histories, redoes: r });
         // re-automatización
-        if (restored.tag === "despachos") {
+        if (restored.tag === "despachos" && get().settings.automation) {
           const inv = findInventarioFile(get().files);
           const { inventario } = runAutomation(restored, inv, get().appliedMap);
           if (inventario) {
@@ -554,7 +591,7 @@ export const useStore = create<StoreState>()(
         const redoes = { ...get().redoes };
         redoes[fileId] = redoes[fileId].slice(0, -1);
         set({ files, redoes });
-        if (restored.tag === "despachos") {
+        if (restored.tag === "despachos" && get().settings.automation) {
           const inv = findInventarioFile(get().files);
           const { inventario } = runAutomation(restored, inv, get().appliedMap);
           if (inventario) {
@@ -578,7 +615,8 @@ export const useStore = create<StoreState>()(
       },
 
       recalcAutomation: () => {
-        const { files, appliedMap } = get();
+        const { files, appliedMap, settings } = get();
+        if (!settings.automation) return;
         const inv = findInventarioFile(files);
         if (!inv) return;
         let currentInv = inv;
@@ -615,10 +653,10 @@ export const useStore = create<StoreState>()(
         get().recalcAutomation();
         // sembrar catálogo maestro de productos (solo si está vacío)
         if (products.length === 0) {
-          const demo: { sku: string; name: string; category?: string }[] = [
-            { sku: "RT-001", name: "Router TP-Link WR840N", category: "Router" },
-            { sku: "ONT-002", name: "ONT Huawei HG8245", category: "ONT" },
-            { sku: "CAB-003", name: "Cable UTP Cat6 (m)", category: "Cable" },
+          const demo: { sku: string; name: string; quantity?: number }[] = [
+            { sku: "RT-001", name: "Router TP-Link WR840N", quantity: 120 },
+            { sku: "ONT-002", name: "ONT Huawei HG8245", quantity: 45 },
+            { sku: "CAB-003", name: "Cable UTP Cat6 (m)", quantity: 500 },
           ];
           get().importProductsBulk(demo);
         }
@@ -630,20 +668,29 @@ export const useStore = create<StoreState>()(
       partialize: (s) => ({
         files: s.files,
         products: s.products,
+        settings: s.settings,
         appliedMap: s.appliedMap,
+        seenNotificationKeys: s.seenNotificationKeys,
         activeView: s.activeView,
         activeFileId: s.activeFileId,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHydrated();
       },
-      // migración: añadir products si era una versión anterior
       migrate: (persisted: any) => {
         if (!persisted) return persisted;
         if (!persisted.products) persisted.products = [];
+        // v1 -> v2: product.category deja de existir, product.quantity aparece
+        persisted.products = persisted.products.map((p: any) => {
+          const { category, ...rest } = p;
+          void category;
+          return { ...rest, quantity: rest.quantity };
+        });
+        if (!persisted.settings) persisted.settings = { ...DEFAULT_SETTINGS };
+        if (!persisted.seenNotificationKeys) persisted.seenNotificationKeys = [];
         return persisted;
       },
-      version: 1,
+      version: 2,
     }
   )
 );

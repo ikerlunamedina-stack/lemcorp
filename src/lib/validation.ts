@@ -129,13 +129,18 @@ export function validateFiles(
 }
 
 // Sugiere nuevos productos a partir de archivos que aún no están en el catálogo.
-// Devuelve SKU -> { name, fromFiles } para los SKUs no registrados.
+// Devuelve SKU -> { name, quantity, fromFiles } para los SKUs no registrados.
+// La cantidad se detecta de la columna "Cantidad"/"Stock" del archivo (la última
+// vez que apareció el SKU; típicamente de inventario).
 export interface SuggestedProduct {
   sku: string;
   name: string;
+  quantity?: number;
   count: number;
   fromFiles: string[];
 }
+
+const QTY_COLS_SUGGEST = ["cantidad", "stock", "existencia", "saldo", "cant", "qty"];
 
 export function suggestProducts(
   files: SheetFile[],
@@ -150,6 +155,7 @@ export function suggestProducts(
     const skuCol = findCol(headers, SKU_COLS);
     const nameCol = findCol(headers, NAME_COLS);
     if (skuCol < 0 || nameCol < 0) continue;
+    const qtyCol = findCol(headers, QTY_COLS_SUGGEST);
     const computed = recalcFile(file);
     for (let r = 1; r < file.rowCount; r++) {
       const sku = (file.cells[`${r},${skuCol}`] ?? "").trim();
@@ -157,18 +163,29 @@ export function suggestProducts(
       const key = normalize(sku);
       if (known.has(key)) continue;
       const name = (computed[`${r},${nameCol}`] ?? file.cells[`${r},${nameCol}`] ?? "").trim();
+      // cantidad detectada en el archivo (si hay columna)
+      let qty: number | undefined;
+      if (qtyCol >= 0) {
+        const qRaw = computed[`${r},${qtyCol}`] ?? file.cells[`${r},${qtyCol}`] ?? "";
+        const q = parseFloat(String(qRaw).replace(",", "."));
+        if (!isNaN(q)) qty = q;
+      }
       const existing = map.get(key);
       if (existing) {
         existing.count += 1;
         if (!existing.fromFiles.includes(file.name)) {
           existing.fromFiles.push(file.name);
         }
-        // si el nombre sugerido está vacío, usar el primero encontrado
         if (!existing.name && name) existing.name = name;
+        // si el archivo actual es de inventario, su cantidad es la más fiable
+        if (qty !== undefined && (file.tag === "inventario" || existing.quantity === undefined)) {
+          existing.quantity = qty;
+        }
       } else {
         map.set(key, {
           sku,
           name: name || sku,
+          quantity: qty,
           count: 1,
           fromFiles: [file.name],
         });
