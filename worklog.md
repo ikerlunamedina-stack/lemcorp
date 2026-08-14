@@ -298,3 +298,43 @@ Stage Summary:
   - Selección de rango (arrastrar o shift+click)
   - Submenú Formato en menú contextual con colores rápidos
   - Formato persistente (se guarda en localStorage, entra en historial undo/redo)
+
+---
+Task ID: D1-D6
+Agent: main
+Task: Automatización despachos oficiales → inventario (Excel con hoja Movimientos)
+
+Work Log:
+- Inspeccionado el Excel oficial del usuario (control_despachos_lemcorp_v3.xlsx):
+  - Hoja "Resumen": PRODUCTO, SKU, TOTAL CONTABILIZADO (54 productos)
+  - Hoja "Movimientos": 288 filas con columnas Nº Operación, Tipo (IN/OUT/INT), SKU (col 29), Producto (col 30), Cantidad (col 32), Guía de Remisión, Almacén Origen/Destino, Razón Social, etc.
+  - Todas las filas existentes son INT (movimientos internos entre almacenes)
+- Copiado a public/despachos-lemcorp-oficial.xlsx (siempre accesible vía HTTP)
+- excel.ts: importFile ahora soporta multihoja con pickBestSheet() que prioriza "Movimientos"/"Despachos" o la hoja con columnas SKU+Cantidad
+- automation.ts reescrito:
+  - Cruce por SKU (preferido) o Producto si no hay SKU
+  - Respeta columna Tipo (IN/OUT/INT): OUT resta, IN suma, INT no afecta
+  - TYPE_COLS detecta "tipo (in/out/int)", "tipo", "tipo de operacion", etc.
+  - SKU_COLS_DESP para detectar columna SKU en despachos
+  - QTY_COLS_DESPACHO ampliado con "total", "total contabilizado"
+- detection.ts: keywords ampliadas para detectar Excel de despachos real (nº operacion, tipo in/out/int, guía de remisión, almacén origen/destino, razón social, proyecto macro, código pep, etc.)
+- store.ts importFile: si se re-importa un archivo con el mismo nombre, lo REEMPLAZA (mantiene id y tag), limpia el ledger de automatización, y recalcula automáticamente → así el usuario puede actualizar su Excel de despachos cada día y el inventario se ajusta solo
+- store.ts seedFromUserExcel: ahora carga AMBOS Excels (inventario + despachos oficial), etiqueta el segundo como "despachos", genera catálogo y ejecuta recalcAutomation al final
+
+Verificación con Agent Browser:
+- Carga inicial: 3 archivos (Stock HUB ALTAS [inventario] + Control de Despachos LEMCORP [despachos] + Equipos Averiados [equipos]) ✓
+- 54 productos en catálogo ✓
+- Stock CONECTOR PLUG RJ-45 (SKU 1002900) inicial: 2768 ✓
+- 16 filas INT con SKU 1002900 (movimientos internos) NO afectan el stock ✓
+- Editar fila 288 a tipo=OUT, SKU=1002900, cantidad=200 → stock bajó a 2564 ✓
+- appliedMap muestra {288: {product:"1002900", qty:-200}} ✓
+- Unidades totales bajaron de 999,199 a 998,991 (descuento de despachos OUT) ✓
+- VLM confirmó: vista Inventario muestra 2,564 para CONECTOR y 998,991 totales ✓
+- Lint limpio, dev server sin errores, estado limpio restaurado
+
+Stage Summary:
+- El Excel oficial de despachos (control_despachos_lemcorp_v3.xlsx) ahora se carga automáticamente
+- Cuando agregues filas OUT (salidas) en la hoja Movimientos, el inventario se descuenta solo
+- Las filas INT (movimientos internos) no afectan el stock del almacén principal
+- Re-importar el Excel actualizado (mismo nombre) reemplaza el anterior y recalcula el inventario
+- Caso de uso real: cada día actualizas tu Excel de despachos, lo re-importas, y la app ajusta el inventario automáticamente

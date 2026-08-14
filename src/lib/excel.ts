@@ -26,8 +26,11 @@ function emptyFile(name: string, rows = 30, cols = 8): SheetFile {
 export async function importFile(file: File): Promise<SheetFile> {
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: "array", cellFormula: true });
-  const firstSheet = wb.SheetNames[0];
-  const ws = wb.Sheets[firstSheet];
+
+  // Elegir la hoja con datos de movimientos/despachos (preferir "Movimientos"
+  // o la que tenga columnas SKU + Cantidad). Por defecto, la primera.
+  const targetSheet = pickBestSheet(wb);
+  const ws = wb.Sheets[targetSheet];
 
   // Construimos array de arrays para conservar fórmulas
   const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
@@ -75,6 +78,28 @@ export async function importFile(file: File): Promise<SheetFile> {
     }
   }
   return sf;
+}
+
+// Elige la mejor hoja del workbook. Prioriza "Movimientos" o cualquier hoja
+// que tenga encabezados SKU + Cantidad (indicador de despachos).
+function pickBestSheet(wb: XLSX.WorkBook): string {
+  const names = wb.SheetNames;
+  // 1. Buscar hoja llamada "Movimientos" o "Despachos"
+  const movName = names.find((n) => /movimientos|despachos|salidas/i.test(n));
+  if (movName) return movName;
+  // 2. Buscar hoja que tenga SKU + Cantidad en encabezados
+  for (const n of names) {
+    const ws = wb.Sheets[n];
+    if (!ws || !ws["!ref"]) continue;
+    const aoa = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1, defval: "", raw: false });
+    if (!aoa[0]) continue;
+    const headers = aoa[0].map((h: any) => String(h ?? "").toLowerCase());
+    const hasSku = headers.some((h: string) => /sku|c[oó]digo/.test(h));
+    const hasQty = headers.some((h: string) => /cantidad|cant|qty|total/.test(h));
+    if (hasSku && hasQty) return n;
+  }
+  // 3. Default: primera hoja
+  return names[0];
 }
 
 // Exporta un SheetFile a .xlsx

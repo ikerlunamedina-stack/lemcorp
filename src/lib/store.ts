@@ -196,9 +196,30 @@ export const useStore = create<StoreState>()(
         const f = await importXlsx(file);
         const detected = detectTag(f);
         f.tag = detected;
-        f.tagConfirmed = detected !== "otro"; // si detectamos, lo confirmamos automáticamente
-        const files = [...get().files, f];
-        set({ files });
+        f.tagConfirmed = detected !== "otro";
+        // Si ya existe un archivo con el mismo nombre, lo reemplazamos (actualización)
+        const existing = get().files.find(
+          (x) => x.name.toLowerCase() === f.name.toLowerCase()
+        );
+        let files: SheetFile[];
+        if (existing) {
+          // mantener el id y tag confirmado del anterior si lo tenía
+          f.id = existing.id;
+          if (existing.tagConfirmed) {
+            f.tag = existing.tag;
+            f.tagConfirmed = true;
+          }
+          // limpiar ledger de automatización del anterior para que se recalcule
+          const appliedMap = { ...get().appliedMap };
+          delete appliedMap[existing.id];
+          files = get().files.map((x) => (x.id === existing.id ? f : x));
+          set({ files, appliedMap });
+          // recalcular automatización con los nuevos datos
+          setTimeout(() => get().recalcAutomation(), 0);
+        } else {
+          files = [...get().files, f];
+          set({ files });
+        }
         return f.id;
       },
 
@@ -840,10 +861,9 @@ export const useStore = create<StoreState>()(
         // Si ya hay archivos, no hacer nada (usuario ya tiene datos).
         if (get().files.length > 0) return;
         try {
-          // 1. Hacer fetch del Excel precargado en public/
+          // 1. Fetch del Excel de inventario (stock) precargado en public/
           const res = await fetch("/stock-lemcorp-inicial.xlsx");
           if (!res.ok) {
-            // Si no está disponible, caer al seed demo.
             get().seedDemoIfEmpty();
             return;
           }
@@ -853,17 +873,33 @@ export const useStore = create<StoreState>()(
             "Stock HUB ALTAS - LIMA NORTE.xlsx",
             { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }
           );
-          // 2. Importar el Excel (importFile detecta tag + tagConfirmed)
+          // 2. Importar el Excel de inventario
           const fileId = await get().importFile(file);
-          // 3. Asegurar que se vea como inventario
           get().setFileTag(fileId, "inventario");
-          // 4. Crear un archivo de Despachos vacío (para que la automatización
-          //    tenga dónde registrarse si el usuario agrega despachos).
-          const s = get();
-          s.createFile("Despachos del Día", "despachos");
-          s.createFile("Equipos Averiados", "equipos");
-          // 5. Generar el catálogo de productos automáticamente desde el Excel
-          //    (sugiere los SKUs detectados y los añade todos con su cantidad).
+
+          // 3. Fetch del Excel oficial de despachos precargado en public/
+          try {
+            const res2 = await fetch("/despachos-lemcorp-oficial.xlsx");
+            if (res2.ok) {
+              const blob2 = await res2.blob();
+              const file2 = new File(
+                [blob2],
+                "Control de Despachos LEMCORP.xlsx",
+                { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }
+              );
+              const despId = await get().importFile(file2);
+              // El detector debería reconocerlo como "despachos" por sus columnas.
+              // Forzamos la etiqueta para asegurar.
+              get().setFileTag(despId, "despachos");
+            }
+          } catch {
+            // Si falla el despachos, continuamos igual con inventario solo.
+          }
+
+          // 4. Crear archivo de equipos (vacío para empezar)
+          get().createFile("Equipos Averiados", "equipos");
+
+          // 5. Generar catálogo de productos automáticamente desde el inventario
           const suggestions = get().getSuggestions();
           if (suggestions.length > 0) {
             get().importProductsBulk(
@@ -874,7 +910,11 @@ export const useStore = create<StoreState>()(
               }))
             );
           }
-          // 6. Vista inicial en Inventario (los datos del Excel ya están en el sistema).
+
+          // 6. Ejecutar la automatización Despachos -> Inventario (descuenta stock).
+          get().recalcAutomation();
+
+          // 7. Vista inicial en Inventario (los datos del Excel ya están en el sistema).
           set({ activeFileId: null, activeView: "inventario", histories: {}, redoes: {} });
         } catch (err) {
           console.error("No se pudo cargar el Excel inicial:", err);

@@ -35,7 +35,31 @@ const PRODUCT_COLS = [
   "codigo",
   "código",
 ];
-const QTY_COLS_DESPACHO = ["cantidad", "cant", "qty", "salida", "despachado"];
+// SKU separado para priorizar cruce por código (más fiable que por nombre).
+const SKU_COLS_DESP = [
+  "sku",
+  "codigo",
+  "código",
+  "cod",
+  "codigo de producto",
+  "codigo producto",
+  "cod. producto",
+  "id producto",
+  "item code",
+];
+// Columna de tipo de operación (IN/OUT/INT).
+const TYPE_COLS = [
+  "tipo (in/out/int)",
+  "tipo (in / out / int)",
+  "tipo",
+  "tipo de operacion",
+  "tipo de operación",
+  "movimiento",
+  "operacion",
+  "operación",
+  "in/out/int",
+];
+const QTY_COLS_DESPACHO = ["cantidad", "cant", "qty", "salida", "despachado", "total", "total contabilizado"];
 // Para inventario priorizamos "Físico" (stock físico total) y "Disponible",
 // porque los reportes reales de almacén (ej. HUB ALTAS) usan esos nombres.
 const QTY_COLS_INVENTARIO = [
@@ -114,15 +138,24 @@ export function runAutomation(
   const despHeaders = getHeaderColumns(despachosFile);
   const invHeaders = getHeaderColumns(inventarioFile);
 
+  // Columnas de despacho: SKU (preferido) + Producto + Cantidad + Tipo
+  const despSkuCol = findCol(despHeaders, SKU_COLS_DESP);
   const despProductCol = findCol(despHeaders, PRODUCT_COLS);
   const despQtyCol = findCol(despHeaders, QTY_COLS_DESPACHO);
+  const despTypeCol = findCol(despHeaders, TYPE_COLS);
+  // Columnas de inventario: SKU (preferido) + Producto + Cantidad
+  const invSkuCol = findCol(invHeaders, SKU_COLS_DESP);
   const invProductCol = findCol(invHeaders, PRODUCT_COLS);
   const invQtyCol = findCol(invHeaders, QTY_COLS_INVENTARIO);
 
+  // Necesitamos al menos: cantidad en despacho + (SKU o producto) en despacho
+  // + (SKU o producto) en inventario + cantidad en inventario
+  const despKeyCol = despSkuCol >= 0 ? despSkuCol : despProductCol;
+  const invKeyCol = invSkuCol >= 0 ? invSkuCol : invProductCol;
   if (
-    despProductCol < 0 ||
+    despKeyCol < 0 ||
     despQtyCol < 0 ||
-    invProductCol < 0 ||
+    invKeyCol < 0 ||
     invQtyCol < 0
   ) {
     result.missingColumns = true;
@@ -137,13 +170,13 @@ export function runAutomation(
 
   const oldApplied = appliedMap[despachosFile.id] || {};
 
-  // indexar inventario por producto normalizado -> primera fila coincidente
+  // indexar inventario por clave normalizada (SKU si hay, si no producto)
   const invIndex: Record<string, number> = {};
   for (let r = 1; r < newInv.rowCount; r++) {
-    const prod = (newInv.cells[`${r},${invProductCol}`] ?? "").trim();
-    if (prod) {
-      const key = normalize(prod);
-      if (invIndex[key] === undefined) invIndex[key] = r;
+    const key = (newInv.cells[`${r},${invKeyCol}`] ?? "").trim();
+    if (key) {
+      const nk = normalize(key);
+      if (invIndex[nk] === undefined) invIndex[nk] = r;
     }
   }
 
@@ -156,6 +189,20 @@ export function runAutomation(
     const cur = isNaN(curNum) ? 0 : curNum;
     newInv.cells[`${invRow},${invQtyCol}`] = String(cur + delta);
     return null;
+  };
+
+  // Lee el tipo de operación de una fila de despacho.
+  // OUT -> resta del inventario, IN -> suma al inventario, INT -> no afecta.
+  const typeDelta = (r: number): number => {
+    if (despTypeCol < 0) return -1; // sin columna de tipo: asumir salida
+    const t = (despachosFile.cells[`${r},${despTypeCol}`] ?? "")
+      .trim()
+      .toUpperCase();
+    if (t === "IN" || t === "ENTRADA" || t === "ENTRANTE") return 1;
+    if (t === "INT" || t === "INTERNO" || t === "TRASLADO") return 0;
+    if (t === "OUT" || t === "SALIDA" || t === "SALIENTE" || t === "DESPACHO")
+      return -1;
+    return -1; // default: salida
   };
 
   // 1. Revertir TODO lo aplicado anteriormente por este archivo
@@ -174,18 +221,21 @@ export function runAutomation(
   // 2. Aplicar estado actual de despachos
   const newApplied: Record<number, AppliedRow> = {};
   for (let r = 1; r < despachosFile.rowCount; r++) {
-    const product = (despachosFile.cells[`${r},${despProductCol}`] ?? "").trim();
+    const key = (despachosFile.cells[`${r},${despKeyCol}`] ?? "").trim();
+    if (!key) continue;
     const qty = getQty(despachosFile, r, despQtyCol);
-    if (!product || qty <= 0) continue;
-    const key = normalize(product);
-    const invRow = invIndex[key];
+    if (qty <= 0) continue;
+    const delta = typeDelta(r);
+    if (delta === 0) continue; // INT no afecta stock
+    const nk = normalize(key);
+    const invRow = invIndex[nk];
     if (invRow !== undefined) {
-      adjust(invRow, -qty);
-      newApplied[r] = { product, qty };
-      result.adjustments.push({ product, delta: -qty, matched: true });
+      adjust(invRow, delta * qty);
+      newApplied[r] = { product: key, qty: delta * qty };
+      result.adjustments.push({ product: key, delta: delta * qty, matched: true });
       result.modified = true;
     } else {
-      result.adjustments.push({ product, delta: -qty, matched: false });
+      result.adjustments.push({ product: key, delta: delta * qty, matched: false });
     }
   }
 
