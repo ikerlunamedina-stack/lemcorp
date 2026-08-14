@@ -46,9 +46,18 @@ const NAME_COLS = [
   "material", "nombre", "item", "denominacion", "denominación",
 ];
 const CAT_COLS = ["categoria", "categoría", "tipo", "familia", "linea", "línea"];
-const FISICO_COLS = ["fisico", "stock fisico", "stock físico", "total", "inventario"];
+const FISICO_COLS = [
+  "stock inicial",
+  "stock actual",
+  "fisico",
+  "stock fisico",
+  "stock físico",
+  "total",
+  "inventario",
+  "stock actual (descontado)",
+];
 const DISPONIBLE_COLS = ["disponible", "stock disponible", "libre"];
-const RESERVADO_COLS = ["reservado", "comprometido", "separado"];
+const RESERVADO_COLS = ["reservado", "comprometido", "separado", "averiados"];
 const TRANSITO_COLS = ["en transito", "en tránsito", "transito", "tránsito"];
 const UDM_COLS = ["udm", "unidad", "unidades", "unidad de medida", "u.m", "um"];
 const UBI_COLS = ["ubicacion", "ubicación", "lugar", "sitio", "almacen", "almacén", "posicion", "posición"];

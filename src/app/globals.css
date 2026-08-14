@@ -210,11 +210,47 @@
 
 /* Celda de hoja de cálculo */
 .cell-base {
-  transition: background-color 0.12s ease, box-shadow 0.12s ease;
+  transition: background-color 0.1s ease, box-shadow 0.1s ease;
 }
 .cell-active {
   box-shadow: inset 0 0 0 2px var(--ring);
   z-index: 2;
+}
+/* Selección de rango tipo Excel */
+.cell-in-range {
+  background: color-mix(in oklch, var(--ring) 8%, transparent);
+}
+
+/* Header de columna/fila tipo Excel: fondo gris, borde marcado */
+.excel-header {
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid var(--border);
+  border-right: 1px solid var(--border);
+  user-select: none;
+}
+.excel-header:hover {
+  background: var(--accent);
+  color: var(--foreground);
+}
+.excel-header-active {
+  background: var(--accent);
+  color: var(--foreground);
+}
+
+/* Celda tipo Excel: borde fino, padding lateral */
+.excel-cell {
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+.excel-cell-header-row {
+  background: var(--muted);
+  font-weight: 600;
 }
 
 /* Botón presión táctil */

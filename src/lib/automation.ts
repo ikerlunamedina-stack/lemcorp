@@ -59,17 +59,20 @@ const TYPE_COLS = [
   "operación",
   "in/out/int",
 ];
-const QTY_COLS_DESPACHO = ["cantidad", "cant", "qty", "salida", "despachado", "total", "total contabilizado"];
-// Para inventario priorizamos "Físico" (stock físico total) y "Disponible",
-// porque los reportes reales de almacén (ej. HUB ALTAS) usan esos nombres.
+const QTY_COLS_DESPACHO = ["cantidad", "cant", "qty", "salida", "despachado", "total", "total contabilizado", "cantidad despachada"];
+// Para inventario priorizamos "Stock Actual" (el Excel oficial de LEMCORP usa
+// ese nombre), luego "Físico" (reportes de almacén HUB), luego Disponible.
 const QTY_COLS_INVENTARIO = [
+  "stock inicial",
+  "stock actual",
   "fisico",
+  "físico",
   "disponible",
   "cantidad",
   "stock",
   "existencia",
   "saldo",
-  "stock actual",
+  "stock actual (descontado)",
   "cant",
   "qty",
 ];
@@ -205,14 +208,15 @@ export function runAutomation(
     return -1; // default: salida
   };
 
-  // 1. Revertir TODO lo aplicado anteriormente por este archivo
+  // 1. Revertir TODO lo aplicado anteriormente por este archivo.
+  // qty es negativo (ej: -137), así que -qty es positivo (+137) para sumar de vuelta.
   for (const rowStr of Object.keys(oldApplied)) {
     const { product, qty } = oldApplied[Number(rowStr)];
     if (product) {
       const key = normalize(product);
       const invRow = invIndex[key];
       if (invRow !== undefined) {
-        adjust(invRow, qty); // sumar de vuelta
+        adjust(invRow, -qty); // sumar de vuelta (qty es negativo, -qty es positivo)
         result.modified = true;
       }
     }

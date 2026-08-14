@@ -320,17 +320,57 @@ export function SpreadsheetView() {
           shortcut: "Ctrl+V",
           disabled: clipboardRef.current === null,
           onClick: async () => {
-            // Priorizar portapapeles real si tiene contenido
             let val = clipboardRef.current ?? "";
             try {
               const text = await navigator.clipboard.readText();
               if (text) val = text;
             } catch {}
             if (val) {
-              setCell(file.id, r, c, val);
-              toast({ title: "Pegado", description: ref });
+              // pegar como valor (sin formato)
+              const clean = val.replace(/^=/, "");
+              setCell(file.id, r, c, clean);
+              toast({ title: "Pegado en valores", description: ref });
             }
           },
+        },
+        {
+          type: "submenu",
+          label: "Pegado especial",
+          icon: <MenuIcons.ClipboardPaste className="h-3.5 w-3.5" />,
+          disabled: clipboardRef.current === null,
+          children: [
+            {
+              label: "Pegar valores (sin formato)",
+              onClick: async () => {
+                let val = clipboardRef.current ?? "";
+                try {
+                  const text = await navigator.clipboard.readText();
+                  if (text) val = text;
+                } catch {}
+                if (val) {
+                  // quitar fórmulas, pegar solo el texto plano
+                  const clean = val.replace(/^=/, "");
+                  setCell(file.id, r, c, clean);
+                  toast({ title: "Pegado en valores", description: ref });
+                }
+              },
+            },
+            {
+              label: "Pegar como fórmula",
+              onClick: async () => {
+                let val = clipboardRef.current ?? "";
+                try {
+                  const text = await navigator.clipboard.readText();
+                  if (text) val = text;
+                } catch {}
+                if (val) {
+                  if (!val.startsWith("=")) val = "=" + val;
+                  setCell(file.id, r, c, val);
+                  toast({ title: "Pegado como fórmula", description: ref });
+                }
+              },
+            },
+          ],
         },
         {
           label: "Cortar",

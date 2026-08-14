@@ -338,3 +338,56 @@ Stage Summary:
 - Las filas INT (movimientos internos) no afectan el stock del almacén principal
 - Re-importar el Excel actualizado (mismo nombre) reemplaza el anterior y recalcula el inventario
 - Caso de uso real: cada día actualizas tu Excel de despachos, lo re-importas, y la app ajusta el inventario automáticamente
+
+---
+Task ID: S1-S7
+Agent: main
+Task: Configurar 2 Excels oficiales + mejorar diseño tipo Excel + pegado especial
+
+Work Log:
+- Inspeccionado Control_Stock_Lemcorp.xlsx: 5 hojas (Instrucciones, Stock, Pegar Despachos, Stock Base, Equipos)
+  - Stock: PRODUCTO, SKU, UDM, STOCK ACTUAL, AVERIADOS (con fórmulas que descuentan despachos)
+  - Pegar Despachos: FECHA, PRODUCTO, SKU, CANTIDAD DESPACHADA (donde el usuario pega despachos diarios)
+  - Stock Base: STOCK INICIAL (punto de partida, sin descontar)
+  - Equipos (Series-MAC): series de equipos
+- Copiado a public/stock-lemcorp-inicial.xlsx (reemplazando el anterior)
+- excel.ts: nuevas funciones importSheet() e importAllSheets() que soportan multihoja
+  - detectHeaderRow() encuentra la fila de headers (no siempre es fila 0 — los Excels de LEMCORP tienen títulos en filas 0-2)
+  - importSheet() desplaza datos para que headers queden en row 0
+  - importAllSheets() importa todas las hojas relevantes con tags automáticos
+- automation.ts: añadido "STOCK INICIAL" y "STOCK ACTUAL" a QTY_COLS_INVENTARIO (prioridad: stock inicial > stock actual > fisico > disponible)
+- inventory.ts: añadido "STOCK INICIAL" a FISICO_COLS
+- store.ts seedFromUserExcel reescrito:
+  - Carga Control_Stock_Lemcorp.xlsx (un archivo con múltiples hojas)
+  - Importa "Stock Base" como inventario (STOCK INICIAL = base sin descontar)
+  - Renombra header "STOCK INICIAL" → "STOCK ACTUAL" (para que la automatización lo modifique)
+  - Importa "Pegar Despachos" como despachos
+  - Importa "Equipos (Series-MAC)" como equipos
+  - Genera catálogo y ejecuta recalcAutomation
+- BUG CRÍTICO CORREGIDO en automation.ts línea 219:
+  - El revert usaba adjust(invRow, qty) donde qty es negativo (ej: -137)
+  - Esto causaba que el revert RESTARA en vez de SUMAR (doble sustracción)
+  - Corregido a adjust(invRow, -qty) → ahora suma correctamente +137 de vuelta
+  - Verificado: 2768 - 137 = 2631 (inicial) → agregar despacho 200 → 2631 - 200 = 2431 ✓
+- globals.css: estilos tipo Excel (.excel-header, .excel-cell, .cell-in-range)
+- Menú contextual: añadido "Pegado especial" con submenú:
+  - "Pegar valores (sin formato)" — pega solo el texto, sin fórmulas ni formato
+  - "Pegar como fórmula" — pega con prefijo = para treat como fórmula
+
+Verificación con Agent Browser:
+- Carga inicial: 3 archivos (Stock LEMCORP [inventario] + Pegar Despachos [despachos] + Equipos LEMCORP [equipos]) ✓
+- 54 productos en catálogo ✓
+- Headers: PRODUCTO, SKU, UDM, STOCK ACTUAL, AVERIADOS ✓
+- Stock CONECTOR (1002900): 2768 - 137 = 2631 ✓ (correcto)
+- Agregar despacho 200 → stock = 2631 - 200 = 2431 ✓ (correcto tras fix del bug)
+- VLM confirmó: "tabla estructurada con productos y stock, cantidades correctas, diseño gris corporativo profesional, aspecto de software empresarial/ERP" ✓
+- Lint limpio, dev server sin errores, estado limpio restaurado
+
+Stage Summary:
+- Los 2 Excels oficiales del usuario ahora funcionan:
+  1. Control_Stock_Lemcorp.xlsx → Stock Base (inventario) + Pegar Despachos (despachos) + Equipos
+  2. control_despachos_lemcorp_v3.xlsx → despachos detallados (si se necesita)
+- Flujo: pegas despachos del día en "Pegar Despachos" → el stock se descuenta solo
+- Bug crítico de doble sustracción corregido (el revert ahora suma correctamente)
+- Pegado especial (valores / fórmula) en menú contextual
+- Diseño mejorado con estilos tipo Excel
