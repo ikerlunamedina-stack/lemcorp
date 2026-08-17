@@ -6,6 +6,7 @@ import {
   Wrench,
   Boxes,
   Hash,
+  ClipboardPaste,
   Settings as SettingsIcon,
   FilePlus2,
   Upload,
@@ -142,6 +143,12 @@ export function Sidebar() {
           icon={<Boxes className="h-4 w-4" />}
           label="Inventario"
           badge={counts.inventario || undefined}
+        />
+        <NavButton
+          active={activeView === "despachosdia"}
+          onClick={() => setActiveView("despachosdia")}
+          icon={<ClipboardPaste className="h-4 w-4" />}
+          label="Despachos del Día"
         />
         <NavButton
           active={activeView === "series"}

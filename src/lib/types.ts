@@ -128,6 +128,7 @@ export type ActiveView =
   | "editor"
   | "resumen"
   | "inventario"
+  | "despachosdia"
   | "equipos"
   | "productos"
   | "config"

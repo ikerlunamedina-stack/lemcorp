@@ -8,6 +8,7 @@ import { SpreadsheetView } from "@/components/lem/spreadsheet";
 import { SummaryView } from "@/components/lem/summary-view";
 import { EquipmentView } from "@/components/lem/equipment-view";
 import { InventarioView } from "@/components/lem/inventario-view";
+import { DespachosDiaView } from "@/components/lem/despachos-dia-view";
 import { SeriesView } from "@/components/lem/series-view";
 import { ConfigView } from "@/components/lem/config-view";
 import { Footer } from "@/components/lem/footer";
@@ -55,6 +56,11 @@ export default function Home() {
           {activeView === "inventario" && (
             <div className="h-full overflow-y-auto scroll-thin">
               <InventarioView />
+            </div>
+          )}
+          {activeView === "despachosdia" && (
+            <div className="h-full overflow-y-auto scroll-thin">
+              <DespachosDiaView />
             </div>
           )}
           {activeView === "equipos" && (

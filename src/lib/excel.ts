@@ -158,14 +158,13 @@ export function importWorkbookMultiSheet(
         let val = "";
         if (cell.f) {
           // preservar fórmula con =
-          val = "=" + cell.f;
-          // Si la fórmula referencia otra hoja (contiene !), guardar el valor
-          // precalculado con prefijo @ para que el motor lo use sin recalcular
-          if (cell.f.includes("!")) {
-            const preVal = cell.w ?? String(cell.v ?? "");
-            if (preVal !== "" && preVal !== "undefined") {
-              val = `=${cell.f}\u0001${preVal}`;
-            }
+          // SIEMPRE guardar el valor precalculado (separador \u0001) para que
+          // el motor lo pueda mostrar sin recalcular.
+          const preVal = cell.w ?? String(cell.v ?? "");
+          if (preVal !== "" && preVal !== "undefined") {
+            val = `=${cell.f}\u0001${preVal}`;
+          } else {
+            val = "=" + cell.f;
           }
         } else if (cell.v !== undefined && cell.v !== null) {
           if (cell.t === "n") {
@@ -192,15 +191,19 @@ export function importWorkbookMultiSheet(
   }
   if (sheets.length === 0) return null;
   let tag: FileTag = "otro";
-  const hasStock = sheets.some((s) => /stock/i.test(s.name) && !/base/i.test(s.name));
+  // Priorizar inventario: si tiene hoja "Almacén" o "Stock" (no base), es inventario.
+  const hasStock = sheets.some((s) => /stock|almac[eé]n/i.test(s.name));
   const hasDespachos = sheets.some((s) => /despacho|pegar/i.test(s.name));
   const hasEquipos = sheets.some((s) => /equipo|serie/i.test(s.name));
   if (hasStock) tag = "inventario";
   else if (hasDespachos) tag = "despachos";
   else if (hasEquipos) tag = "equipos";
+  // Hoja activa: "Almacén" si existe, sino "Stock", sino la segunda
   let activeIdx = 0;
+  const almIdx = sheets.findIndex((s) => /almac[eé]n/i.test(s.name));
   const stockIdx = sheets.findIndex((s) => /stock/i.test(s.name) && !/base/i.test(s.name));
-  if (stockIdx >= 0) activeIdx = stockIdx;
+  if (almIdx >= 0) activeIdx = almIdx;
+  else if (stockIdx >= 0) activeIdx = stockIdx;
   else if (sheets.length > 1) activeIdx = 1;
   const active = sheets[activeIdx];
   return {

@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Wrench,
   Boxes,
+  ClipboardPaste,
   Hash,
   Settings as SettingsIcon,
 } from "lucide-react";
@@ -38,6 +39,8 @@ export function Topbar() {
       ? { icon: <LayoutDashboard className="h-4 w-4" />, title: "Resumen general" }
       : activeView === "inventario"
       ? { icon: <Boxes className="h-4 w-4" />, title: "Inventario" }
+      : activeView === "despachosdia"
+      ? { icon: <ClipboardPaste className="h-4 w-4" />, title: "Despachos del Día" }
       : activeView === "series"
       ? { icon: <Hash className="h-4 w-4" />, title: "Series de equipos" }
       : activeView === "equipos"

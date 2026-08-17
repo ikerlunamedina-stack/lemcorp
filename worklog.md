@@ -455,3 +455,52 @@ Stage Summary:
   3. Copia el total y lo pega en "Almacén" → el Stock Actual se calcula solo
 - Fórmulas funcionan en la web (valor precalculado) y se mantendrán en Excel externo
 - Tema verde corporativo aplicado
+
+---
+Task ID: F1-F5
+Agent: main
+Task: Sistema simple "Pegar y Resumir" + arreglar selección de celdas
+
+Work Log:
+- Creado despachos-dia-view.tsx: vista simple donde el usuario SOLO PEGA TEXTO y el sistema resume automáticamente:
+  1. Textarea grande donde pega despachos (de su sistema o Excel)
+  2. Botón "Pegar desde portapapeles" (lee Ctrl+V automáticamente)
+  3. Botón "Usar ejemplo" (para probar rápidamente)
+  4. Botón "Resumir despachos" que detecta SKU + cantidad automáticamente
+  5. Tabla con resumen por SKU (suma cantidades del mismo SKU)
+  6. Botón "Descontar del stock" que descuenta del inventario automáticamente
+- Parser inteligente que detecta SKUs:
+  - Quita fechas (YYYY-MM-DD) para no confundirlas con SKU
+  - Quita números de modelo (RJ-45) para no confundirlos
+  - Busca el número MÁS LARGO de 4-12 dígitos como SKU
+  - Busca el último número (que no sea el SKU) como cantidad
+- Arreglado bug: las fórmulas locales (=D5-E5) ahora también guardan valor precalculado
+  - Antes solo las fórmulas con referencias entre hojas (!) tenían valor precalculado
+  - Ahora TODAS las fórmulas lo tienen, para que el motor las muestre sin recalcular
+- Arreglado bug: aplicarAlStock ahora busca en la hoja "Almacén" del archivo multi-hoja
+  - Antes buscaba en file.cells (que apunta a la hoja activa, no necesariamente Almacén)
+  - Ahora busca en almSheet (hoja "Almacén" del archivo multi-hoja)
+- Arreglado bug: no mutar el estado directamente (react-hooks/immutability)
+  - Ahora se crea una copia de las celdas antes de modificarlas
+- SheetTabs: arreglado para sincronizar cambios entre hojas al cambiar de pestaña
+- Nav "Despachos del Día" añadido al sidebar (entre Inventario y Series)
+- Tema verde corporativo mantenido
+
+Verificación con Agent Browser:
+- Vista "Despachos del Día" visible con textarea, botones y pasos claros ✓
+- Botón "Usar ejemplo" pega texto de prueba automáticamente ✓
+- Botón "Resumir despachos" detecta SKUs correctamente:
+  - 1002900 (CONECTOR) = 23 (10+5+8) ✓
+  - 1002950 (ATADOR) = 20 ✓
+  - 1003101 (CABLE) = 50 ✓
+  - 4076358 (ROUTER) = 2 ✓
+- Stock ANTES: CONECTOR = 2745 (fórmula =D5-E5 con valor precalculado) ✓
+- Click "Descontar del stock" → stock DESPUES = 2722 (2745 - 23) ✓
+- Lint limpio, sin errores
+
+Stage Summary:
+- Sistema simple "Pegar y Resumir" creado: el usuario solo pega texto y el sistema hace todo
+- 3 pasos: 1) Pegar texto, 2) Ver resumen por SKU, 3) Descontar del stock
+- Parser inteligente que detecta SKUs y cantidades automáticamente
+- Stock se descuenta correctamente de la hoja "Almacén" del Excel multi-hoja
+- No más celdas complicadas de Excel: solo pegar texto y hacer clic
