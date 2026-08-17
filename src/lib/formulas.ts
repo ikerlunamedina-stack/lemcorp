@@ -641,7 +641,9 @@ export function computeFormula(
   }
 }
 
-// Recalcula todas las celdas de un archivo y devuelve mapa de valores display
+// Recalcula todas las celdas de un archivo y devuelve mapa de valores display.
+// Para fórmulas con referencias entre hojas (que contienen \u0001 + valor precalculado),
+// usa el valor precalculado en vez de intentar resolver la referencia.
 export function recalcFile(file: SheetFile): Record<string, string> {
   const ctx: EvalCtx = {
     file,
@@ -649,16 +651,29 @@ export function recalcFile(file: SheetFile): Record<string, string> {
     visiting: new Set(),
   };
   const out: Record<string, string> = {};
-  // procesamos en orden pero permitimos múltiples pasadas para dependencias
   const formulaKeys = Object.keys(file.cells).filter((k) =>
     file.cells[k].startsWith("=")
   );
-  // múltiples pasadas para resolver dependencias hacia adelante
   for (let pass = 0; pass < 3; pass++) {
     for (const k of formulaKeys) {
       const { row, col } = parseCellKey(k);
       const raw = file.cells[k];
-      const v = computeFormula(raw.slice(1), ctx, row, col);
+      // Si la fórmula tiene valor precalculado (separador \u0001), usarlo.
+      const sepIdx = raw.indexOf("\u0001");
+      if (sepIdx >= 0) {
+        const preVal = raw.slice(sepIdx + 1);
+        ctx.computed[k] = preVal;
+        out[k] = preVal;
+        continue;
+      }
+      const formulaBody = sepIdx >= 0 ? raw.slice(1, sepIdx) : raw.slice(1);
+      // Si la fórmula referencia otra hoja (!), no podemos resolverla; usar ""
+      if (formulaBody.includes("!")) {
+        ctx.computed[k] = "";
+        out[k] = "";
+        continue;
+      }
+      const v = computeFormula(formulaBody, ctx, row, col);
       ctx.computed[k] = formatVal(v);
       out[k] = formatVal(v);
     }
@@ -679,7 +694,8 @@ function formatVal(v: any): string {
   return String(v);
 }
 
-// Devuelve el valor display de una celda (calcula si es fórmula)
+// Devuelve el valor display de una celda (calcula si es fórmula).
+// Para fórmulas con referencias entre hojas, usa el valor precalculado.
 export function displayValue(
   file: SheetFile,
   row: number,
@@ -688,15 +704,22 @@ export function displayValue(
 ): string {
   const raw = file.cells[cellKey(row, col)] ?? "";
   if (!raw.startsWith("=")) return raw;
+  // Si la fórmula tiene valor precalculado (separador \u0001), usarlo.
+  const sepIdx = raw.indexOf("\u0001");
+  if (sepIdx >= 0) {
+    return raw.slice(sepIdx + 1);
+  }
+  // Si la fórmula referencia otra hoja (!), no podemos resolverla; usar "".
+  const formulaBody = raw.slice(1);
+  if (formulaBody.includes("!")) return "";
   if (computed && computed[cellKey(row, col)] !== undefined) {
     return computed[cellKey(row, col)];
   }
-  // cálculo individual
   const ctx: EvalCtx = {
     file,
     computed: computed ?? {},
     visiting: new Set(),
   };
-  const v = computeFormula(raw.slice(1), ctx, row, col);
+  const v = computeFormula(formulaBody, ctx, row, col);
   return formatVal(v);
 }

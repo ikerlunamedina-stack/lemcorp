@@ -20,6 +20,7 @@ import {
   type MenuItem,
 } from "./custom-context-menu";
 import { FormatToolbar } from "./format-toolbar";
+import { SheetTabs } from "./sheet-tabs";
 import { useToast } from "@/hooks/use-toast";
 
 const COL_W = 120;
@@ -818,6 +819,11 @@ export function SpreadsheetView() {
           Clic derecho para más acciones · Shift+click selecciona rango · Arrastra para seleccionar · Ctrl+Z deshacer
         </span>
       </div>
+
+      {/* Pestañas de hojas (como en Excel) */}
+      {file.sheets && file.sheets.length > 1 && (
+        <SheetTabs fileId={file.id} />
+      )}
 
       {/* Menú contextual personalizado */}
       {ctxMenu && (

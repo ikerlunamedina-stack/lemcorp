@@ -47,8 +47,23 @@ export interface SheetFile {
   rowHeights?: Record<number, number>;
   // Estilos por celda: clave `${row},${col}` -> CellStyle
   cellStyles?: Record<string, CellStyle>;
+  // Si el archivo tiene múltiples hojas (como un Excel real), aquí se guardan.
+  // sheetIndex indica qué hoja está activa en el editor.
+  sheets?: SheetTab[];
+  activeSheetIndex?: number;
   createdAt: number;
   updatedAt: number;
+}
+
+// Una hoja/pestaña dentro de un archivo multi-hoja (tipo Excel).
+export interface SheetTab {
+  name: string; // nombre de la pestaña (ej: "Stock", "Pegar Despachos")
+  rowCount: number;
+  colCount: number;
+  cells: Record<string, string>;
+  colWidths?: Record<number, number>;
+  rowHeights?: Record<number, number>;
+  cellStyles?: Record<string, CellStyle>;
 }
 
 // Estilo de una celda (formato visual tipo Excel).

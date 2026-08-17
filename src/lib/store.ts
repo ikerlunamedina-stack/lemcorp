@@ -15,7 +15,7 @@ import type {
   CellStyle,
 } from "./types";
 import { DEFAULT_SETTINGS } from "./types";
-import { emptyFile, importFile as importXlsx, importSheet, uid } from "./excel";
+import { emptyFile, importFile as importXlsx, importSheet, importWorkbookMultiSheet, uid } from "./excel";
 import * as XLSX from "xlsx";
 import { detectTag, getHeaderColumns } from "./detection";
 import {
@@ -863,7 +863,7 @@ export const useStore = create<StoreState>()(
         if (get().files.length > 0) return;
         try {
           // 1. Fetch del Excel oficial de LEMCORP (Control_Stock_Lemcorp.xlsx)
-          //    que tiene múltiples hojas: Stock, Pegar Despachos, Equipos.
+          //    que tiene múltiples hojas: Stock, Pegar Despachos, Equipos, etc.
           const res = await fetch("/stock-lemcorp-inicial.xlsx");
           if (!res.ok) {
             get().seedDemoIfEmpty();
@@ -871,39 +871,14 @@ export const useStore = create<StoreState>()(
           }
           const buf = await res.arrayBuffer();
           const wb = XLSX.read(buf, { type: "array", cellFormula: true });
-
-          // 2. Recolectar todas las hojas relevantes.
-          // Usamos "Stock Base" como inventario (tiene STOCK INICIAL sin
-          // descontar). Renombramos la columna a "STOCK ACTUAL" para que la
-          // automatización la modifique correctamente. La automatización restará
-          // los despachos automáticamente para mostrar el stock actual.
-          const newFiles: SheetFile[] = [];
-          const stockSheet =
-            importSheet(wb, "Stock Base", "Stock LEMCORP", "inventario") ||
-            importSheet(wb, "Stock", "Stock LEMCORP", "inventario");
-          if (stockSheet) {
-            // Renombrar "STOCK INICIAL" → "STOCK ACTUAL" en los encabezados
-            for (let c = 0; c < stockSheet.colCount; c++) {
-              const h = stockSheet.cells[`0,${c}`] ?? "";
-              if (/stock\s*inicial/i.test(h)) {
-                stockSheet.cells[`0,${c}`] = "STOCK ACTUAL";
-              }
-            }
-            newFiles.push(stockSheet);
-          }
-          const despSheet = importSheet(wb, "Pegar Despachos", "Pegar Despachos", "despachos");
-          if (despSheet) newFiles.push(despSheet);
-          const eqSheet = wb.SheetNames.find((n) => /equipo|serie/i.test(n));
-          if (eqSheet) {
-            const eqFile = importSheet(wb, eqSheet, "Equipos LEMCORP", "equipos");
-            if (eqFile) newFiles.push(eqFile);
-          }
-          if (newFiles.length === 0) {
+          // 2. Importar como UN archivo multi-hoja (preserva pestañas + fórmulas)
+          const multiSheet = importWorkbookMultiSheet(wb, "Control de Stock LEMCORP");
+          if (multiSheet) {
+            set({ files: [...get().files, multiSheet] });
+          } else {
             get().seedDemoIfEmpty();
             return;
           }
-          set({ files: [...get().files, ...newFiles] });
-
           // 3. Generar catálogo de productos automáticamente desde el stock
           const suggestions = get().getSuggestions();
           if (suggestions.length > 0) {
@@ -915,10 +890,8 @@ export const useStore = create<StoreState>()(
               }))
             );
           }
-
-          // 4. Ejecutar la automatización Despachos -> Inventario (descuenta stock).
+          // 4. Ejecutar la automatización Despachos -> Inventario.
           get().recalcAutomation();
-
           // 5. Vista inicial en Inventario.
           set({ activeFileId: null, activeView: "inventario", histories: {}, redoes: {} });
         } catch (err) {

@@ -124,9 +124,98 @@ export function importSheet(
 export async function importFile(file: File): Promise<SheetFile> {
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: "array", cellFormula: true });
+  // Si el workbook tiene múltiples hojas relevantes, importar como multi-hoja
+  if (wb.SheetNames.length > 1) {
+    const sf = importWorkbookMultiSheet(wb, file.name.replace(/\.(xlsx|xls|csv)$/i, ""));
+    if (sf) return sf;
+  }
   const targetSheet = pickBestSheet(wb);
   const sf = importSheet(wb, targetSheet, file.name.replace(/\.(xlsx|xls|csv)$/i, ""));
   return sf ?? emptyFile(file.name);
+}
+
+// Importa un workbook completo como un SheetFile con múltiples pestañas (SheetTab).
+// Preserva las fórmulas tal como están (con referencias a otras hojas).
+// Para fórmulas con referencias entre hojas, guarda también el valor calculado
+// (prefijo "@") para que el motor pueda mostrarlo sin recalcular.
+export function importWorkbookMultiSheet(
+  wb: XLSX.WorkBook,
+  fileName: string
+): SheetFile | null {
+  const sheets: SheetTab[] = [];
+  for (const name of wb.SheetNames) {
+    const ws = wb.Sheets[name];
+    if (!ws || !ws["!ref"]) continue;
+    const range = XLSX.utils.decode_range(ws["!ref"]);
+    const rowCount = Math.max(range.e.r - range.s.r + 1, 1);
+    const colCount = Math.max(range.e.c - range.s.c + 1, 1);
+    const cells: Record<string, string> = {};
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const addr = XLSX.utils.encode_cell({ r, c });
+        const cell = ws[addr];
+        if (!cell) continue;
+        let val = "";
+        if (cell.f) {
+          // preservar fórmula con =
+          val = "=" + cell.f;
+          // Si la fórmula referencia otra hoja (contiene !), guardar el valor
+          // precalculado con prefijo @ para que el motor lo use sin recalcular
+          if (cell.f.includes("!")) {
+            const preVal = cell.w ?? String(cell.v ?? "");
+            if (preVal !== "" && preVal !== "undefined") {
+              val = `=${cell.f}\u0001${preVal}`;
+            }
+          }
+        } else if (cell.v !== undefined && cell.v !== null) {
+          if (cell.t === "n") {
+            val = String(cell.v);
+          } else if (cell.t === "d") {
+            val = String(cell.w || cell.v);
+          } else {
+            val = String(cell.v);
+          }
+        }
+        if (val !== "" && val !== "undefined") {
+          cells[`${r},${c}`] = val;
+        }
+      }
+    }
+    if (Object.keys(cells).length > 0) {
+      sheets.push({
+        name,
+        rowCount,
+        colCount,
+        cells,
+      });
+    }
+  }
+  if (sheets.length === 0) return null;
+  let tag: FileTag = "otro";
+  const hasStock = sheets.some((s) => /stock/i.test(s.name) && !/base/i.test(s.name));
+  const hasDespachos = sheets.some((s) => /despacho|pegar/i.test(s.name));
+  const hasEquipos = sheets.some((s) => /equipo|serie/i.test(s.name));
+  if (hasStock) tag = "inventario";
+  else if (hasDespachos) tag = "despachos";
+  else if (hasEquipos) tag = "equipos";
+  let activeIdx = 0;
+  const stockIdx = sheets.findIndex((s) => /stock/i.test(s.name) && !/base/i.test(s.name));
+  if (stockIdx >= 0) activeIdx = stockIdx;
+  else if (sheets.length > 1) activeIdx = 1;
+  const active = sheets[activeIdx];
+  return {
+    id: uid(),
+    name: fileName,
+    tag,
+    tagConfirmed: tag !== "otro",
+    rowCount: active.rowCount,
+    colCount: active.colCount,
+    cells: active.cells,
+    sheets,
+    activeSheetIndex: activeIdx,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
 }
 
 // Importa todas las hojas relevantes de un workbook.
