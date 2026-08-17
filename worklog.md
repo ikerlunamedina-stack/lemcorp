@@ -504,3 +504,46 @@ Stage Summary:
 - Parser inteligente que detecta SKUs y cantidades automáticamente
 - Stock se descuenta correctamente de la hoja "Almacén" del Excel multi-hoja
 - No más celdas complicadas de Excel: solo pegar texto y hacer clic
+
+---
+Task ID: S1-S8
+Agent: main
+Task: Sistema de inventario puro (nada de Excel, solo exportación final)
+
+Work Log:
+- Tipos: Product ahora tiene quantity (obligatorio), minStock, category, udm. Nuevo tipo Despacho {id, fecha, sku, producto, cantidad, cliente, tecnico, guia, observacion}. ActiveView simplificado a dashboard|inventario|despachos|config.
+- Store:
+  - addProduct(sku, name, quantity, minStock, category, udm) con stock obligatorio
+  - updateProduct(id, data) con Partial update
+  - addDespacho(d) — registra despacho Y descuenta del stock automáticamente
+  - deleteDespacho(id) — elimina despacho Y devuelve el stock al producto
+  - getDespachosDelDia(fecha) — devuelve despachos del día actual
+  - exportInventarioExcel() — genera archivo .xlsx con todo el inventario
+  - despachos[] persistente en localStorage
+  - seedDemoIfEmpty: siembra 10 productos reales (CONECTOR, ATADOR, CABLES, ROUTER, MODEM, etc.)
+  - partialize: solo products, despachos, settings, activeView (no más files/appliedMap)
+- dashboard-view.tsx: 4 tarjetas (productos, unidades, despachado hoy, bajo stock), alertas de bajo stock, lista de despachos de hoy, botón Exportar a Excel
+- inventario-sistema-view.tsx: tabla de productos con SKU, nombre, categoría, stock actual (badge verde/rojo), stock mínimo, UDM. Buscador, añadir/editar/eliminar producto, exportar a Excel
+- despachos-sistema-view.tsx: formulario (dropdown de productos + cantidad + cliente + técnico + guía) con validación de stock, lista de despachos de hoy con opción de eliminar (devuelve stock)
+- sidebar.tsx: simplificado a 3 items (Dashboard, Inventario, Despachos) + Configuración al pie, alerta de bajo stock
+- topbar.tsx: simplificado (título de vista + campana de notificaciones)
+- footer.tsx: muestra productos, unidades, despachos, hora, marca LEMCORP
+- config-view.tsx: datos del sistema, exportar inventario, borrar todos los datos
+- page.tsx: renderiza DashboardView, InventarioView, DespachosView, ConfigView
+
+Verificación con Agent Browser:
+- Carga: 10 productos sembrados, 0 despachos, vista dashboard ✓
+- Dashboard: 4 tarjetas (10 productos, 30,368 unidades, 0 despachado, 0 bajo stock), botón Exportar a Excel ✓
+- Despachos: seleccionar CONECTOR (1002900), cantidad 23, registrar → stock = 2768 - 23 = 2745 ✓
+- Dashboard muestra despacho de hoy: 23 unidades, 1 despacho(s) ✓
+- VLM confirmó: "tarjetas con stats, tema verde corporativo, botón Exportar a Excel, lista de despachos de hoy" ✓
+- Lint limpio, sin errores
+
+Stage Summary:
+- Sistema de inventario puro (nada de Excel internamente)
+- 3 módulos: Dashboard (resumen + alertas), Inventario (CRUD productos), Despachos (registro + descuento automático)
+- Solo función Excel: exportar inventario total a .xlsx (en Dashboard y Configuración)
+- Stock se descuenta automáticamente al registrar despachos
+- Eliminar despacho devuelve el stock al producto
+- 10 productos reales sembrados (CONECTOR, ATADOR, CABLES, ROUTER, MODEM, etc.)
+- Tema verde corporativo

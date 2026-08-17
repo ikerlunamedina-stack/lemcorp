@@ -10,6 +10,7 @@ import type {
   HistorySnapshot,
   ActiveView,
   Product,
+  Despacho,
   Mismatch,
   Settings,
   CellStyle,
@@ -29,9 +30,10 @@ const HISTORY_LIMIT = 50;
 
 interface StoreState {
   files: SheetFile[];
-  products: Product[]; // catálogo maestro de productos (SKU -> nombre + cantidad)
+  products: Product[]; // catálogo de productos (SKU + nombre + stock)
+  despachos: Despacho[]; // historial de despachos registrados
   settings: Settings;
-  seenNotificationKeys: string[]; // claves de notificaciones ya vistas (para el badge)
+  seenNotificationKeys: string[];
   activeFileId: string | null;
   activeView: ActiveView;
   histories: Record<string, HistorySnapshot[]>;
@@ -54,12 +56,19 @@ interface StoreState {
   duplicateFile: (id: string) => void;
   setFileTag: (id: string, tag: FileTag) => void;
 
-  // productos (catálogo maestro)
-  addProduct: (sku: string, name: string, quantity?: number) => string | null;
-  updateProduct: (id: string, sku: string, name: string, quantity?: number) => void;
+  // productos (catálogo + stock)
+  addProduct: (sku: string, name: string, quantity: number, minStock?: number, category?: string, udm?: string) => string | null;
+  updateProduct: (id: string, data: Partial<Omit<Product, "id" | "createdAt">>) => void;
   deleteProduct: (id: string) => void;
-  importProductsBulk: (items: { sku: string; name: string; quantity?: number }[]) => number;
   findProductBySku: (sku: string) => Product | null;
+
+  // despachos
+  addDespacho: (d: Omit<Despacho, "id" | "fecha">) => string | null;
+  deleteDespacho: (id: string) => void;
+  getDespachosDelDia: (fecha?: number) => Despacho[];
+
+  // exportar inventario a Excel
+  exportInventarioExcel: () => void;
 
   // validación
   getMismatches: () => Mismatch[];
@@ -152,10 +161,11 @@ export const useStore = create<StoreState>()(
     (set, get) => ({
       files: [],
       products: [],
+      despachos: [],
       settings: { ...DEFAULT_SETTINGS },
       seenNotificationKeys: [],
       activeFileId: null,
-      activeView: "resumen",
+      activeView: "dashboard",
       histories: {},
       redoes: {},
       appliedMap: {},
@@ -278,17 +288,19 @@ export const useStore = create<StoreState>()(
         return get().products.find((p) => p.sku.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === key) ?? null;
       },
 
-      addProduct: (sku, name, quantity) => {
+      addProduct: (sku, name, quantity, minStock, category, udm) => {
         const skuTrim = sku.trim();
         const nameTrim = name.trim();
         if (!skuTrim || !nameTrim) return null;
-        // SKU duplicado -> no agregar
         if (get().findProductBySku(skuTrim)) return null;
         const p: Product = {
           id: uid(),
           sku: skuTrim,
           name: nameTrim,
-          quantity: typeof quantity === "number" && !isNaN(quantity) ? quantity : undefined,
+          quantity: quantity || 0,
+          minStock: minStock,
+          category: category?.trim() || undefined,
+          udm: udm?.trim() || undefined,
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };
@@ -296,24 +308,10 @@ export const useStore = create<StoreState>()(
         return p.id;
       },
 
-      updateProduct: (id, sku, name, quantity) => {
-        const skuTrim = sku.trim();
-        const nameTrim = name.trim();
-        if (!skuTrim || !nameTrim) return;
-        // si el SKU nuevo choca con otro producto distinto, no permitir
-        const clash = get().findProductBySku(skuTrim);
-        if (clash && clash.id !== id) return;
+      updateProduct: (id, data) => {
         set({
           products: get().products.map((p) =>
-            p.id === id
-              ? {
-                  ...p,
-                  sku: skuTrim,
-                  name: nameTrim,
-                  quantity: typeof quantity === "number" && !isNaN(quantity) ? quantity : undefined,
-                  updatedAt: Date.now(),
-                }
-              : p
+            p.id === id ? { ...p, ...data, updatedAt: Date.now() } : p
           ),
         });
       },
@@ -322,27 +320,81 @@ export const useStore = create<StoreState>()(
         set({ products: get().products.filter((p) => p.id !== id) });
       },
 
-      importProductsBulk: (items) => {
-        let added = 0;
-        const current = [...get().products];
-        for (const it of items) {
-          const skuTrim = it.sku.trim();
-          const nameTrim = it.name.trim();
-          if (!skuTrim || !nameTrim) continue;
-          const key = skuTrim.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-          if (current.some((p) => p.sku.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === key)) continue;
-          current.push({
-            id: uid(),
-            sku: skuTrim,
-            name: nameTrim,
-            quantity: typeof it.quantity === "number" && !isNaN(it.quantity) ? it.quantity : undefined,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-          });
-          added++;
-        }
-        if (added > 0) set({ products: current });
-        return added;
+      // ---------- Despachos ----------
+      addDespacho: (d) => {
+        const product = get().findProductBySku(d.sku);
+        if (!product) return null;
+        if (product.quantity < d.cantidad) return null; // no hay stock suficiente
+        const desp: Despacho = {
+          id: uid(),
+          fecha: Date.now(),
+          ...d,
+        };
+        // 1. Guardar el despacho en el historial
+        set({ despachos: [desp, ...get().despachos] });
+        // 2. Descontar del inventario
+        set({
+          products: get().products.map((p) =>
+            p.id === product.id
+              ? { ...p, quantity: p.quantity - d.cantidad, updatedAt: Date.now() }
+              : p
+          ),
+        });
+        return desp.id;
+      },
+
+      deleteDespacho: (id) => {
+        // al eliminar un despacho, devolver el stock al producto
+        const desp = get().despachos.find((d) => d.id === id);
+        if (!desp) return;
+        const product = get().findProductBySku(desp.sku);
+        set({
+          despachos: get().despachos.filter((d) => d.id !== id),
+          products: product
+            ? get().products.map((p) =>
+                p.id === product.id
+                  ? { ...p, quantity: p.quantity + desp.cantidad, updatedAt: Date.now() }
+                  : p
+              )
+            : get().products,
+        });
+      },
+
+      getDespachosDelDia: (fecha) => {
+        const f = fecha ?? Date.now();
+        const inicioDia = new Date(f);
+        inicioDia.setHours(0, 0, 0, 0);
+        const finDia = new Date(f);
+        finDia.setHours(23, 59, 59, 999);
+        return get().despachos.filter(
+          (d) => d.fecha >= inicioDia.getTime() && d.fecha <= finDia.getTime()
+        );
+      },
+
+      // ---------- Exportar inventario a Excel ----------
+      exportInventarioExcel: () => {
+        const products = get().products;
+        import("xlsx").then((XLSX) => {
+          const data = [
+            ["INVENTARIO LEMCORP", "", "", "", "", ""],
+            ["Exportado:", new Date().toLocaleString("es-PE"), "", "", "", ""],
+            [],
+            ["SKU", "PRODUCTO", "CATEGORÍA", "STOCK ACTUAL", "STOCK MÍNIMO", "UDM"],
+            ...products.map((p) => [
+              p.sku,
+              p.name,
+              p.category ?? "",
+              p.quantity,
+              p.minStock ?? "",
+              p.udm ?? "",
+            ]),
+          ];
+          const ws = XLSX.utils.aoa_to_sheet(data);
+          ws["!cols"] = [{ wch: 14 }, { wch: 40 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 12 }];
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Inventario");
+          XLSX.writeFile(wb, `Inventario_LEMCORP_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        });
       },
 
       getMismatches: () => {
@@ -836,80 +888,39 @@ export const useStore = create<StoreState>()(
       setHydrated: () => set({ hydrated: true }),
 
       seedDemoIfEmpty: () => {
-        const { files, products } = get();
-        if (files.length > 0) return;
-        const s = get();
-        const invId = s.createFile("Inventario Total", "inventario");
-        const despId = s.createFile("Despachos del Día", "despachos");
-        const eqId = s.createFile("Equipos Averiados", "equipos");
-        // Forzar vista inicial en inventario y ejecutar automatización inicial
-        set({ activeFileId: null, activeView: "inventario", histories: {}, redoes: {} });
-        // procesar despachos -> inventario con los datos demo
-        get().recalcAutomation();
-        // sembrar catálogo maestro de productos (solo si está vacío)
-        if (products.length === 0) {
-          const demo: { sku: string; name: string; quantity?: number }[] = [
-            { sku: "RT-001", name: "Router TP-Link WR840N", quantity: 120 },
-            { sku: "ONT-002", name: "ONT Huawei HG8245", quantity: 45 },
-            { sku: "CAB-003", name: "Cable UTP Cat6 (m)", quantity: 500 },
-          ];
-          get().importProductsBulk(demo);
+        const { products } = get();
+        if (products.length > 0) return;
+        // Sembrar productos demo del sistema (no Excel)
+        const demo: { sku: string; name: string; quantity: number; minStock?: number; category?: string; udm?: string }[] = [
+          { sku: "1002900", name: "CONECTOR PLUG RJ-45", quantity: 2768, minStock: 100, category: "Conector", udm: "UNIDADES" },
+          { sku: "1002950", name: "ATADOR DE IDENTIFICACION DE ABONADO", quantity: 1475, minStock: 50, category: "Accesorio", udm: "UNIDADES" },
+          { sku: "1003101", name: "CABLE COAXIAL RG-6 AUTOSOPORTADO", quantity: 6794, minStock: 200, category: "Cable", udm: "METROS" },
+          { sku: "1004705", name: "CABLE COAXIAL BLANCO RG-6 S/MENSAJERO", quantity: 3121, minStock: 100, category: "Cable", udm: "METROS" },
+          { sku: "1004692", name: "CABLE UTP CAT5E FTP 4PR/24AWG", quantity: 15921, minStock: 500, category: "Cable", udm: "METROS" },
+          { sku: "4076358", name: "ROUTER ONT HG8145X6-13 50088770 HUAWEI", quantity: 29, minStock: 5, category: "Router", udm: "UNIDADES" },
+          { sku: "4048528", name: "MODEM ARRIS TG2482 24X8 3.0 S/BAT", quantity: 12, minStock: 3, category: "Modem", udm: "UNIDADES" },
+          { sku: "4073653", name: "ROUTER K562E-10 50087708 HUAWEI", quantity: 16, minStock: 3, category: "Router", udm: "UNIDADES" },
+          { sku: "4072704", name: "DECODIFICADOR IPTV ZXV10 B866V2-H ZTE", quantity: 67, minStock: 5, category: "Decodificador", udm: "UNIDADES" },
+          { sku: "1042681", name: "ROSETA ATB3101 SIN PIGTAIL", quantity: 188, minStock: 20, category: "Accesorio", udm: "UNIDADES" },
+        ];
+        for (const p of demo) {
+          get().addProduct(p.sku, p.name, p.quantity, p.minStock, p.category, p.udm);
         }
-        void invId; void despId; void eqId;
+        set({ activeView: "dashboard" });
       },
 
       seedFromUserExcel: async () => {
-        // Si ya hay archivos, no hacer nada (usuario ya tiene datos).
-        if (get().files.length > 0) return;
-        try {
-          // 1. Fetch del Excel oficial de LEMCORP (Control_Stock_Lemcorp.xlsx)
-          //    que tiene múltiples hojas: Stock, Pegar Despachos, Equipos, etc.
-          const res = await fetch("/stock-lemcorp-inicial.xlsx");
-          if (!res.ok) {
-            get().seedDemoIfEmpty();
-            return;
-          }
-          const buf = await res.arrayBuffer();
-          const wb = XLSX.read(buf, { type: "array", cellFormula: true });
-          // 2. Importar como UN archivo multi-hoja (preserva pestañas + fórmulas)
-          const multiSheet = importWorkbookMultiSheet(wb, "Control de Stock LEMCORP");
-          if (multiSheet) {
-            set({ files: [...get().files, multiSheet] });
-          } else {
-            get().seedDemoIfEmpty();
-            return;
-          }
-          // 3. Generar catálogo de productos automáticamente desde el stock
-          const suggestions = get().getSuggestions();
-          if (suggestions.length > 0) {
-            get().importProductsBulk(
-              suggestions.map((sg) => ({
-                sku: sg.sku,
-                name: sg.name,
-                quantity: sg.quantity,
-              }))
-            );
-          }
-          // 4. Ejecutar la automatización Despachos -> Inventario.
-          get().recalcAutomation();
-          // 5. Vista inicial en Inventario.
-          set({ activeFileId: null, activeView: "inventario", histories: {}, redoes: {} });
-        } catch (err) {
-          console.error("No se pudo cargar el Excel inicial:", err);
-          get().seedDemoIfEmpty();
-        }
+        // En modo sistema, solo sembramos productos demo si no hay datos.
+        get().seedDemoIfEmpty();
       },
     }),
     {
       name: "lemcorp-excel-v1",
       partialize: (s) => ({
-        files: s.files,
         products: s.products,
+        despachos: s.despachos,
         settings: s.settings,
-        appliedMap: s.appliedMap,
-        seenNotificationKeys: s.seenNotificationKeys,
         activeView: s.activeView,
-        activeFileId: s.activeFileId,
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHydrated();

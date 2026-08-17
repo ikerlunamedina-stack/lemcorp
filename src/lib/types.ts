@@ -93,9 +93,25 @@ export interface Product {
   id: string;
   sku: string; // código único, ej. "4076358"
   name: string; // nombre canónico, ej. "ROUTER ONT HG8145X6-13 HUAWEI"
-  quantity?: number; // cantidad / stock registrado en el catálogo
+  category?: string; // categoría opcional, ej. "Router", "ONT", "Cable"
+  quantity: number; // stock actual (se descuenta con despachos)
+  minStock?: number; // stock mínimo para alertas
+  udm?: string; // unidad de medida (UNIDADES, METROS, etc.)
   createdAt: number;
   updatedAt: number;
+}
+
+// Despacho registrado en el sistema.
+export interface Despacho {
+  id: string;
+  fecha: number; // timestamp del despacho
+  sku: string;
+  producto: string;
+  cantidad: number;
+  cliente?: string;
+  tecnico?: string;
+  guia?: string;
+  observacion?: string;
 }
 
 // Discrepancia detectada al cruzar archivos contra el catálogo maestro.
@@ -125,11 +141,7 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 export type ActiveView =
-  | "editor"
-  | "resumen"
+  | "dashboard"
   | "inventario"
-  | "despachosdia"
-  | "equipos"
-  | "productos"
-  | "config"
-  | "series";
+  | "despachos"
+  | "config";

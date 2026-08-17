@@ -2,24 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
-import { useEditorUI } from "@/lib/editor-store";
-import { HardDrive, Clock, Zap } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { HardDrive, Clock, TrendingDown } from "lucide-react";
 
 export function Footer() {
-  const files = useStore((s) => s.files);
+  const products = useStore((s) => s.products);
+  const despachos = useStore((s) => s.despachos);
   const activeView = useStore((s) => s.activeView);
-  const active = useEditorUI((s) => s.active);
   const [now, setNow] = useState<string>("");
 
   useEffect(() => {
     const tick = () => {
-      const d = new Date();
       setNow(
-        d.toLocaleTimeString("es-PE", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
+        new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })
       );
     };
     tick();
@@ -27,32 +21,29 @@ export function Footer() {
     return () => clearInterval(id);
   }, []);
 
-  const totalCells = files.reduce(
-    (s, f) => s + Object.keys(f.cells).length,
-    0
-  );
+  const totalUnidades = products.reduce((s, p) => s + p.quantity, 0);
+
+  const viewLabel =
+    activeView === "dashboard" ? "Dashboard"
+    : activeView === "inventario" ? "Inventario"
+    : activeView === "despachos" ? "Despachos"
+    : "Configuración";
 
   return (
     <footer className="flex h-8 shrink-0 items-center gap-4 border-t border-border bg-card/60 glass px-4 text-[11px] text-muted-foreground">
       <span className="flex items-center gap-1.5">
         <HardDrive className="h-3 w-3" />
-        Guardado local · {files.length} archivo(s) · {totalCells} celdas
+        {products.length} productos · {totalUnidades.toLocaleString("es-PE")} und
       </span>
       <span className="flex items-center gap-1.5">
-        <Zap className="h-3 w-3" />
-        {activeView === "editor"
-          ? active
-            ? `Celda ${active.ref}`
-            : "Editor"
-          : activeView === "resumen"
-          ? "Vista resumen"
-          : "Vista equipos"}
+        <TrendingDown className="h-3 w-3" />
+        {despachos.length} despachos registrados
       </span>
       <span className="ml-auto flex items-center gap-1.5">
         <Clock className="h-3 w-3" />
         {now}
       </span>
-      <span className={cn("font-medium tracking-wider")}>LEMCORP © 2025</span>
+      <span className="font-medium tracking-wider">LEMCORP © 2026</span>
     </footer>
   );
 }
