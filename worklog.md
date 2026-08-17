@@ -423,3 +423,35 @@ Stage Summary:
 - Sistema de fórmulas preservado: las fórmulas entre hojas muestran su valor calculado
 - Tema verde corporativo aplicado (más distintivo de LEMCORP)
 - El usuario puede cambiar entre pestañas: Stock (ver stock), Pegar Despachos (pegar despachos del día), Stock Base (ver stock inicial), Equipos (ver series)
+
+---
+Task ID: E1-E4
+Agent: main
+Task: Crear Excel con fórmulas de resumen (SUMAR.SI) + almacén con stock actual
+
+Work Log:
+- Creado scripts/generate-excel.ts que genera un Excel con 3 hojas conectadas:
+  1. "Pegar Despacho del Día" — donde pegas despachos crudos (Fecha, SKU, Producto, Cantidad)
+  2. "Resumen por SKU" — con fórmulas =SUMAR.SI('Pegar Despacho del Día'!$B$5:$B$1000,$A5,'Pegar Despacho del Día'!$D$5:$D$1000) que suman automáticamente por SKU
+  3. "Almacén" — con Stock Inicial, columna "Despachado Hoy" (donde pegas el resumen), y fórmula =D-E para Stock Actual
+- Fórmulas guardadas con valor precalculado (separador \u0001) para que la web muestre el resultado sin necesidad de recalcular
+- 15 productos de catálogo con stock inicial real
+- Corregido offset de filas (productos empiezan en fila 5, no 4)
+- Pre-cálculo correcto: CONECTOR despachó 10+5+8=23 → Stock = 2768-23 = 2745
+
+Verificación con Agent Browser:
+- Carga: 1 archivo con 3 hojas (Pegar Despacho, Resumen, Almacén) ✓
+- Pestañas visibles abajo del editor ✓
+- Hoja Resumen muestra valores calculados: CONECTOR=23, ATADOR=20, CABLE RG-6=50, CABLE BLANCO=30 ✓
+- Hoja Almacén muestra Stock Inicial, Despachado Hoy=0, Stock Actual=Stock Inicial ✓
+- PROBAR FLUJO: pegar 23 en "Despachado Hoy" del CONECTOR → Stock Actual cambia de 2768 a 2745 ✓
+- VLM confirmó: 3 pestañas visibles, almacén con columnas correctas, tema verde corporativo ✓
+- Lint limpio, sin errores
+
+Stage Summary:
+- El Excel ahora replica el flujo real del usuario:
+  1. Pega despachos en "Pegar Despacho del Día"
+  2. El "Resumen por SKU" los suma automáticamente con SUMAR.SI
+  3. Copia el total y lo pega en "Almacén" → el Stock Actual se calcula solo
+- Fórmulas funcionan en la web (valor precalculado) y se mantendrán en Excel externo
+- Tema verde corporativo aplicado
