@@ -586,3 +586,40 @@ Stage Summary:
 - 7 equipos demo sembrados (routers, decodificadores, modems)
 - Añadir/editar/eliminar equipos con validación de serie duplicada
 - Todo estético: tema verde corporativo, animaciones, badges coloreados
+
+---
+Task ID: R1-R7
+Agent: main
+Task: Sistema solo inventario (sin despachos) + tema azul pastel mar estilo iPhone
+
+Work Log:
+- Tema cambiado de verde a AZUL PASTEL MAR (hue 235-240 en oklch, saturación subida a 0.14 para que sea claramente azul)
+  - Light: primary azul medio, backgrounds azul pastel muy claro, acentos azul suave
+  - Dark: primary azul claro, backgrounds azul oscuro
+  - Radius aumentado a 1rem (más redondeado estilo iPhone)
+- ActiveView simplificado: dashboard | inventario | equipos | config (quitado "despachos")
+- Sidebar reescrito: estilo iPhone con backdrop-blur-xl, sombras, iconos más grandes (18px), botones h-11, badges redondeados, alerta bajo stock con icono en círculo, transiciones suaves
+- Topbar reescrito: backdrop-blur-xl, sin despachos
+- Footer reescrito: muestra productos, unidades, equipos (sin despachos)
+- Dashboard reescrito: 
+  - 4 tarjetas de stats (productos, unidades, equipos, bajo stock) con sombras y hover effects
+  - Alertas de bajo stock con botones clickeables
+  - Stock por categoría con barras de progreso animadas
+  - Equipos por estado (5 estados con iconos y conteos)
+  - Botón Exportar a Excel con sombra
+- Page.tsx: renderiza Dashboard, Inventario, Equipos, Config (sin Despachos)
+
+Verificación con Agent Browser:
+- Carga: 10 productos, 7 equipos, vista dashboard ✓
+- VLM confirma: "tema azul pastel mar, todo redondeado estilo iPhone, elegante, corporativo, serio" ✓
+- Dashboard: 4 tarjetas (10 productos, 30,391 unidades, 7 equipos, 0 bajo stock), barras por categoría, equipos por estado ✓
+- Inventario: tabla elegante con badges azules ✓
+- Equipos: tarjetas por modelo con estilo iPhone ✓
+- Lint limpio, sin errores
+
+Stage Summary:
+- Sistema simplificado: solo Inventario + Equipos (sin despachos)
+- Tema AZUL PASTEL MAR corporativo
+- Todo redondeado estilo iPhone (radius 1rem, sombras, blur)
+- Estética elegante, seria, fluida, chill
+- 3 módulos: Dashboard, Inventario, Equipos + Configuración

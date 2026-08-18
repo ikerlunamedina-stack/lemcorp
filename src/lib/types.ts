@@ -172,6 +172,5 @@ export const DEFAULT_SETTINGS: Settings = {
 export type ActiveView =
   | "dashboard"
   | "inventario"
-  | "despachos"
   | "equipos"
   | "config";
