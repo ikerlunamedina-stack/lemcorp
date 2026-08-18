@@ -183,7 +183,7 @@ export function InventarioView() {
                 {filtered.map((p) => {
                   const bajo = p.minStock !== undefined && p.minStock > 0 && p.quantity <= p.minStock;
                   return (
-                    <tr key={p.id} className="group border-b border-border/50 last:border-0 hover:bg-accent/30">
+                    <tr key={p.id} className="group border-b border-border/50 last:border-0 hover:bg-accent/30 transition-colors duration-200">
                       <td className="px-4 py-2.5">
                         <span className="font-mono text-[12px] font-semibold">{p.sku}</span>
                       </td>

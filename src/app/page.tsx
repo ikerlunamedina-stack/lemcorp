@@ -15,6 +15,16 @@ export default function Home() {
   const seedDemoIfEmpty = useStore((s) => s.seedDemoIfEmpty);
   const activeView = useStore((s) => s.activeView);
 
+  // En modo sistema, hidratar inmediatamente (no necesitamos esperar
+  // a localStorage porque el store se inicializa de forma síncrona).
+  useEffect(() => {
+    // Forzar hydrated = true después del primer render
+    const timer = setTimeout(() => {
+      useStore.setState({ hydrated: true });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   useEffect(() => {
     if (hydrated) {
       seedDemoIfEmpty();

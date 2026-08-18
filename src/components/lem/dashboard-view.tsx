@@ -185,8 +185,8 @@ export function DashboardView() {
                   </div>
                   <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                     <div
-                      className="h-full rounded-full bg-primary transition-all duration-700"
-                      style={{ width: `${pct}%` }}
+                      className="h-full rounded-full bg-primary anim-bar-fill"
+                      style={{ width: `${pct}%`, animationDelay: `${i * 100}ms` }}
                     />
                   </div>
                 </div>

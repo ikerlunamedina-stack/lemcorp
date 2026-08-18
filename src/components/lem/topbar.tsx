@@ -7,7 +7,6 @@ import {
   Settings as SettingsIcon,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { NotificationBell } from "./notification-bell";
 
 export function Topbar() {
   const activeView = useStore((s) => s.activeView);
@@ -28,10 +27,6 @@ export function Topbar() {
         <h1 className="truncate text-[15px] font-semibold tracking-tight">
           {viewMeta.title}
         </h1>
-      </div>
-      <div className="ml-auto flex items-center gap-2">
-        <div className="mx-1 h-6 w-px bg-border" />
-        <NotificationBell />
       </div>
     </header>
   );

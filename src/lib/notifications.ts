@@ -81,8 +81,27 @@ export function computeNotifications(
 ): AppNotification[] {
   const out: AppNotification[] = [];
 
-  // Bajo stock
+  // Bajo stock — revisar productos del sistema (no archivos)
   if (settings.lowStockAlerts) {
+    for (const p of products) {
+      if (
+        p.minStock !== undefined &&
+        p.minStock > 0 &&
+        p.quantity <= p.minStock
+      ) {
+        out.push({
+          key: `low:${p.id}`,
+          type: "warning",
+          emoji: "⚠️",
+          title: `Bajo stock: ${p.name}`,
+          description: `${p.quantity} unidades · mínimo ${p.minStock}`,
+          view: "inventario",
+        });
+      }
+    }
+  }
+  // También revisar archivos (compatibilidad)
+  if (files && files.length > 0) {
     for (const f of files) {
       if (f.tag !== "inventario") continue;
       const headers = getHeaderColumns(f);
@@ -108,7 +127,7 @@ export function computeNotifications(
             emoji: "⚠️",
             title: `Bajo stock: ${product}`,
             description: `${qty} unidades · mínimo ${min} · ${f.name}`,
-            view: "editor",
+            view: "inventario",
           });
         }
       }
@@ -125,7 +144,7 @@ export function computeNotifications(
         emoji: "⚠️",
         title: `SKU con nombre distinto: ${m.sku}`,
         description: `«${m.actualName}» ≠ «${m.expectedName}» en ${m.fileName}`,
-        view: "productos",
+        view: "inventario",
       });
     }
     // SKUs sin catalogar (una sola notificación resumen)
@@ -137,7 +156,7 @@ export function computeNotifications(
         emoji: "ℹ️",
         title: `${suggestions.length} SKU(s) sin catalogar`,
         description: `Detectados en tus archivos pero no en el catálogo`,
-        view: "productos",
+        view: "inventario",
       });
     }
   }
@@ -153,7 +172,7 @@ export function computeNotifications(
       title: "Falta archivo de Inventario",
       description:
         "Tienes despachos pero ningún archivo «Inventario total». La automatización no puede ejecutarse.",
-      view: "resumen",
+      view: "inventario",
     });
   }
 

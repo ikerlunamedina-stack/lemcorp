@@ -5,7 +5,6 @@ import { Bell, BellOff } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { computeNotifications } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
 
 export function NotificationBell() {
   const files = useStore((s) => s.files);
@@ -14,13 +13,11 @@ export function NotificationBell() {
   const seenKeys = useStore((s) => s.seenNotificationKeys);
   const markSeen = useStore((s) => s.markNotificationsSeen);
   const setActiveView = useStore((s) => s.setActiveView);
-  const openFile = useStore((s) => s.openFile);
   const [open, setOpen] = useState(false);
-  const { toast } = useToast();
   const ref = useRef<HTMLDivElement>(null);
 
   const notifications = useMemo(
-    () => computeNotifications(files, products, settings),
+    () => computeNotifications(files ?? [], products ?? [], settings),
     [files, products, settings]
   );
 
@@ -50,15 +47,6 @@ export function NotificationBell() {
 
   const handleAction = (n: (typeof notifications)[number]) => {
     setOpen(false);
-    if (n.view === "editor") {
-      // intentar abrir el archivo relacionado (para bajo stock / mismatches)
-      const m = n.key.match(/^low:([^:]+):(\d+)$/) || n.key.match(/^mismatch:([^:]+):/);
-      if (m) {
-        openFile(m[1]);
-        toast({ title: "Abriendo archivo" });
-        return;
-      }
-    }
     if (n.view) setActiveView(n.view);
   };
 

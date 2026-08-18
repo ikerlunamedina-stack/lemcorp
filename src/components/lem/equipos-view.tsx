@@ -48,7 +48,7 @@ export function EquiposView() {
 
   const [query, setQuery] = useState("");
   const [estadoFilter, setEstadoFilter] = useState<string>("todos");
-  const [expandedModel, setExpandedModel] = useState<string | null>(null);
+  const [expandedModel, setExpandedModel] = useState<string | null>("__all__");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Equipment | null>(null);
   const [form, setForm] = useState({
@@ -215,7 +215,7 @@ export function EquiposView() {
       ) : (
         <div className="space-y-2.5">
           {models.map(([modelo, items], i) => {
-            const isOpen = expandedModel === modelo;
+            const isOpen = expandedModel === modelo || expandedModel === "__all__";
             const disponible = items.filter((e) => e.estado === "disponible").length;
             const averiado = items.filter((e) => e.estado === "averiado" || e.estado === "en_retiro").length;
             return (

@@ -189,7 +189,7 @@ export const useStore = create<StoreState>()(
       setActiveView: (v) => set({ activeView: v }),
 
       openFile: (id) =>
-        set({ activeFileId: id, activeView: "editor" }),
+        set({ activeFileId: id, activeView: "inventario" }),
 
       createFile: (name, preset) => {
         const tag: FileTag = preset ?? "otro";
@@ -209,7 +209,7 @@ export const useStore = create<StoreState>()(
           });
         }
         const files = [...get().files, f];
-        set({ files, activeFileId: f.id, activeView: "editor" });
+        set({ files, activeFileId: f.id, activeView: "inventario" });
         return f.id;
       },
 
@@ -256,7 +256,7 @@ export const useStore = create<StoreState>()(
         let activeView = get().activeView;
         if (activeFileId === id) {
           activeFileId = files[0]?.id ?? null;
-          activeView = activeFileId ? "editor" : "resumen";
+          activeView = activeFileId ? "inventario" : "dashboard";
         }
         set({ files, histories, redoes, appliedMap, activeFileId, activeView });
       },
@@ -280,7 +280,7 @@ export const useStore = create<StoreState>()(
           updatedAt: Date.now(),
         };
         const files = [...get().files, copy];
-        set({ files, activeFileId: copy.id, activeView: "editor" });
+        set({ files, activeFileId: copy.id, activeView: "inventario" });
       },
 
       setFileTag: (id, tag) => {
@@ -467,12 +467,15 @@ export const useStore = create<StoreState>()(
         set({
           files: [],
           products: [],
+          despachos: [],
+          equipos: [],
           appliedMap: {},
           histories: {},
           redoes: {},
           seenNotificationKeys: [],
           activeFileId: null,
-          activeView: "resumen",
+          activeView: "dashboard",
+          hydrated: true,
         });
       },
 
@@ -934,6 +937,22 @@ export const useStore = create<StoreState>()(
 
       seedDemoIfEmpty: () => {
         const { products, equipos } = get();
+        // Si hay productos pero NO equipos, sembrar equipos
+        if (products.length > 0 && equipos.length === 0) {
+          const demoEq: Omit<Equipment, "id" | "createdAt" | "updatedAt">[] = [
+            { serie: "48575443365E42B7", sku: "4076358", modelo: "ROUTER ONT HG8145X6-13 HUAWEI", estado: "disponible", ubicacion: "Almacén HUB" },
+            { serie: "48575443365E42C8", sku: "4076358", modelo: "ROUTER ONT HG8145X6-13 HUAWEI", estado: "asignado", ubicacion: "Cliente: Corporación ABC", cliente: "Corporación ABC" },
+            { serie: "48575443365E42D1", sku: "4076358", modelo: "ROUTER ONT HG8145X6-13 HUAWEI", estado: "averiado", ubicacion: "Taller", observacion: "No enciende" },
+            { serie: "SN10002ABC", sku: "4072704", modelo: "DECODIFICADOR IPTV ZXV10 B866V2-H ZTE", estado: "disponible", ubicacion: "Almacén HUB" },
+            { serie: "SN10003DEF", sku: "4072704", modelo: "DECODIFICADOR IPTV ZXV10 B866V2-H ZTE", estado: "en_retiro", ubicacion: "Taller", observacion: "Cliente devolvió" },
+            { serie: "MACA0B1C2D3E", sku: "4048528", modelo: "MODEM ARRIS TG2482 24X8 3.0 S/BAT", estado: "disponible", ubicacion: "Almacén HUB" },
+            { serie: "MACA0B1C2D3F", sku: "4048528", modelo: "MODEM ARRIS TG2482 24X8 3.0 S/BAT", estado: "en_reparacion", ubicacion: "Taller", observacion: "Sin señal" },
+          ];
+          for (const e of demoEq) {
+            get().addEquipment(e);
+          }
+          return;
+        }
         if (products.length > 0) return;
         // Sembrar productos demo del sistema
         const demo: { sku: string; name: string; quantity: number; minStock?: number; category?: string; udm?: string }[] = [
@@ -977,41 +996,59 @@ export const useStore = create<StoreState>()(
     {
       name: "lemcorp-excel-v1",
       partialize: (s) => ({
+        files: s.files ?? [],
         products: s.products,
-        despachos: s.despachos,
-        equipos: s.equipos,
+        despachos: s.despachos ?? [],
+        equipos: s.equipos ?? [],
         settings: s.settings,
+        seenNotificationKeys: s.seenNotificationKeys ?? [],
         activeView: s.activeView,
+        // NO persistir hydrated — siempre debe empezar en false y setearse
+        // a true vía onRehydrateStorage al cargar del localStorage
       }),
       onRehydrateStorage: () => (state) => {
-        state?.setHydrated();
+        if (state) {
+          // Asegurar que todos los campos no persistidos tengan valor inicial
+          if (!state.histories) state.histories = {};
+          if (!state.redoes) state.redoes = {};
+          if (!state.appliedMap) state.appliedMap = {};
+          if (!state.seenNotificationKeys) state.seenNotificationKeys = [];
+          if (!state.files) state.files = [];
+          if (!state.despachos) state.despachos = [];
+          if (!state.equipos) state.equipos = [];
+          if (!state.products) state.products = [];
+          if (!state.settings) state.settings = { ...DEFAULT_SETTINGS };
+          state.activeFileId = null;
+          // IMPORTANTE: setHydrated debe llamarse DESPUÉS de que React
+          // haya montado los componentes. Usamos setTimeout para asegurar
+          // que el estado se haya fusionado completamente.
+          setTimeout(() => {
+            try {
+              useStore.setState({ hydrated: true });
+            } catch {}
+          }, 0);
+        }
       },
       migrate: (persisted: any) => {
         if (!persisted) return persisted;
+        // Asegurar todos los campos del estado
+        if (!persisted.files) persisted.files = [];
         if (!persisted.products) persisted.products = [];
-        // v1 -> v2: product.category deja de existir, product.quantity aparece
-        persisted.products = persisted.products.map((p: any) => {
-          const { category, ...rest } = p;
-          void category;
-          return { ...rest, quantity: rest.quantity };
-        });
-        if (!persisted.settings) persisted.settings = { ...DEFAULT_SETTINGS };
-        // v2 -> v3: añadir highlightDuplicates + campos de formato en archivos
-        if (persisted.settings.highlightDuplicates === undefined) {
-          persisted.settings.highlightDuplicates = false;
-        }
-        if (Array.isArray(persisted.files)) {
-          persisted.files = persisted.files.map((f: any) => ({
-            ...f,
-            colWidths: f.colWidths ?? undefined,
-            rowHeights: f.rowHeights ?? undefined,
-            cellStyles: f.cellStyles ?? undefined,
-          }));
-        }
+        if (!persisted.despachos) persisted.despachos = [];
+        if (!persisted.equipos) persisted.equipos = [];
+        if (!persisted.histories) persisted.histories = {};
+        if (!persisted.redoes) persisted.redoes = {};
+        if (!persisted.appliedMap) persisted.appliedMap = {};
         if (!persisted.seenNotificationKeys) persisted.seenNotificationKeys = [];
+        if (!persisted.settings) persisted.settings = { ...DEFAULT_SETTINGS };
+        // Asegurar quantity numérica
+        persisted.products = persisted.products.map((p: any) => ({
+          ...p,
+          quantity: typeof p.quantity === "number" ? p.quantity : 0,
+        }));
         return persisted;
       },
-      version: 3,
+      version: 5,
     }
   )
 );

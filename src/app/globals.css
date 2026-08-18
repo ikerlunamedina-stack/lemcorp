@@ -172,7 +172,7 @@
 
 /* ===== Animaciones suaves ===== */
 @keyframes lem-fade-up {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @keyframes lem-fade-in {
@@ -180,27 +180,58 @@
   to { opacity: 1; }
 }
 @keyframes lem-scale-in {
-  from { opacity: 0; transform: scale(0.96); }
+  from { opacity: 0; transform: scale(0.92); }
   to { opacity: 1; transform: scale(1); }
 }
 @keyframes lem-slide-right {
-  from { opacity: 0; transform: translateX(-8px); }
+  from { opacity: 0; transform: translateX(-12px); }
   to { opacity: 1; transform: translateX(0); }
+}
+@keyframes lem-slide-up {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 @keyframes lem-pulse-soft {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.55; }
+  50% { opacity: 0.5; }
+}
+@keyframes lem-pulse-ring {
+  0% { box-shadow: 0 0 0 0 var(--ring); }
+  70% { box-shadow: 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
 }
 @keyframes lem-shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
+@keyframes lem-bounce-in {
+  0% { opacity: 0; transform: scale(0.8) translateY(10px); }
+  60% { opacity: 1; transform: scale(1.02) translateY(0); }
+  100% { transform: scale(1); }
+}
+@keyframes lem-glow {
+  0%, 100% { box-shadow: 0 0 8px var(--primary); }
+  50% { box-shadow: 0 0 16px var(--primary); }
+}
+@keyframes lem-bar-fill {
+  from { width: 0; }
+}
+@keyframes lem-count-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
-.anim-fade-up { animation: lem-fade-up 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.anim-fade-in { animation: lem-fade-in 0.3s ease both; }
-.anim-scale-in { animation: lem-scale-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.anim-slide-right { animation: lem-slide-right 0.28s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-fade-up { animation: lem-fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-fade-in { animation: lem-fade-in 0.35s ease both; }
+.anim-scale-in { animation: lem-scale-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-slide-right { animation: lem-slide-right 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-slide-up { animation: lem-slide-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .anim-pulse-soft { animation: lem-pulse-soft 2s ease-in-out infinite; }
+.anim-pulse-ring { animation: lem-pulse-ring 2s ease-out infinite; }
+.anim-bounce-in { animation: lem-bounce-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-glow { animation: lem-glow 2s ease-in-out infinite; }
+.anim-bar-fill { animation: lem-bar-fill 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-count-up { animation: lem-count-up 0.4s ease both; }
 
 /* Superficie glass sutil */
 .glass {
