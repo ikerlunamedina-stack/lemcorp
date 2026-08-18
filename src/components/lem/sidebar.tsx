@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Boxes,
   TrendingDown,
+  Cpu,
   Settings as SettingsIcon,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
@@ -14,6 +15,7 @@ export function Sidebar() {
   const setActiveView = useStore((s) => s.setActiveView);
   const products = useStore((s) => s.products);
   const despachos = useStore((s) => s.despachos);
+  const equipos = useStore((s) => s.equipos);
 
   const bajoStock = products.filter(
     (p) => p.minStock !== undefined && p.minStock > 0 && p.quantity <= p.minStock
@@ -36,6 +38,12 @@ export function Sidebar() {
       icon: <TrendingDown className="h-4 w-4" />,
       label: "Despachos",
       badge: despachos.length || undefined,
+    },
+    {
+      id: "equipos" as const,
+      icon: <Cpu className="h-4 w-4" />,
+      label: "Equipos",
+      badge: equipos.length || undefined,
     },
   ];
 

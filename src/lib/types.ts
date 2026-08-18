@@ -114,6 +114,35 @@ export interface Despacho {
   observacion?: string;
 }
 
+// Equipo individual rastreado por número de serie (router, ONT, decodificador, etc.)
+export interface Equipment {
+  id: string;
+  serie: string; // número de serie único (MAC, IMEI, S/N)
+  sku?: string; // SKU del producto al que pertenece (opcional)
+  modelo: string; // modelo del equipo (ej: "ROUTER ONT HG8145V5")
+  estado: EstadoEquipo;
+  ubicacion?: string; // ubicación física (Taller, Almacén, Cliente, etc.)
+  cliente?: string; // cliente al que se asignó (si aplica)
+  observacion?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type EstadoEquipo =
+  | "disponible"
+  | "asignado"
+  | "averiado"
+  | "en_retiro"
+  | "en_reparacion";
+
+export const ESTADO_META: Record<EstadoEquipo, { label: string; short: string; icon: string; color: string }> = {
+  disponible: { label: "Disponible", short: "Disponible", icon: "✓", color: "primary" },
+  asignado: { label: "Asignado", short: "Asignado", icon: "→", color: "accent" },
+  averiado: { label: "Averiado", short: "Averiado", icon: "✕", color: "destructive" },
+  en_retiro: { label: "En retiro", short: "Retiro", icon: "↩", color: "destructive" },
+  en_reparacion: { label: "En reparación", short: "Reparación", icon: "🔧", color: "accent" },
+};
+
 // Discrepancia detectada al cruzar archivos contra el catálogo maestro.
 export interface Mismatch {
   fileId: string;
@@ -144,4 +173,5 @@ export type ActiveView =
   | "dashboard"
   | "inventario"
   | "despachos"
+  | "equipos"
   | "config";

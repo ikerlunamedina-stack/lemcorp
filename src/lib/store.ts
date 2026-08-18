@@ -11,6 +11,8 @@ import type {
   ActiveView,
   Product,
   Despacho,
+  Equipment,
+  EstadoEquipo,
   Mismatch,
   Settings,
   CellStyle,
@@ -30,8 +32,9 @@ const HISTORY_LIMIT = 50;
 
 interface StoreState {
   files: SheetFile[];
-  products: Product[]; // catálogo de productos (SKU + nombre + stock)
-  despachos: Despacho[]; // historial de despachos registrados
+  products: Product[];
+  despachos: Despacho[];
+  equipos: Equipment[];
   settings: Settings;
   seenNotificationKeys: string[];
   activeFileId: string | null;
@@ -66,6 +69,12 @@ interface StoreState {
   addDespacho: (d: Omit<Despacho, "id" | "fecha">) => string | null;
   deleteDespacho: (id: string) => void;
   getDespachosDelDia: (fecha?: number) => Despacho[];
+
+  // equipos (rastreo por número de serie)
+  addEquipment: (e: Omit<Equipment, "id" | "createdAt" | "updatedAt">) => string | null;
+  updateEquipment: (id: string, data: Partial<Omit<Equipment, "id" | "createdAt">>) => void;
+  deleteEquipment: (id: string) => void;
+  findEquipmentBySerie: (serie: string) => Equipment | null;
 
   // exportar inventario a Excel
   exportInventarioExcel: () => void;
@@ -162,6 +171,7 @@ export const useStore = create<StoreState>()(
       files: [],
       products: [],
       despachos: [],
+      equipos: [],
       settings: { ...DEFAULT_SETTINGS },
       seenNotificationKeys: [],
       activeFileId: null,
@@ -369,6 +379,41 @@ export const useStore = create<StoreState>()(
         return get().despachos.filter(
           (d) => d.fecha >= inicioDia.getTime() && d.fecha <= finDia.getTime()
         );
+      },
+
+      // ---------- Equipos (rastreo por serie) ----------
+      findEquipmentBySerie: (serie) => {
+        const norm = serie.trim().toLowerCase();
+        return get().equipos.find((e) => e.serie.trim().toLowerCase() === norm) ?? null;
+      },
+
+      addEquipment: (e) => {
+        const serieTrim = e.serie.trim();
+        const modeloTrim = e.modelo.trim();
+        if (!serieTrim || !modeloTrim) return null;
+        if (get().findEquipmentBySerie(serieTrim)) return null; // serie duplicada
+        const eq: Equipment = {
+          id: uid(),
+          ...e,
+          serie: serieTrim,
+          modelo: modeloTrim,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+        set({ equipos: [eq, ...get().equipos] });
+        return eq.id;
+      },
+
+      updateEquipment: (id, data) => {
+        set({
+          equipos: get().equipos.map((e) =>
+            e.id === id ? { ...e, ...data, updatedAt: Date.now() } : e
+          ),
+        });
+      },
+
+      deleteEquipment: (id) => {
+        set({ equipos: get().equipos.filter((e) => e.id !== id) });
       },
 
       // ---------- Exportar inventario a Excel ----------
@@ -888,9 +933,9 @@ export const useStore = create<StoreState>()(
       setHydrated: () => set({ hydrated: true }),
 
       seedDemoIfEmpty: () => {
-        const { products } = get();
+        const { products, equipos } = get();
         if (products.length > 0) return;
-        // Sembrar productos demo del sistema (no Excel)
+        // Sembrar productos demo del sistema
         const demo: { sku: string; name: string; quantity: number; minStock?: number; category?: string; udm?: string }[] = [
           { sku: "1002900", name: "CONECTOR PLUG RJ-45", quantity: 2768, minStock: 100, category: "Conector", udm: "UNIDADES" },
           { sku: "1002950", name: "ATADOR DE IDENTIFICACION DE ABONADO", quantity: 1475, minStock: 50, category: "Accesorio", udm: "UNIDADES" },
@@ -906,6 +951,21 @@ export const useStore = create<StoreState>()(
         for (const p of demo) {
           get().addProduct(p.sku, p.name, p.quantity, p.minStock, p.category, p.udm);
         }
+        // Sembrar equipos demo con series (si no hay)
+        if (equipos.length === 0) {
+          const demoEq: Omit<Equipment, "id" | "createdAt" | "updatedAt">[] = [
+            { serie: "48575443365E42B7", sku: "4076358", modelo: "ROUTER ONT HG8145X6-13 HUAWEI", estado: "disponible", ubicacion: "Almacén HUB" },
+            { serie: "48575443365E42C8", sku: "4076358", modelo: "ROUTER ONT HG8145X6-13 HUAWEI", estado: "asignado", ubicacion: "Cliente: Corporación ABC", cliente: "Corporación ABC" },
+            { serie: "48575443365E42D1", sku: "4076358", modelo: "ROUTER ONT HG8145X6-13 HUAWEI", estado: "averiado", ubicacion: "Taller", observacion: "No enciende" },
+            { serie: "SN10002ABC", sku: "4072704", modelo: "DECODIFICADOR IPTV ZXV10 B866V2-H ZTE", estado: "disponible", ubicacion: "Almacén HUB" },
+            { serie: "SN10003DEF", sku: "4072704", modelo: "DECODIFICADOR IPTV ZXV10 B866V2-H ZTE", estado: "en_retiro", ubicacion: "Taller", observacion: "Cliente devolvió" },
+            { serie: "MACA0B1C2D3E", sku: "4048528", modelo: "MODEM ARRIS TG2482 24X8 3.0 S/BAT", estado: "disponible", ubicacion: "Almacén HUB" },
+            { serie: "MACA0B1C2D3F", sku: "4048528", modelo: "MODEM ARRIS TG2482 24X8 3.0 S/BAT", estado: "en_reparacion", ubicacion: "Taller", observacion: "Sin señal" },
+          ];
+          for (const e of demoEq) {
+            get().addEquipment(e);
+          }
+        }
         set({ activeView: "dashboard" });
       },
 
@@ -919,6 +979,7 @@ export const useStore = create<StoreState>()(
       partialize: (s) => ({
         products: s.products,
         despachos: s.despachos,
+        equipos: s.equipos,
         settings: s.settings,
         activeView: s.activeView,
       }),

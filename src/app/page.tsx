@@ -7,6 +7,7 @@ import { Topbar } from "@/components/lem/topbar";
 import { DashboardView } from "@/components/lem/dashboard-view";
 import { InventarioView } from "@/components/lem/inventario-sistema-view";
 import { DespachosView } from "@/components/lem/despachos-sistema-view";
+import { EquiposView } from "@/components/lem/equipos-view";
 import { ConfigView } from "@/components/lem/config-view";
 import { Footer } from "@/components/lem/footer";
 
@@ -53,6 +54,11 @@ export default function Home() {
           {activeView === "despachos" && (
             <div className="h-full overflow-y-auto scroll-thin">
               <DespachosView />
+            </div>
+          )}
+          {activeView === "equipos" && (
+            <div className="h-full overflow-y-auto scroll-thin">
+              <EquiposView />
             </div>
           )}
           {activeView === "config" && (

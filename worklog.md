@@ -547,3 +547,42 @@ Stage Summary:
 - Eliminar despacho devuelve el stock al producto
 - 10 productos reales sembrados (CONECTOR, ATADOR, CABLES, ROUTER, MODEM, etc.)
 - Tema verde corporativo
+
+---
+Task ID: A1-A6
+Agent: main
+Task: Equipos con series + almacén virtual estético
+
+Work Log:
+- Tipos: nuevo Equipment {id, serie, sku, modelo, estado, ubicacion, cliente, observacion} + EstadoEquipo (disponible|asignado|averiado|en_retiro|en_reparacion) + ESTADO_META con label/icon/color
+- ActiveView: añadido "equipos"
+- Store: equipos[] persistente, addEquipment (valida serie duplicada), updateEquipment, deleteEquipment, findEquipmentBySerie
+- seedDemoIfEmpty: siembra 7 equipos demo con series reales (3 ROUTER ONT, 2 DECODIFICADOR, 2 MODEM) en distintos estados
+- equipos-view.tsx: 
+  - Tarjetas agrupadas por modelo (expandibles, muestran conteo por estado)
+  - Filtros por estado (Todos, Disponible, Asignado, Averiado, Retiro, Reparación) con chips coloreados
+  - Buscador (serie, modelo, ubicación, cliente)
+  - Cada equipo muestra: serie (mono), SKU, estado (badge coloreado), ubicación, cliente, observación
+  - Añadir/editar/eliminar equipo (diálogo con serie, modelo, SKU, estado, ubicación, cliente, observación)
+  - Validación de serie duplicada
+- Sidebar: añadido nav Equipos (icono Cpu, badge con conteo)
+- Topbar: título "Equipos" para la vista
+- page.tsx: renderiza EquiposView
+
+Verificación con Agent Browser:
+- Carga: 10 productos, 0 despachos, 7 equipos demo ✓
+- Vista Equipos: 7 equipo(s) · 3 modelo(s) ✓
+- Filtros por estado: Todos(7), Disponible(3), Asignado(1), Averiado(1), Retiro(1), Reparación(1) ✓
+- Tarjetas por modelo con conteo y badges de estado ✓
+- Añadir equipo: serie TEST123ABC, modelo ROUTER TEST NUEVO, ubicación Almacén HUB → guardado (8 equipos) ✓
+- VLM confirmó: "tarjetas de modelos con cantidades, filtros por estado, botón Añadir equipo verde, tema verde corporativo" ✓
+- Lint limpio, sin errores
+
+Stage Summary:
+- Módulo Equipos añadido al sistema: rastreo individual por número de serie
+- Equipos agrupados por modelo con tarjetas expandibles
+- 5 estados: disponible, asignado, averiado, en retiro, en reparación
+- Filtros por estado + buscador
+- 7 equipos demo sembrados (routers, decodificadores, modems)
+- Añadir/editar/eliminar equipos con validación de serie duplicada
+- Todo estético: tema verde corporativo, animaciones, badges coloreados

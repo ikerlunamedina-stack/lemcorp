@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Boxes,
   TrendingDown,
+  Cpu,
   Settings as SettingsIcon,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
@@ -19,6 +20,8 @@ export function Topbar() {
       ? { icon: <Boxes className="h-4 w-4" />, title: "Inventario" }
       : activeView === "despachos"
       ? { icon: <TrendingDown className="h-4 w-4" />, title: "Despachos" }
+      : activeView === "equipos"
+      ? { icon: <Cpu className="h-4 w-4" />, title: "Equipos" }
       : { icon: <SettingsIcon className="h-4 w-4" />, title: "Configuración" };
 
   return (
