@@ -1,30 +1,25 @@
 "use client";
 
-import {
-  LayoutDashboard,
-  Boxes,
-  Cpu,
-  StickyNote,
-  Settings as SettingsIcon,
-} from "lucide-react";
+import { LayoutDashboard, Boxes, Cpu, Hash, StickyNote, Sparkles, Building2, Settings as SettingsIcon } from "lucide-react";
 import { useStore } from "@/lib/store";
 
 export function Topbar() {
   const activeView = useStore((s) => s.activeView);
-
-  const viewMeta =
-    activeView === "dashboard" ? { icon: <LayoutDashboard className="h-4 w-4" />, title: "Dashboard" }
-    : activeView === "inventario" ? { icon: <Boxes className="h-4 w-4" />, title: "Inventario" }
-    : activeView === "equipos" ? { icon: <Cpu className="h-4 w-4" />, title: "Equipos" }
-    : activeView === "bloc" ? { icon: <StickyNote className="h-4 w-4" />, title: "Bloc" }
-    : { icon: <SettingsIcon className="h-4 w-4" />, title: "Configuración" };
-
+  const meta: Record<string, { icon: React.ReactNode; title: string }> = {
+    dashboard: { icon: <LayoutDashboard className="h-4 w-4" />, title: "Dashboard" },
+    inventario: { icon: <Boxes className="h-4 w-4" />, title: "Inventario" },
+    equipos: { icon: <Cpu className="h-4 w-4" />, title: "Equipos" },
+    series: { icon: <Hash className="h-4 w-4" />, title: "Series" },
+    ia: { icon: <Sparkles className="h-4 w-4" />, title: "Asistente IA" },
+    bloc: { icon: <StickyNote className="h-4 w-4" />, title: "Bloc" },
+    empresa: { icon: <Building2 className="h-4 w-4" />, title: "Empresa" },
+    config: { icon: <SettingsIcon className="h-4 w-4" />, title: "Configuración" },
+  };
+  const m = meta[activeView] ?? meta.dashboard;
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-card/70 backdrop-blur-xl px-5">
-      <div className="flex min-w-0 items-center gap-2.5">
-        <span className="text-muted-foreground">{viewMeta.icon}</span>
-        <h1 className="truncate text-[15px] font-semibold tracking-tight">{viewMeta.title}</h1>
-      </div>
+      <span className="text-muted-foreground">{m.icon}</span>
+      <h1 className="truncate text-[15px] font-semibold tracking-tight">{m.title}</h1>
     </header>
   );
 }

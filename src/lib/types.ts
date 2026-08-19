@@ -4,10 +4,13 @@ export type ActiveView =
   | "dashboard"
   | "inventario"
   | "equipos"
+  | "series"
   | "bloc"
+  | "ia"
+  | "empresa"
   | "config";
 
-// Producto en el inventario (controlado por SKU + stock)
+// Producto en el inventario
 export interface Product {
   id: string;
   sku: string;
@@ -44,7 +47,7 @@ export const ESTADO_META: Record<EstadoEquipo, { label: string; short: string; i
   en_reparacion: { label: "En reparación", short: "Reparación", icon: "🔧" },
 };
 
-// Registro de entrada al almacén (formato SKU*cantidad)
+// Registro de entrada al almacén
 export interface Entrada {
   id: string;
   fecha: number;
@@ -54,12 +57,42 @@ export interface Entrada {
   observacion?: string;
 }
 
-// Nota del bloc (recordatorios y apuntes rápidos)
+// Nota del bloc
 export interface Nota {
   id: string;
   texto: string;
   fecha: number;
   pinned: boolean;
+}
+
+// Miembro del equipo LEMCORP
+export type Rol = "jefe_operaciones" | "supervisor" | "tecnico" | "almacenero" | "administrador";
+
+export const ROL_META: Record<Rol, { label: string; short: string }> = {
+  jefe_operaciones: { label: "Jefe de Operaciones", short: "Jefe Op." },
+  supervisor: { label: "Supervisor", short: "Supervisor" },
+  tecnico: { label: "Técnico de Campo", short: "Técnico" },
+  almacenero: { label: "Almacenero", short: "Almacenero" },
+  administrador: { label: "Administrador del Sistema", short: "Admin" },
+};
+
+export interface MiembroEquipo {
+  id: string;
+  nombre: string;
+  rol: Rol;
+  correo?: string;
+  telefono?: string;
+  activo: boolean;
+}
+
+// Información de la empresa
+export interface InfoEmpresa {
+  nombre: string;
+  ruc?: string;
+  direccion?: string;
+  telefono?: string;
+  correo?: string;
+  descripcion?: string;
 }
 
 // Configuración del sistema
@@ -71,7 +104,17 @@ export const DEFAULT_SETTINGS: Settings = {
   lowStockAlerts: true,
 };
 
-// Helper para generar IDs
+// Helper
 export function uid(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
 }
+
+// Datos iniciales de empresa (editables por el usuario)
+export const DEFAULT_EMPRESA: InfoEmpresa = {
+  nombre: "LEMCORP",
+  ruc: "",
+  direccion: "",
+  telefono: "",
+  correo: "",
+  descripcion: "Empresa de telecomunicaciones dedicada a la instalación y mantenimiento de redes de fibra óptica y servicios de telecomunicaciones.",
+};

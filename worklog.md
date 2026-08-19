@@ -687,3 +687,38 @@ Stage Summary:
 - Equipos con series obligatorias y únicas, agrupados por modelo
 - Bloc de recordatorios y apuntes rápidos
 - Tema azul pastel mar, estilo iPhone, animaciones
+
+---
+Task ID: M1-M9
+Agent: main
+Task: Sistema multi-página con IA real + vista de Series + vista de Empresa
+
+Work Log:
+- Tipos: añadido MiembroEquipo (id, nombre, rol, correo, telefono, activo), Rol (jefe_operaciones|supervisor|tecnico|almacenero|administrador), InfoEmpresa (nombre, ruc, direccion, telefono, correo, descripcion). ActiveView expandido a 8 vistas: dashboard|inventario|equipos|series|ia|bloc|empresa|config
+- Store: añadido miembros[], empresa{}, addMiembro, updateMiembro, deleteMiembro, updateEmpresa. Seed con 6 miembros demo (Antonio jefe, Carlos supervisor, 3 técnicos, 1 almacenero)
+- API route /api/ia: usa z-ai-web-dev-sdk (GLM) para IA real. Recibe mensaje + inventario + equipos + miembros + empresa. System prompt con datos del inventario, cálculos de consumo (técnicos × despachos/día × días/mes). Responde con recomendaciones de compra
+- ia-view.tsx: chat con interfaz estilo ChatGPT, sugerencias rápidas, envía a /api/ia, muestra respuesta en tiempo real con loading
+- series-view.tsx: lista completa de todas las series agrupadas por modelo, tabla con #/Serie/Estado/Ubicación/Observación, filtros por estado, buscador
+- empresa-view.tsx: info de empresa editable (nombre, RUC, dirección, teléfono, correo, descripción), miembros del equipo agrupados por rol, añadir/editar/eliminar miembros
+- sidebar.tsx: 8 items (Dashboard, Inventario, Equipos, Series, Asistente IA, Bloc, Empresa, Configuración)
+- topbar.tsx: 8 títulos
+- page.tsx: renderiza las 8 vistas
+
+Verificación con Agent Browser:
+- 8 vistas en sidebar visibles ✓
+- IA real: "¿Qué productos necesito pedir urgentemente?" → respondió con análisis detallado, recomendó ROUTER ONT como urgente (29 und = 1-2 días), calculó consumo mensual con 3 técnicos ✓
+- IA menciona técnicos por nombre y correo ✓
+- Series: 7 equipos en 3 modelos, todas las series visibles en tabla ✓
+- Empresa: Antonio (Jefe Op.), Carlos (Supervisor), 3 técnicos, 1 almacenero ✓
+- VLM: "chat con respuestas de IA, recomendaciones de compra con cantidades, menciona técnicos y cálculos, estética azul corporativa" ✓
+- Lint limpio, sin errores
+
+Stage Summary:
+- Sistema multi-página con 8 módulos
+- IA REAL (z-ai-web-dev-sdk / GLM) que analiza inventario y recomienda compras
+- Vista de Series (todas las series por modelo en tabla)
+- Vista de Empresa (info editable + miembros del equipo con roles)
+- Sin salidas ni despachos — solo entradas SKU*cantidad
+- Equipos con series obligatorias
+- Bloc de notas
+- Tema azul pastel mar, estilo iPhone, animaciones
