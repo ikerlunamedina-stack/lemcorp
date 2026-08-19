@@ -11,38 +11,12 @@ import { ConfigView } from "@/components/lem/config-view";
 import { Footer } from "@/components/lem/footer";
 
 export default function Home() {
-  const hydrated = useStore((s) => s.hydrated);
   const seedDemoIfEmpty = useStore((s) => s.seedDemoIfEmpty);
   const activeView = useStore((s) => s.activeView);
 
-  // En modo sistema, hidratar inmediatamente (no necesitamos esperar
-  // a localStorage porque el store se inicializa de forma síncrona).
   useEffect(() => {
-    // Forzar hydrated = true después del primer render
-    const timer = setTimeout(() => {
-      useStore.setState({ hydrated: true });
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (hydrated) {
-      seedDemoIfEmpty();
-    }
-  }, [hydrated, seedDemoIfEmpty]);
-
-  if (!hydrated) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 rounded-full border-2 border-muted border-t-primary anim-pulse-soft" />
-          <span className="text-xs text-muted-foreground tracking-wide">
-            Cargando LEMCORP…
-          </span>
-        </div>
-      </div>
-    );
-  }
+    seedDemoIfEmpty();
+  }, [seedDemoIfEmpty]);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">

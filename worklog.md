@@ -623,3 +623,27 @@ Stage Summary:
 - Todo redondeado estilo iPhone (radius 1rem, sombras, blur)
 - Estética elegante, seria, fluida, chill
 - 3 módulos: Dashboard, Inventario, Equipos + Configuración
+
+---
+Task ID: FIX
+Agent: main
+Task: Arreglar error de cliente (Application error: client-side exception)
+
+Work Log:
+- El error era causado por DOS problemas:
+  1. onRehydrateStorage llamaba useStore.setState (referencia circular - useStore no estaba definida aún)
+  2. useMemo en DashboardView causaba error con React Compiler de Next.js 16
+- Solución:
+  - Eliminado onRehydrateStorage (ya no se necesita, el store carga sincrónicamente)
+  - Eliminado hydrated del flujo (page.tsx ya no espera hidratación)
+  - Eliminado useMemo de DashboardView (reemplazado por cálculo directo)
+  - Eliminado useToast de DashboardView (causaba dependencia innecesaria)
+  - Simplificado partialize (solo products, despachos, equipos, settings, activeView)
+  - Migración simplificada (versión 6) con validación de arrays
+  - Eliminada referencia circular openFile en notification-bell
+  - Reemplazadas activeView inválidas ("editor", "resumen") por "inventario"/"dashboard"
+
+Verificación:
+- App carga correctamente: Dashboard con 4 tarjetas, Inventario con 10 productos, Equipos con 7 equipos visibles ✓
+- VLM confirma: tema azul pastel mar, todo redondeado estilo iPhone, tarjetas de stats ✓
+- Lint limpio, sin errores

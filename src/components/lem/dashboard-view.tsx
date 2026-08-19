@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
 import { useStore } from "@/lib/store";
+import { ESTADO_META } from "@/lib/types";
 import {
   Package,
   Boxes,
@@ -14,15 +14,12 @@ import {
 import { fmtNum } from "@/lib/num";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { ESTADO_META } from "@/lib/types";
 
 export function DashboardView() {
-  const products = useStore((s) => s.products);
-  const equipos = useStore((s) => s.equipos);
+  const products = useStore((s) => s.products) ?? [];
+  const equipos = useStore((s) => s.equipos) ?? [];
   const setActiveView = useStore((s) => s.setActiveView);
   const exportInventarioExcel = useStore((s) => s.exportInventarioExcel);
-  const { toast } = useToast();
 
   const totalProductos = products.length;
   const totalUnidades = products.reduce((s, p) => s + p.quantity, 0);
@@ -30,19 +27,15 @@ export function DashboardView() {
     (p) => p.minStock !== undefined && p.minStock > 0 && p.quantity <= p.minStock
   );
   const equiposDisponibles = equipos.filter((e) => e.estado === "disponible").length;
-  const equiposAveriados = equipos.filter(
-    (e) => e.estado === "averiado" || e.estado === "en_retiro"
-  ).length;
 
-  // Categorías
-  const categorias = useMemo(() => {
-    const m: Record<string, number> = {};
-    for (const p of products) {
-      const k = p.category ?? "Sin categoría";
-      m[k] = (m[k] ?? 0) + p.quantity;
-    }
-    return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 6);
-  }, [products]);
+  // Categorías (sin useMemo para evitar error de React Compiler)
+  const catMap: Record<string, number> = {};
+  for (const p of products) {
+    const k = p.category ?? "Sin categoría";
+    catMap[k] = (catMap[k] ?? 0) + p.quantity;
+  }
+  const categorias = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const maxCat = categorias[0]?.[1] ?? 1;
 
   const stats = [
     {
@@ -87,10 +80,7 @@ export function DashboardView() {
           </p>
         </div>
         <Button
-          onClick={() => {
-            exportInventarioExcel();
-            toast({ title: "Exportando inventario a Excel…" });
-          }}
+          onClick={() => exportInventarioExcel()}
           className="press rounded-2xl shadow-lg shadow-primary/20"
         >
           <Download className="mr-1.5 h-4 w-4" />
@@ -155,14 +145,6 @@ export function DashboardView() {
                   </span>
                 </button>
               ))}
-              {bajoStock.length > 6 && (
-                <button
-                  onClick={() => setActiveView("inventario")}
-                  className="press flex w-full items-center justify-center gap-1 py-1.5 text-[12px] font-medium text-primary hover:underline"
-                >
-                  Ver {bajoStock.length - 6} más <ArrowRight className="h-3 w-3" />
-                </button>
-              )}
             </div>
           )}
         </div>
@@ -175,8 +157,7 @@ export function DashboardView() {
           </div>
           <div className="space-y-2.5">
             {categorias.map(([cat, qty]) => {
-              const max = categorias[0]?.[1] ?? 1;
-              const pct = (qty / max) * 100;
+              const pct = (qty / maxCat) * 100;
               return (
                 <div key={cat}>
                   <div className="mb-1 flex items-center justify-between text-[12px]">
@@ -186,7 +167,7 @@ export function DashboardView() {
                   <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                     <div
                       className="h-full rounded-full bg-primary anim-bar-fill"
-                      style={{ width: `${pct}%`, animationDelay: `${i * 100}ms` }}
+                      style={{ width: `${pct}%` }}
                     />
                   </div>
                 </div>

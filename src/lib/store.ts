@@ -19,7 +19,6 @@ import type {
 } from "./types";
 import { DEFAULT_SETTINGS } from "./types";
 import { emptyFile, importFile as importXlsx, importSheet, importWorkbookMultiSheet, uid } from "./excel";
-import * as XLSX from "xlsx";
 import { detectTag, getHeaderColumns } from "./detection";
 import {
   runAutomation,
@@ -996,50 +995,19 @@ export const useStore = create<StoreState>()(
     {
       name: "lemcorp-excel-v1",
       partialize: (s) => ({
-        files: s.files ?? [],
         products: s.products,
         despachos: s.despachos ?? [],
         equipos: s.equipos ?? [],
         settings: s.settings,
-        seenNotificationKeys: s.seenNotificationKeys ?? [],
         activeView: s.activeView,
-        // NO persistir hydrated — siempre debe empezar en false y setearse
-        // a true vía onRehydrateStorage al cargar del localStorage
       }),
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          // Asegurar que todos los campos no persistidos tengan valor inicial
-          if (!state.histories) state.histories = {};
-          if (!state.redoes) state.redoes = {};
-          if (!state.appliedMap) state.appliedMap = {};
-          if (!state.seenNotificationKeys) state.seenNotificationKeys = [];
-          if (!state.files) state.files = [];
-          if (!state.despachos) state.despachos = [];
-          if (!state.equipos) state.equipos = [];
-          if (!state.products) state.products = [];
-          if (!state.settings) state.settings = { ...DEFAULT_SETTINGS };
-          state.activeFileId = null;
-          // IMPORTANTE: setHydrated debe llamarse DESPUÉS de que React
-          // haya montado los componentes. Usamos setTimeout para asegurar
-          // que el estado se haya fusionado completamente.
-          setTimeout(() => {
-            try {
-              useStore.setState({ hydrated: true });
-            } catch {}
-          }, 0);
-        }
-      },
       migrate: (persisted: any) => {
         if (!persisted) return persisted;
         // Asegurar todos los campos del estado
-        if (!persisted.files) persisted.files = [];
-        if (!persisted.products) persisted.products = [];
-        if (!persisted.despachos) persisted.despachos = [];
-        if (!persisted.equipos) persisted.equipos = [];
-        if (!persisted.histories) persisted.histories = {};
-        if (!persisted.redoes) persisted.redoes = {};
-        if (!persisted.appliedMap) persisted.appliedMap = {};
-        if (!persisted.seenNotificationKeys) persisted.seenNotificationKeys = [];
+        if (!persisted.products || !Array.isArray(persisted.products)) persisted.products = [];
+        if (!persisted.despachos || !Array.isArray(persisted.despachos)) persisted.despachos = [];
+        if (!persisted.equipos || !Array.isArray(persisted.equipos)) persisted.equipos = [];
+        if (!persisted.files || !Array.isArray(persisted.files)) persisted.files = [];
         if (!persisted.settings) persisted.settings = { ...DEFAULT_SETTINGS };
         // Asegurar quantity numérica
         persisted.products = persisted.products.map((p: any) => ({
@@ -1048,7 +1016,7 @@ export const useStore = create<StoreState>()(
         }));
         return persisted;
       },
-      version: 5,
+      version: 6,
     }
   )
 );
