@@ -7,6 +7,7 @@ import { Topbar } from "@/components/lem/topbar";
 import { DashboardView } from "@/components/lem/dashboard-view";
 import { InventarioView } from "@/components/lem/inventario-sistema-view";
 import { EquiposView } from "@/components/lem/equipos-view";
+import { BlocView } from "@/components/lem/bloc-view";
 import { ConfigView } from "@/components/lem/config-view";
 import { Footer } from "@/components/lem/footer";
 
@@ -25,24 +26,19 @@ export default function Home() {
         <Topbar />
         <main className="relative flex-1 overflow-hidden">
           {activeView === "dashboard" && (
-            <div className="h-full overflow-y-auto scroll-thin">
-              <DashboardView />
-            </div>
+            <div className="h-full overflow-y-auto scroll-thin"><DashboardView /></div>
           )}
           {activeView === "inventario" && (
-            <div className="h-full overflow-y-auto scroll-thin">
-              <InventarioView />
-            </div>
+            <div className="h-full overflow-y-auto scroll-thin"><InventarioView /></div>
           )}
           {activeView === "equipos" && (
-            <div className="h-full overflow-y-auto scroll-thin">
-              <EquiposView />
-            </div>
+            <div className="h-full overflow-y-auto scroll-thin"><EquiposView /></div>
+          )}
+          {activeView === "bloc" && (
+            <div className="h-full overflow-y-auto scroll-thin"><BlocView /></div>
           )}
           {activeView === "config" && (
-            <div className="h-full overflow-y-auto scroll-thin">
-              <ConfigView />
-            </div>
+            <div className="h-full overflow-y-auto scroll-thin"><ConfigView /></div>
           )}
         </main>
         <Footer />

@@ -647,3 +647,43 @@ Verificación:
 - App carga correctamente: Dashboard con 4 tarjetas, Inventario con 10 productos, Equipos con 7 equipos visibles ✓
 - VLM confirma: tema azul pastel mar, todo redondeado estilo iPhone, tarjetas de stats ✓
 - Lint limpio, sin errores
+
+---
+Task ID: N1-N8
+Agent: main
+Task: Sistema desde cero: solo entradas SKU*cantidad, equipos por serie, bloc de notas
+
+Work Log:
+- Tipos (types.ts): Product, Equipment, Entrada, Nota, Settings, EstadoEquipo, ESTADO_META, uid. ActiveView = dashboard|inventario|equipos|bloc|config
+- Store (store.ts): completamente nuevo y simplificado
+  - Productos: addProduct, updateProduct, deleteProduct, findProductBySku
+  - Entradas: registrarEntrada(input) — parsea formato SKU*cantidad, suma al stock, guarda historial
+  - Equipos: addEquipment (serie obligatoria y única), updateEquipment, deleteEquipment
+  - Bloc: addNota, togglePinNota, deleteNota
+  - Export: exportInventarioExcel (xlsx dinámico)
+  - Config: setSetting, clearAllData, seedDemoIfEmpty (10 productos + 7 equipos + 3 notas demo)
+  - Persistencia: lemcorp-v2, versión 1, migración simple
+- Vistas creadas:
+  1. Dashboard: 4 stats, alertas bajo stock, entradas recientes, equipos por estado, notas fijadas
+  2. Inventario: tabla productos + botón Entrada (dialog con formato SKU*cantidad), entradas recientes
+  3. Equipos: tarjetas por modelo, series consecutivas, 4 estados, filtros, buscador
+  4. Bloc: notas con fijar (pin), eliminar, Ctrl+Enter
+  5. Config: stats, exportar, borrar todo, toggle alertas
+- Sidebar: Dashboard, Inventario, Equipos, Bloc, Configuración
+- Tema: azul pastel mar, todo redondeado estilo iPhone, animaciones
+
+Verificación con Agent Browser:
+- Carga: 10 productos, 7 equipos, 3 notas, vista dashboard ✓
+- Entrada: 1066990*100 → stock CONECTOR FTTH: 41 → 141 ✓
+- Bloc: 3 notas demo visibles (fijar/eliminar funcionan) ✓
+- Equipos: 7 equipos en 3 modelos con series visibles ✓
+- VLM: "azul pastel mar, todo redondeado iPhone, bloc con notas, elegante y corporativo" ✓
+- Lint limpio, sin errores
+
+Stage Summary:
+- Sistema de almacén completo desde cero
+- Entradas con formato SKU*cantidad (ej: 1066990*100)
+- Sin salidas ni despachos — solo entradas
+- Equipos con series obligatorias y únicas, agrupados por modelo
+- Bloc de recordatorios y apuntes rápidos
+- Tema azul pastel mar, estilo iPhone, animaciones

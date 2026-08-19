@@ -1,128 +1,31 @@
-// Tipos centrales de LEMCORP Gestor de Excel
+// Tipos del sistema de control de almacén LEMCORP
 
-export type FileTag = "inventario" | "despachos" | "equipos" | "otro";
+export type ActiveView =
+  | "dashboard"
+  | "inventario"
+  | "equipos"
+  | "bloc"
+  | "config";
 
-export const TAG_META: Record<
-  FileTag,
-  { label: string; short: string; icon: string; hint: string }
-> = {
-  inventario: {
-    label: "Inventario total",
-    short: "Inventario",
-    icon: "📦",
-    hint: "Stock general de productos y materiales",
-  },
-  despachos: {
-    label: "Despachos diarios",
-    short: "Despachos",
-    icon: "🚚",
-    hint: "Salidas de mercadería del día",
-  },
-  equipos: {
-    label: "Equipos",
-    short: "Equipos",
-    icon: "🛠️",
-    hint: "Equipos averiados, en retiro, etc.",
-  },
-  otro: {
-    label: "Otro",
-    short: "Otro",
-    icon: "📄",
-    hint: "Archivo sin clasificar",
-  },
-};
-
-// Clave de celda: `${row},${col}` con base 0 (fila 0 = primera fila de datos)
-export interface SheetFile {
-  id: string;
-  name: string;
-  tag: FileTag;
-  tagConfirmed: boolean;
-  rowCount: number;
-  colCount: number;
-  cells: Record<string, string>; // raw value (puede ser fórmula con =)
-  // Ancho por columna (en px). Si no está, usa COL_W por defecto.
-  colWidths?: Record<number, number>;
-  // Alto por fila (en px). Si no está, usa ROW_H por defecto.
-  rowHeights?: Record<number, number>;
-  // Estilos por celda: clave `${row},${col}` -> CellStyle
-  cellStyles?: Record<string, CellStyle>;
-  // Si el archivo tiene múltiples hojas (como un Excel real), aquí se guardan.
-  // sheetIndex indica qué hoja está activa en el editor.
-  sheets?: SheetTab[];
-  activeSheetIndex?: number;
-  createdAt: number;
-  updatedAt: number;
-}
-
-// Una hoja/pestaña dentro de un archivo multi-hoja (tipo Excel).
-export interface SheetTab {
-  name: string; // nombre de la pestaña (ej: "Stock", "Pegar Despachos")
-  rowCount: number;
-  colCount: number;
-  cells: Record<string, string>;
-  colWidths?: Record<number, number>;
-  rowHeights?: Record<number, number>;
-  cellStyles?: Record<string, CellStyle>;
-}
-
-// Estilo de una celda (formato visual tipo Excel).
-export interface CellStyle {
-  bg?: string; // color de fondo (hex)
-  color?: string; // color de texto (hex)
-  bold?: boolean;
-  italic?: boolean;
-  fontSize?: number; // px
-  align?: "left" | "center" | "right";
-}
-
-export interface HistorySnapshot {
-  cells: Record<string, string>;
-  rowCount: number;
-  colCount: number;
-  colWidths?: Record<number, number>;
-  rowHeights?: Record<number, number>;
-  cellStyles?: Record<string, CellStyle>;
-  label: string;
-  ts: number;
-}
-
-// Producto del catálogo maestro de LEMCORP.
-// El SKU es el identificador único (el "DNI" del producto).
+// Producto en el inventario (controlado por SKU + stock)
 export interface Product {
   id: string;
-  sku: string; // código único, ej. "4076358"
-  name: string; // nombre canónico, ej. "ROUTER ONT HG8145X6-13 HUAWEI"
-  category?: string; // categoría opcional, ej. "Router", "ONT", "Cable"
-  quantity: number; // stock actual (se descuenta con despachos)
-  minStock?: number; // stock mínimo para alertas
-  udm?: string; // unidad de medida (UNIDADES, METROS, etc.)
+  sku: string;
+  name: string;
+  quantity: number;
+  minStock?: number;
+  udm?: string;
   createdAt: number;
   updatedAt: number;
 }
 
-// Despacho registrado en el sistema.
-export interface Despacho {
-  id: string;
-  fecha: number; // timestamp del despacho
-  sku: string;
-  producto: string;
-  cantidad: number;
-  cliente?: string;
-  tecnico?: string;
-  guia?: string;
-  observacion?: string;
-}
-
-// Equipo individual rastreado por número de serie (router, ONT, decodificador, etc.)
+// Equipo individual rastreado por serie
 export interface Equipment {
   id: string;
-  serie: string; // número de serie único (MAC, IMEI, S/N)
-  sku?: string; // SKU del producto al que pertenece (opcional)
-  modelo: string; // modelo del equipo (ej: "ROUTER ONT HG8145V5")
+  serie: string;
+  modelo: string;
   estado: EstadoEquipo;
-  ubicacion?: string; // ubicación física (Taller, Almacén, Cliente, etc.)
-  cliente?: string; // cliente al que se asignó (si aplica)
+  ubicacion?: string;
   observacion?: string;
   createdAt: number;
   updatedAt: number;
@@ -130,47 +33,45 @@ export interface Equipment {
 
 export type EstadoEquipo =
   | "disponible"
-  | "asignado"
   | "averiado"
   | "en_retiro"
   | "en_reparacion";
 
-export const ESTADO_META: Record<EstadoEquipo, { label: string; short: string; icon: string; color: string }> = {
-  disponible: { label: "Disponible", short: "Disponible", icon: "✓", color: "primary" },
-  asignado: { label: "Asignado", short: "Asignado", icon: "→", color: "accent" },
-  averiado: { label: "Averiado", short: "Averiado", icon: "✕", color: "destructive" },
-  en_retiro: { label: "En retiro", short: "Retiro", icon: "↩", color: "destructive" },
-  en_reparacion: { label: "En reparación", short: "Reparación", icon: "🔧", color: "accent" },
+export const ESTADO_META: Record<EstadoEquipo, { label: string; short: string; icon: string }> = {
+  disponible: { label: "Disponible", short: "Disponible", icon: "✓" },
+  averiado: { label: "Averiado", short: "Averiado", icon: "✕" },
+  en_retiro: { label: "En retiro", short: "Retiro", icon: "↩" },
+  en_reparacion: { label: "En reparación", short: "Reparación", icon: "🔧" },
 };
 
-// Discrepancia detectada al cruzar archivos contra el catálogo maestro.
-export interface Mismatch {
-  fileId: string;
-  fileName: string;
-  fileTag: FileTag;
-  row: number; // fila en el archivo (base 0)
+// Registro de entrada al almacén (formato SKU*cantidad)
+export interface Entrada {
+  id: string;
+  fecha: number;
   sku: string;
-  expectedName: string; // nombre canónico del catálogo
-  actualName: string; // nombre que aparece en el archivo
+  producto: string;
+  cantidad: number;
+  observacion?: string;
 }
 
-// Configuración global de la aplicación (persistente).
+// Nota del bloc (recordatorios y apuntes rápidos)
+export interface Nota {
+  id: string;
+  texto: string;
+  fecha: number;
+  pinned: boolean;
+}
+
+// Configuración del sistema
 export interface Settings {
-  skuDetection: boolean; // validar SKUs de archivos contra catálogo
-  lowStockAlerts: boolean; // alertar bajo stock
-  automation: boolean; // despachos -> inventario automático
-  highlightDuplicates: boolean; // resaltar valores duplicados en el editor
+  lowStockAlerts: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  skuDetection: true,
   lowStockAlerts: true,
-  automation: true,
-  highlightDuplicates: false,
 };
 
-export type ActiveView =
-  | "dashboard"
-  | "inventario"
-  | "equipos"
-  | "config";
+// Helper para generar IDs
+export function uid(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
+}
