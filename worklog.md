@@ -722,3 +722,36 @@ Stage Summary:
 - Equipos con series obligatorias
 - Bloc de notas
 - Tema azul pastel mar, estilo iPhone, animaciones
+
+---
+Task ID: R1-R5
+Agent: main
+Task: Multi-página con rutas separadas y pantallas de carga animadas
+
+Work Log:
+- Cambiado de una sola página (ActiveView) a rutas reales de Next.js App Router
+- Creadas 8 rutas separadas:
+  - / → redirect a /dashboard
+  - /dashboard, /inventario, /equipos, /series, /ia, /bloc, /empresa, /config
+- Cada ruta tiene su propio page.tsx que importa AppLayout + la vista correspondiente
+- AppLayout: componente compartido con Sidebar + Topbar + Footer + children
+- Sidebar: cambiado de botones (setActiveView) a <Link href> reales de next/link
+- Topbar: usa usePathname() para detectar la página actual
+- Pantalla de carga animada (loading.tsx): spinner con logo "L" + "Cargando…"
+- Una loading.tsx global en /src/app/loading.tsx + copias en cada subdirectorio
+
+Verificación con Agent Browser:
+- /dashboard carga correctamente ✓
+- Navegación a /inventario → URL cambia, página de inventario carga ✓
+- Navegación a /series → URL cambia, series visibles ✓
+- Navegación a /ia → URL cambia, chat IA visible ✓
+- Navegación a /empresa → URL cambia, info empresa visible ✓
+- VLM: "enlaces de navegación, cada uno lleva a página diferente, estética azul corporativa" ✓
+- Lint limpio, sin errores
+
+Stage Summary:
+- Sistema multi-página real con rutas separadas
+- Cada página tiene su propia URL (ej: localhost:3000/inventario)
+- Pantallas de carga animadas al navegar
+- Sidebar con enlaces reales (Link href)
+- 8 páginas: Dashboard, Inventario, Equipos, Series, IA, Bloc, Empresa, Configuración
