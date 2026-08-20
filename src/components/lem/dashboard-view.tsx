@@ -2,26 +2,26 @@
 
 import { useStore } from "@/lib/store";
 import {
-  Package, Boxes, AlertTriangle, Cpu, ArrowRight, Download,
+  Package, Boxes, AlertTriangle, Cpu, Download,
   TrendingUp, Clock, Sparkles, Hash, StickyNote, Users,
 } from "lucide-react";
 import { fmtNum } from "@/lib/num";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ESTADO_META } from "@/lib/types";
-import Link from "next/link";
+import { ESTADO_META, type ActiveView } from "@/lib/types";
 
 export function DashboardView() {
   const products = useStore((s) => s.products) ?? [];
   const equipos = useStore((s) => s.equipos) ?? [];
   const entradas = useStore((s) => s.entradas) ?? [];
   const notas = useStore((s) => s.notas) ?? [];
-  const miembros = useStore((s) => s.miembros) ?? [];
   const exportInventarioExcel = useStore((s) => s.exportInventarioExcel);
+  const setActiveView = useStore((s) => s.setActiveView);
+
+  const go = (v: ActiveView) => () => setActiveView(v);
 
   const totalUnidades = products.reduce((s, p) => s + p.quantity, 0);
   const bajoStock = products.filter((p) => p.minStock && p.minStock > 0 && p.quantity <= p.minStock);
-  const numTecnicos = miembros.filter((m) => m.rol === "tecnico").length;
   const equiposDisponibles = equipos.filter((e) => e.estado === "disponible").length;
 
   const catMap: Record<string, number> = {};
@@ -39,10 +39,10 @@ export function DashboardView() {
   }).slice(0, 5);
 
   const kpis = [
-    { label: "Productos", value: products.length, sub: "en catálogo", icon: Package, href: "/inventario", color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30" },
-    { label: "Unidades", value: fmtNum(totalUnidades), sub: "en stock", icon: Boxes, href: "/inventario", color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
-    { label: "Equipos", value: equipos.length, sub: `${equiposDisponibles} disponibles`, icon: Cpu, href: "/equipos", color: "text-violet-600", bg: "bg-violet-50 dark:bg-violet-950/30" },
-    { label: "Alertas", value: bajoStock.length, sub: bajoStock.length === 0 ? "Todo OK" : "bajo stock", icon: AlertTriangle, href: "/inventario", color: bajoStock.length > 0 ? "text-red-600" : "text-gray-400", bg: bajoStock.length > 0 ? "bg-red-50 dark:bg-red-950/30" : "bg-gray-50 dark:bg-gray-900/30" },
+    { label: "Productos", value: products.length, sub: "en catálogo", icon: Package, view: "inventario" as ActiveView, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/30" },
+    { label: "Unidades", value: fmtNum(totalUnidades), sub: "en stock", icon: Boxes, view: "inventario" as ActiveView, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
+    { label: "Equipos", value: equipos.length, sub: `${equiposDisponibles} disponibles`, icon: Cpu, view: "equipos" as ActiveView, color: "text-violet-600", bg: "bg-violet-50 dark:bg-violet-950/30" },
+    { label: "Alertas", value: bajoStock.length, sub: bajoStock.length === 0 ? "Todo OK" : "bajo stock", icon: AlertTriangle, view: "inventario" as ActiveView, color: bajoStock.length > 0 ? "text-red-600" : "text-gray-400", bg: bajoStock.length > 0 ? "bg-red-50 dark:bg-red-950/30" : "bg-gray-50 dark:bg-gray-900/30" },
   ];
 
   return (
@@ -63,8 +63,8 @@ export function DashboardView() {
         {kpis.map((k, i) => {
           const Icon = k.icon;
           return (
-            <Link key={k.label} href={k.href}
-              className="press-card anim-fade-up group rounded-2xl border border-border bg-card p-5 shadow-sm"
+            <button key={k.label} onClick={go(k.view)}
+              className="press-card anim-fade-up group rounded-2xl border border-border bg-card p-5 shadow-sm text-left"
               style={{ animationDelay: `${i * 60}ms` }}>
               <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl transition-transform group-hover:scale-110", k.bg)}>
                 <Icon className={cn("h-5 w-5", k.color)} />
@@ -72,7 +72,7 @@ export function DashboardView() {
               <p className="mt-4 text-3xl font-bold tabular-nums tracking-tight anim-count-up">{k.value}</p>
               <p className="text-sm font-semibold">{k.label}</p>
               <p className="text-xs text-muted-foreground">{k.sub}</p>
-            </Link>
+            </button>
           );
         })}
       </div>
@@ -85,7 +85,7 @@ export function DashboardView() {
           <div className="anim-fade-up rounded-2xl border border-border bg-card p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-sm font-semibold"><AlertTriangle className="h-4 w-4 text-amber-500" />Productos con menor stock</h2>
-              <Link href="/inventario" className="text-xs font-medium text-primary hover:underline">Ver todo →</Link>
+              <button onClick={go("inventario")} className="text-xs font-medium text-primary hover:underline">Ver todo →</button>
             </div>
             <div className="space-y-3">
               {topBajoStock.map((p, i) => {
@@ -113,7 +113,7 @@ export function DashboardView() {
           <div className="anim-fade-up rounded-2xl border border-border bg-card p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-sm font-semibold"><Clock className="h-4 w-4 text-muted-foreground" />Entradas recientes</h2>
-              <Link href="/inventario" className="text-xs font-medium text-primary hover:underline">Ver todo →</Link>
+              <button onClick={go("inventario")} className="text-xs font-medium text-primary hover:underline">Ver todo →</button>
             </div>
             {entradas.length === 0 ? (
               <p className="py-6 text-center text-sm text-muted-foreground">No hay entradas registradas.</p>
@@ -141,7 +141,7 @@ export function DashboardView() {
             <div className="anim-fade-up rounded-2xl border border-border bg-card p-5 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="flex items-center gap-2 text-sm font-semibold"><Cpu className="h-4 w-4 text-muted-foreground" />Equipos por estado</h2>
-                <Link href="/equipos" className="text-xs font-medium text-primary hover:underline">Ver →</Link>
+                <button onClick={go("equipos")} className="text-xs font-medium text-primary hover:underline">Ver →</button>
               </div>
               <div className="space-y-3">
                 {(Object.keys(ESTADO_META) as (keyof typeof ESTADO_META)[]).map((est, i) => {
@@ -197,10 +197,10 @@ export function DashboardView() {
           <div className="anim-fade-up rounded-2xl border border-border bg-card p-5 shadow-sm">
             <h2 className="mb-3 text-sm font-semibold">Accesos rápidos</h2>
             <div className="grid grid-cols-2 gap-2">
-              <QuickLink href="/ia" icon={Sparkles} label="Asistente IA" color="text-violet-600" bg="bg-violet-50 dark:bg-violet-950/30" />
-              <QuickLink href="/series" icon={Hash} label="Series" color="text-blue-600" bg="bg-blue-50 dark:bg-blue-950/30" />
-              <QuickLink href="/bloc" icon={StickyNote} label="Bloc" color="text-amber-600" bg="bg-amber-50 dark:bg-amber-950/30" />
-              <QuickLink href="/empresa" icon={Users} label="Empresas" color="text-emerald-600" bg="bg-emerald-50 dark:bg-emerald-950/30" />
+              <QuickLink onClick={go("ia")} icon={Sparkles} label="Asistente IA" color="text-violet-600" bg="bg-violet-50 dark:bg-violet-950/30" />
+              <QuickLink onClick={go("series")} icon={Hash} label="Series" color="text-blue-600" bg="bg-blue-50 dark:bg-blue-950/30" />
+              <QuickLink onClick={go("bloc")} icon={StickyNote} label="Bloc" color="text-amber-600" bg="bg-amber-50 dark:bg-amber-950/30" />
+              <QuickLink onClick={go("empresa")} icon={Users} label="Empresas" color="text-emerald-600" bg="bg-emerald-50 dark:bg-emerald-950/30" />
             </div>
           </div>
 
@@ -223,13 +223,13 @@ export function DashboardView() {
   );
 }
 
-function QuickLink({ href, icon: Icon, label, color, bg }: { href: string; icon: any; label: string; color: string; bg: string }) {
+function QuickLink({ onClick, icon: Icon, label, color, bg }: { onClick: () => void; icon: any; label: string; color: string; bg: string }) {
   return (
-    <Link href={href} className="press-card group flex flex-col items-center gap-2 rounded-xl border border-border p-3 hover:border-primary/30">
+    <button onClick={onClick} className="press-card group flex flex-col items-center gap-2 rounded-xl border border-border p-3 hover:border-primary/30">
       <span className={cn("flex h-9 w-9 items-center justify-center rounded-xl transition-transform group-hover:scale-110", bg)}>
         <Icon className={cn("h-4 w-4", color)} />
       </span>
       <span className="text-xs font-medium">{label}</span>
-    </Link>
+    </button>
   );
 }

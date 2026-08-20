@@ -814,3 +814,38 @@ Work Log:
 Verificación:
 - VLM: "Sí, es un dashboard WMS bien ejecutado. KPIs con colores (azul, verde, violeta, rojo). Barras de progreso con colores semáforo. Accesos rápidos. Estética tipo SpaceCom/WMS profesional. Transmite eficiencia operativa."
 - Lint limpio, sin errores
+
+---
+Task ID: FIX-SPA
+Agent: main
+Task: Arreglar arquitectura: convertir app multi-ruta a SPA con navegación por estado (solo ruta /)
+
+Work Log:
+- Problema detectado: la app tenía 8 rutas separadas (/dashboard, /inventario, etc.) lo cual violaba la regla "user can only see the / route". Además inventario-view.tsx usaba una API vieja del store (files, openFile, getMismatches, extractUnifiedInventory) que ya no existe, causando "Application error: client-side exception" al navegar a Inventario.
+- Cambios:
+  1. page.tsx: renderiza la vista activa según activeView del store (en vez de solo DashboardView). key={activeView} fuerza re-animación al cambiar.
+  2. sidebar.tsx: cambiado Link href="/..." por <button onClick={setActiveView(v)}>. Logo clicable vuelve a dashboard.
+  3. topbar.tsx: cambiado usePathname() por useStore(s => s.activeView).
+  4. dashboard-view.tsx: cambiados todos los <Link href="/inventario"> por <button onClick={go("inventario")}>. QuickLink ahora recibe onClick. Limpiados imports no usados (ArrowRight, numTecnicos, miembros).
+  5. equipos-view.tsx: botón "Ver series" cambiado de <Link href="/series/modelo"> a <button onClick={go("series")}>.
+  6. inventario-view.tsx: reemplazado contenido viejo (API rota) por el correcto de inventario-sistema-view.tsx (usa products, addProduct, registrarEntrada, exportInventarioExcel).
+  7. Eliminadas carpetas de rutas duplicadas: src/app/{dashboard,inventario,equipos,series,ia,bloc,empresa,config}/.
+
+Verificación con Agent Browser:
+- URL se mantiene SIEMPRE en http://localhost:3000/ al navegar ✓
+- Dashboard: 4 KPIs, barras de stock, equipos por estado, accesos rápidos ✓
+- Inventario: 10 productos en tabla, botón Entrada, botones editar/eliminar ✓ (antes fallaba, ahora OK)
+- Equipos: 7 equipos por modelo, botón "Ver series" ✓
+- Series: tabla con series agrupadas por modelo ✓
+- Asistente IA: carga sin error ✓
+- Bloc: carga ✓
+- Empresas: carga ✓
+- Configuración: carga ✓
+- VLM: "No hay errores visibles ni pantallas rotas. Interfaz en estado operativo normal."
+- Lint limpio, sin errores
+
+Stage Summary:
+- App convertida a SPA: solo ruta / visible, navegación por estado (activeView en Zustand)
+- Corregido error de InventarioView (usaba API vieja del store)
+- Diseño premium iOS/blue-mar mantenido (glassmorphism, animaciones, sombras)
+- Todas las 8 vistas funcionan y navegan sin cambiar la URL

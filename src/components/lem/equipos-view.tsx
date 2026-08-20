@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { Cpu, Plus, Search, Pencil, Trash2, ChevronDown, Hash, ArrowRight } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { ESTADO_META, type EstadoEquipo, type Equipment } from "@/lib/types";
+import { ESTADO_META, type EstadoEquipo, type Equipment, type ActiveView } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +24,9 @@ export function EquiposView() {
   const updateEquipment = useStore((s) => s.updateEquipment);
   const deleteEquipment = useStore((s) => s.deleteEquipment);
   const findEquipmentBySerie = useStore((s) => s.findEquipmentBySerie);
+  const setActiveView = useStore((s) => s.setActiveView);
+
+  const go = (v: ActiveView) => () => setActiveView(v);
 
   const [query, setQuery] = useState("");
   const [estadoFilter, setEstadoFilter] = useState("todos");
@@ -122,9 +124,9 @@ export function EquiposView() {
                   })}
                 </div>
                 <span className="rounded-full bg-foreground px-2.5 py-1 text-[11px] font-semibold text-background">{items.length}</span>
-                <Link href={`/series/${encodeURIComponent(modelo)}`} className="press flex items-center gap-1 rounded-xl bg-primary px-3 py-2 text-[12px] font-medium text-primary-foreground transition-colors hover:bg-primary/90">
+                <button onClick={go("series")} className="press flex items-center gap-1 rounded-xl bg-primary px-3 py-2 text-[12px] font-medium text-primary-foreground transition-colors hover:bg-primary/90">
                   Ver series <ArrowRight className="h-3 w-3" />
-                </Link>
+                </button>
               </div>
             </div>
           ))}
