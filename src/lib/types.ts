@@ -111,10 +111,10 @@ export function uid(): string {
 
 // Datos iniciales de empresa (editables por el usuario)
 export const DEFAULT_EMPRESA: InfoEmpresa = {
-  nombre: "LEMCORP",
+  nombre: "LPS",
   ruc: "",
   direccion: "",
   telefono: "",
   correo: "",
-  descripcion: "Empresa de telecomunicaciones dedicada a la instalación y mantenimiento de redes de fibra óptica y servicios de telecomunicaciones.",
+  descripcion: "LPS — CONTRATISTA DE CLARO\nTÉCNICOS EN CAMPO: 30\nDespacho diario: ~17 técnicos\nCobertura: Lima Norte, Comas, Los Olivos",
 };

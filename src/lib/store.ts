@@ -220,7 +220,7 @@ export const useStore = create<StoreState>()(
       },
     }),
     {
-      name: "lemcorp-v2",
+      name: "lemcorp-v3",
       partialize: (s) => ({
         products: s.products, equipos: s.equipos, entradas: s.entradas,
         notas: s.notas, miembros: s.miembros, empresa: s.empresa,
@@ -233,12 +233,12 @@ export const useStore = create<StoreState>()(
         if (!Array.isArray(p.entradas)) p.entradas = [];
         if (!Array.isArray(p.notas)) p.notas = [];
         if (!Array.isArray(p.miembros)) p.miembros = [];
-        if (!p.empresa) p.empresa = { ...DEFAULT_EMPRESA };
+        if (!p.empresa || p.empresa.nombre === "LEMCORP") p.empresa = { ...DEFAULT_EMPRESA };
         if (!p.settings) p.settings = { ...DEFAULT_SETTINGS };
         p.products = p.products.map((x: any) => ({ ...x, quantity: typeof x.quantity === "number" ? x.quantity : 0 }));
         return p;
       },
-      version: 2,
+      version: 3,
     }
   )
 );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Building2, Users, Plus, Pencil, Trash2, Mail, Phone, Save, X } from "lucide-react";
+import { Building2, Users, Plus, Pencil, Trash2, Mail, Phone, Save, X, Truck } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { ROL_META, type Rol, type MiembroEquipo } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -66,20 +66,22 @@ export function EmpresaView() {
   }
 
   return (
-    <div className="px-6 py-6">
+    <div className="px-6 py-6 lg:px-8">
       <div className="anim-fade-up mb-6">
         <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
-          <Building2 className="h-5 w-5" /> Empresa
+          <Building2 className="h-5 w-5" /> Empresas y Contactos
         </h1>
-        <p className="text-sm text-muted-foreground">Información de la empresa y equipo de trabajo</p>
+        <p className="text-sm text-muted-foreground">
+          Empresas contratistas (ej: LPS) y técnicos a los que despachas. El almacén es LEMCORP.
+        </p>
       </div>
 
-      {/* Info empresa */}
-      <div className="anim-fade-up mb-5 rounded-3xl border border-border bg-card p-5 shadow-sm">
+      {/* Info de la empresa contratista */}
+      <div className="anim-fade-up mb-5 rounded-2xl border border-border bg-card p-5 shadow-sm">
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-[14px] font-semibold">Información de la empresa</h2>
+            <Truck className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold">Empresa contratista / Cliente</h2>
           </div>
           {editing ? (
             <div className="flex gap-1.5">
@@ -93,32 +95,49 @@ export function EmpresaView() {
 
         {editing ? (
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5"><Label>Nombre de la empresa *</Label><Input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} className="rounded-xl" /></div>
-            <div className="flex flex-col gap-1.5"><Label>RUC</Label><Input value={form.ruc ?? ""} onChange={(e) => setForm({ ...form, ruc: e.target.value })} className="rounded-xl" /></div>
-            <div className="flex flex-col gap-1.5"><Label>Teléfono</Label><Input value={form.telefono ?? ""} onChange={(e) => setForm({ ...form, telefono: e.target.value })} className="rounded-xl" /></div>
-            <div className="flex flex-col gap-1.5"><Label>Correo</Label><Input value={form.correo ?? ""} onChange={(e) => setForm({ ...form, correo: e.target.value })} className="rounded-xl" /></div>
-            <div className="col-span-2 flex flex-col gap-1.5"><Label>Dirección</Label><Input value={form.direccion ?? ""} onChange={(e) => setForm({ ...form, direccion: e.target.value })} className="rounded-xl" /></div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Nombre de la empresa *</Label>
+              <Input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} placeholder="Ej: LPS" className="rounded-xl" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>RUC</Label>
+              <Input value={form.ruc ?? ""} onChange={(e) => setForm({ ...form, ruc: e.target.value })} className="rounded-xl" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Teléfono</Label>
+              <Input value={form.telefono ?? ""} onChange={(e) => setForm({ ...form, telefono: e.target.value })} className="rounded-xl" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Correo</Label>
+              <Input value={form.correo ?? ""} onChange={(e) => setForm({ ...form, correo: e.target.value })} className="rounded-xl" />
+            </div>
             <div className="col-span-2 flex flex-col gap-1.5">
-              <Label>Información detallada de la empresa</Label>
+              <Label>Dirección</Label>
+              <Input value={form.direccion ?? ""} onChange={(e) => setForm({ ...form, direccion: e.target.value })} className="rounded-xl" />
+            </div>
+            <div className="col-span-2 flex flex-col gap-1.5">
+              <Label>Información de la empresa contratista</Label>
               <Textarea
                 value={form.descripcion ?? ""}
                 onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
-                placeholder={"Ej:\nLPS - CONTRATISTA DE CLARO\nTÉCNICOS EN CAMPO: 30\nÁREAS DE COBERTURA: Lima Norte, Comas, Los Olivos\n...toda la info que quieras poner"}
+                placeholder={"Ej:\nLPS — CONTRATISTA DE CLARO\nTÉCNICOS EN CAMPO: 30\nDespacho diario: ~17 técnicos\nCobertura: Lima Norte, Comas, Los Olivos\n...toda la info que necesites"}
                 className="rounded-xl min-h-[140px] text-[13px] leading-relaxed"
               />
-              <p className="text-[10px] text-muted-foreground">Puedes escribir toda la información que necesites aquí.</p>
+              <p className="text-[10px] text-muted-foreground">
+                El almacén es de LEMCORP. Aquí registras la empresa contratista a la que despachas (ej: LPS que trabaja para Claro).
+              </p>
             </div>
           </div>
         ) : (
           <div className="space-y-2 text-[13px]">
-            <InfoRow label="Nombre" value={empresa.nombre} />
+            <InfoRow label="Empresa" value={empresa.nombre} />
             {empresa.ruc && <InfoRow label="RUC" value={empresa.ruc} />}
             {empresa.direccion && <InfoRow label="Dirección" value={empresa.direccion} />}
             {empresa.telefono && <InfoRow label="Teléfono" value={empresa.telefono} />}
             {empresa.correo && <InfoRow label="Correo" value={empresa.correo} />}
             {empresa.descripcion && (
-              <div className="mt-3 rounded-2xl border border-border bg-muted/30 p-4">
-                <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Información detallada</p>
+              <div className="mt-3 rounded-xl border border-border bg-muted/30 p-4">
+                <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Información</p>
                 <p className="whitespace-pre-wrap text-[13px] leading-relaxed">{empresa.descripcion}</p>
               </div>
             )}
@@ -126,18 +145,18 @@ export function EmpresaView() {
         )}
       </div>
 
-      {/* Miembros del equipo */}
-      <div className="anim-fade-up rounded-3xl border border-border bg-card p-5 shadow-sm">
+      {/* Técnicos / Miembros del equipo de la contratista */}
+      <div className="anim-fade-up rounded-2xl border border-border bg-card p-5 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-[14px] font-semibold">Equipo de trabajo ({miembros.length})</h2>
+            <h2 className="text-sm font-semibold">Técnicos y personal ({miembros.length})</h2>
           </div>
           <Button size="sm" onClick={openCreateMiembro} className="press h-8 rounded-lg"><Plus className="mr-1 h-3.5 w-3.5" />Añadir</Button>
         </div>
 
         {miembros.length === 0 ? (
-          <p className="py-6 text-center text-[12px] text-muted-foreground">No hay miembros registrados.</p>
+          <p className="py-6 text-center text-[12px] text-muted-foreground">No hay técnicos registrados.</p>
         ) : (
           <div className="space-y-3">
             {ROLES.map((rol) => {
@@ -148,9 +167,9 @@ export function EmpresaView() {
                   <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     {ROL_META[rol].label} ({lista.length})
                   </p>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     {lista.map((m) => (
-                      <div key={m.id} className="group flex items-center gap-3 rounded-2xl border border-border/60 p-3 hover:bg-accent/30">
+                      <div key={m.id} className="group flex items-center gap-3 rounded-xl border border-border/60 p-3 hover:bg-accent/30">
                         <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-[12px] font-bold",
                           m.rol === "jefe_operaciones" ? "bg-primary text-primary-foreground" : m.rol === "supervisor" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
                           {m.nombre.charAt(0).toUpperCase()}
@@ -180,7 +199,7 @@ export function EmpresaView() {
       <Dialog open={miembroDialog} onOpenChange={setMiembroDialog}>
         <DialogContent className="rounded-2xl">
           <DialogHeader>
-            <DialogTitle>{editingMiembro ? "Editar miembro" : "Añadir miembro"}</DialogTitle>
+            <DialogTitle>{editingMiembro ? "Editar" : "Añadir"} técnico / personal</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-3 py-1">
             <div className="col-span-2 flex flex-col gap-1.5">
