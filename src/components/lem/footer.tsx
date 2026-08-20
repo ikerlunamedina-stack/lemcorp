@@ -20,12 +20,12 @@ export function Footer() {
   const totalUnidades = products.reduce((s, p) => s + p.quantity, 0);
 
   return (
-    <footer className="flex h-8 shrink-0 items-center gap-4 border-t border-border bg-card/70 backdrop-blur-xl px-5 text-[11px] text-muted-foreground">
+    <footer className="flex h-8 shrink-0 items-center gap-4 border-t border-border glass px-5 text-[11px] text-muted-foreground">
       <span className="flex items-center gap-1.5"><HardDrive className="h-3 w-3" />{products.length} productos · {totalUnidades.toLocaleString("es-PE")} und</span>
       <span className="flex items-center gap-1.5"><Cpu className="h-3 w-3" />{equipos.length} equipos</span>
       <span className="flex items-center gap-1.5"><StickyNote className="h-3 w-3" />{notas.length} notas</span>
       <span className="ml-auto flex items-center gap-1.5"><Clock className="h-3 w-3" />{now}</span>
-      <span className="font-medium tracking-wider">LEMCORP © 2026</span>
+      <span className="font-medium tracking-wide">LEMCORP © 2026</span>
     </footer>
   );
 }
