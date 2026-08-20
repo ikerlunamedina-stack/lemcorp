@@ -849,3 +849,59 @@ Stage Summary:
 - Corregido error de InventarioView (usaba API vieja del store)
 - Diseño premium iOS/blue-mar mantenido (glassmorphism, animaciones, sombras)
 - Todas las 8 vistas funcionan y navegan sin cambiar la URL
+
+---
+Task ID: PREMIUM-V3
+Agent: main
+Task: Rediseño premium VISIBLE - el usuario no veía cambios (todo se veía plano)
+
+Work Log:
+- Problema diagnosticado con VLM: el diseño anterior se veía "plano/corporativo sin glassmorphism visible, sombras imperceptibles, animaciones no notorias". Las variables de color eran casi idénticas al blanco.
+- Cambios en globals.css:
+  - Fondo con gradiente radial (azul + violeta) para que el glassmorphism sea visible
+  - Sidebar cambiado a azul oscuro (oklch 0.22) en vez de casi-blanco
+  - Sombras DRAMÁTICAS: shadow-md ahora 0.65 alpha, shadow-lg 0.20 alpha
+  - Nuevas animaciones: lem-float (3s), lem-glow-pulse (3s), lem-pulse-ring visible
+  - Animaciones más largas (0.7s en vez de 0.5s) con delays escalonados
+  - Nuevas clases: kpi-gradient-* (4 colores), glow-border, anim-float, anim-glow
+  - glass-sidebar con gradiente vertical + blur 32px
+- Sidebar rediseñado:
+  - Fondo azul oscuro semitransparente con glassmorphism real
+  - Logo con gradiente azul→violeta + shadow + anim-pulse-ring
+  - Glow decorativos (blur-3xl) en fondo
+  - Item activo: gradiente + barra blanca indicadora izquierda
+  - Badges con bg-white/10
+  - Alerta bajo stock con gradiente rojo + pulse-ring
+  - Texto blanco con opacidad jerarquizada (60% → 40% → 25%)
+- Topbar rediseñado:
+  - h-16 (más alto) con icono en gradiente + subtítulo descriptivo
+  - glass-topbar con blur
+- Footer rediseñado:
+  - Iconos de colores (azul, violeta, ámbar, esmeralda)
+  - Valores en font-medium text-foreground
+  - "LEMCORP © 2026" en color primary bold
+- Dashboard rediseñado:
+  - Título con gradiente foreground→foreground/60 bg-clip-text
+  - KPIs con kpi-gradient-* (4 colores: blue, emerald, violet, red)
+  - Iconos KPI con gradiente bg-gradient-to-br + scale-110 + rotate-3 on hover
+  - Glow decorativos en esquinas de KPIs
+  - Tarjetas con header degradado (from-color/5 to-transparent)
+  - Barras de progreso con gradiente (from-color-500 to-color-400)
+  - Iconos en headers de tarjetas (bg-color/15)
+  - Entradas recientes con hover border-color emerald
+  - Accesos rápidos con bg-gradient + iconos en bg-white/60
+
+Verificación con VLM:
+- "Sí se ve premium con efectos de profundidad. Sidebar con gradiente azul oscuro. Tarjetas con sombras pronunciadas efecto flotante. Barras con gradiente. Sombras notables. Soft UI/Neumorphism ligero, muy superior a dashboard plano."
+- Inventario: "Premium y moderna. Sidebar oscuro elegante azul profundo. Tabla con sombras suaves, bordes redondeados. Logo con gradiente púrpura/azul."
+- Sin errores en consola, lint limpio
+
+Stage Summary:
+- Rediseño premium VISIBLE aplicado
+- Sidebar oscuro con glassmorphism (antes blanco)
+- KPIs con gradientes de color (antes planos)
+- Sombras dramáticas (antes imperceptibles)
+- Animaciones más largas y visibles (0.7s)
+- Gradientes en barras de progreso
+- Glow decorativos
+- Fondo con gradiente radial
