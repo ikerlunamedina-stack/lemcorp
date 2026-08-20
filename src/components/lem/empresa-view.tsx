@@ -26,15 +26,15 @@ export function EmpresaView() {
   const updateMiembro = useStore((s) => s.updateMiembro);
   const deleteMiembro = useStore((s) => s.deleteMiembro);
 
-  const [editingEmpresa, setEditingEmpresa] = useState(false);
-  const [empresaForm, setEmpresaForm] = useState(empresa);
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState(empresa);
   const [miembroDialog, setMiembroDialog] = useState(false);
   const [editingMiembro, setEditingMiembro] = useState<MiembroEquipo | null>(null);
   const [miembroForm, setMiembroForm] = useState({ nombre: "", rol: "tecnico" as Rol, correo: "", telefono: "" });
 
   const saveEmpresa = () => {
-    updateEmpresa(empresaForm);
-    setEditingEmpresa(false);
+    updateEmpresa(form);
+    setEditing(false);
   };
 
   const openCreateMiembro = () => {
@@ -71,7 +71,7 @@ export function EmpresaView() {
         <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
           <Building2 className="h-5 w-5" /> Empresa
         </h1>
-        <p className="text-sm text-muted-foreground">Información de LEMCORP y equipo de trabajo</p>
+        <p className="text-sm text-muted-foreground">Información de la empresa y equipo de trabajo</p>
       </div>
 
       {/* Info empresa */}
@@ -81,24 +81,33 @@ export function EmpresaView() {
             <Building2 className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-[14px] font-semibold">Información de la empresa</h2>
           </div>
-          {editingEmpresa ? (
+          {editing ? (
             <div className="flex gap-1.5">
-              <Button size="sm" variant="outline" onClick={() => setEditingEmpresa(false)} className="press h-7 rounded-lg"><X className="h-3.5 w-3.5" /></Button>
+              <Button size="sm" variant="outline" onClick={() => setEditing(false)} className="press h-7 rounded-lg"><X className="h-3.5 w-3.5" /></Button>
               <Button size="sm" onClick={saveEmpresa} className="press h-7 rounded-lg"><Save className="mr-1 h-3.5 w-3.5" />Guardar</Button>
             </div>
           ) : (
-            <Button size="sm" variant="ghost" onClick={() => { setEmpresaForm(empresa); setEditingEmpresa(true); }} className="press h-7 rounded-lg"><Pencil className="h-3.5 w-3.5" /></Button>
+            <Button size="sm" variant="ghost" onClick={() => { setForm(empresa); setEditing(true); }} className="press h-7 rounded-lg"><Pencil className="h-3.5 w-3.5" /></Button>
           )}
         </div>
 
-        {editingEmpresa ? (
+        {editing ? (
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5"><Label>Nombre</Label><Input value={empresaForm.nombre} onChange={(e) => setEmpresaForm({ ...empresaForm, nombre: e.target.value })} className="rounded-xl" /></div>
-            <div className="flex flex-col gap-1.5"><Label>RUC</Label><Input value={empresaForm.ruc ?? ""} onChange={(e) => setEmpresaForm({ ...empresaForm, ruc: e.target.value })} className="rounded-xl" /></div>
-            <div className="flex flex-col gap-1.5"><Label>Teléfono</Label><Input value={empresaForm.telefono ?? ""} onChange={(e) => setEmpresaForm({ ...empresaForm, telefono: e.target.value })} className="rounded-xl" /></div>
-            <div className="flex flex-col gap-1.5"><Label>Correo</Label><Input value={empresaForm.correo ?? ""} onChange={(e) => setEmpresaForm({ ...empresaForm, correo: e.target.value })} className="rounded-xl" /></div>
-            <div className="col-span-2 flex flex-col gap-1.5"><Label>Dirección</Label><Input value={empresaForm.direccion ?? ""} onChange={(e) => setEmpresaForm({ ...empresaForm, direccion: e.target.value })} className="rounded-xl" /></div>
-            <div className="col-span-2 flex flex-col gap-1.5"><Label>Descripción</Label><Textarea value={empresaForm.descripcion ?? ""} onChange={(e) => setEmpresaForm({ ...empresaForm, descripcion: e.target.value })} className="rounded-xl min-h-[60px]" /></div>
+            <div className="flex flex-col gap-1.5"><Label>Nombre de la empresa *</Label><Input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} className="rounded-xl" /></div>
+            <div className="flex flex-col gap-1.5"><Label>RUC</Label><Input value={form.ruc ?? ""} onChange={(e) => setForm({ ...form, ruc: e.target.value })} className="rounded-xl" /></div>
+            <div className="flex flex-col gap-1.5"><Label>Teléfono</Label><Input value={form.telefono ?? ""} onChange={(e) => setForm({ ...form, telefono: e.target.value })} className="rounded-xl" /></div>
+            <div className="flex flex-col gap-1.5"><Label>Correo</Label><Input value={form.correo ?? ""} onChange={(e) => setForm({ ...form, correo: e.target.value })} className="rounded-xl" /></div>
+            <div className="col-span-2 flex flex-col gap-1.5"><Label>Dirección</Label><Input value={form.direccion ?? ""} onChange={(e) => setForm({ ...form, direccion: e.target.value })} className="rounded-xl" /></div>
+            <div className="col-span-2 flex flex-col gap-1.5">
+              <Label>Información detallada de la empresa</Label>
+              <Textarea
+                value={form.descripcion ?? ""}
+                onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
+                placeholder={"Ej:\nLPS - CONTRATISTA DE CLARO\nTÉCNICOS EN CAMPO: 30\nÁREAS DE COBERTURA: Lima Norte, Comas, Los Olivos\n...toda la info que quieras poner"}
+                className="rounded-xl min-h-[140px] text-[13px] leading-relaxed"
+              />
+              <p className="text-[10px] text-muted-foreground">Puedes escribir toda la información que necesites aquí.</p>
+            </div>
           </div>
         ) : (
           <div className="space-y-2 text-[13px]">
@@ -107,7 +116,12 @@ export function EmpresaView() {
             {empresa.direccion && <InfoRow label="Dirección" value={empresa.direccion} />}
             {empresa.telefono && <InfoRow label="Teléfono" value={empresa.telefono} />}
             {empresa.correo && <InfoRow label="Correo" value={empresa.correo} />}
-            {empresa.descripcion && <InfoRow label="Descripción" value={empresa.descripcion} />}
+            {empresa.descripcion && (
+              <div className="mt-3 rounded-2xl border border-border bg-muted/30 p-4">
+                <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Información detallada</p>
+                <p className="whitespace-pre-wrap text-[13px] leading-relaxed">{empresa.descripcion}</p>
+              </div>
+            )}
           </div>
         )}
       </div>

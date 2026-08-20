@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Sparkles, Send, Bot, User, Loader2 } from "lucide-react";
+import { Sparkles, Send, Bot, User, Loader2, Trash2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -20,18 +20,55 @@ const SUGERENCIAS = [
   "Recomienda cantidades a comprar para cable RG-6",
 ];
 
+const STORAGE_KEY = "lemcorp-ia-historial";
+
+function loadHistorial(): ChatMsg[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+    return [];
+  } catch { return []; }
+}
+
+function saveHistorial(msgs: ChatMsg[]) {
+  try {
+    // Guardar máximo 50 mensajes para no llenar el localStorage
+    const toSave = msgs.slice(-50);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+  } catch {}
+}
+
 export function IAView() {
   const products = useStore((s) => s.products);
   const equipos = useStore((s) => s.equipos);
   const miembros = useStore((s) => s.miembros);
   const empresa = useStore((s) => s.empresa);
 
-  const [messages, setMessages] = useState<ChatMsg[]>([
-    { role: "assistant", content: "¡Hola! Soy el asistente IA de LEMCORP. Tengo acceso a tu inventario, equipos y datos del equipo de trabajo. Puedo ayudarte a decidir qué material pedir, calcular consumos, y analizar el estado del almacén. ¿Qué necesitas?" },
-  ]);
+  const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Cargar historial al iniciar
+  useEffect(() => {
+    const historial = loadHistorial();
+    if (historial.length > 0) {
+      setMessages(historial);
+    } else {
+      const bienvenida: ChatMsg[] = [
+        { role: "assistant", content: "¡Hola! Soy el asistente IA de LEMCORP. Tengo acceso a tu inventario, equipos y datos del equipo de trabajo. Puedo ayudarte a decidir qué material pedir, calcular consumos, y analizar el estado del almacén. ¿Qué necesitas?" },
+      ];
+      setMessages(bienvenida);
+      saveHistorial(bienvenida);
+    }
+  }, []);
+
+  // Guardar cuando cambian los mensajes
+  useEffect(() => {
+    if (messages.length > 0) saveHistorial(messages);
+  }, [messages]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -43,7 +80,8 @@ export function IAView() {
     const msg = (texto ?? input).trim();
     if (!msg || loading) return;
 
-    setMessages((prev) => [...prev, { role: "user", content: msg }]);
+    const newMessages = [...messages, { role: "user" as const, content: msg }];
+    setMessages(newMessages);
     setInput("");
     setLoading(true);
 
@@ -60,35 +98,55 @@ export function IAView() {
         }),
       });
       const data = await res.json();
-      if (data.ok && data.respuesta) {
-        setMessages((prev) => [...prev, { role: "assistant", content: data.respuesta }]);
-      } else {
-        setMessages((prev) => [...prev, { role: "assistant", content: "Lo siento, hubo un error al procesar tu consulta. Intenta de nuevo." }]);
-      }
+      const respuesta = data.ok && data.respuesta
+        ? data.respuesta
+        : "Lo siento, hubo un error al procesar tu consulta. Intenta de nuevo.";
+      const finalMessages = [...newMessages, { role: "assistant" as const, content: respuesta }];
+      setMessages(finalMessages);
+      saveHistorial(finalMessages);
     } catch {
-      setMessages((prev) => [...prev, { role: "assistant", content: "No pude conectar con el servidor. Verifica tu conexión e intenta de nuevo." }]);
+      const errorMsg = "No pude conectar con el servidor. Verifica tu conexión e intenta de nuevo.";
+      const finalMessages = [...newMessages, { role: "assistant" as const, content: errorMsg }];
+      setMessages(finalMessages);
+      saveHistorial(finalMessages);
     } finally {
       setLoading(false);
     }
   };
 
+  const limpiarHistorial = () => {
+    const bienvenida: ChatMsg[] = [
+      { role: "assistant", content: "Historial borrado. ¿En qué puedo ayudarte?" },
+    ];
+    setMessages(bienvenida);
+    saveHistorial(bienvenida);
+  };
+
   return (
     <div className="mx-auto flex h-full max-w-3xl flex-col px-6 py-6">
       {/* Header */}
-      <div className="anim-fade-up mb-4">
-        <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
-          <Sparkles className="h-5 w-5 text-primary" />
-          Asistente IA
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Análisis de inventario, recomendaciones de compra y gestión del almacén en tiempo real
-        </p>
+      <div className="anim-fade-up mb-4 flex items-center justify-between">
+        <div>
+          <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
+            <Sparkles className="h-5 w-5 text-primary" />
+            Asistente IA
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            El historial se guarda automáticamente
+          </p>
+        </div>
+        {messages.length > 1 && (
+          <Button variant="ghost" size="sm" onClick={limpiarHistorial} className="press h-8 rounded-lg text-xs text-muted-foreground">
+            <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+            Borrar historial
+          </Button>
+        )}
       </div>
 
       {/* Chat */}
       <div ref={scrollRef} className="anim-fade-up flex-1 space-y-3 overflow-y-auto scroll-thin rounded-3xl border border-border bg-card p-4">
         {messages.map((m, i) => (
-          <div key={i} className={cn("flex gap-3", m.role === "user" && "flex-row-reverse")}>
+          <div key={i} className={cn("flex gap-3 anim-fade-in", m.role === "user" && "flex-row-reverse")}>
             <div className={cn(
               "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-[13px] font-bold",
               m.role === "assistant" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"

@@ -755,3 +755,39 @@ Stage Summary:
 - Pantallas de carga animadas al navegar
 - Sidebar con enlaces reales (Link href)
 - 8 páginas: Dashboard, Inventario, Equipos, Series, IA, Bloc, Empresa, Configuración
+
+---
+Task ID: H1-H5
+Agent: main
+Task: IA con historial persistente + empresa editable + series paginadas
+
+Work Log:
+1. IA con historial persistente:
+   - Historial de chat guardado en localStorage (key: lemcorp-ia-historial)
+   - Al recargar la página, la conversación se mantiene
+   - Máximo 50 mensajes guardados
+   - Botón "Borrar historial" para limpiar
+   - saveHistorial() y loadHistorial() funciones
+
+2. Empresa con campos editables libres:
+   - Campo "Información detallada" multilinea (Textarea)
+   - El usuario puede escribir: "LPS - CONTRATISTA DE CLARO\nTÉCNICOS EN CAMPO: 30\n..."
+   - Se muestra en un bloque destacado cuando no se está editando
+   - Editar/guardar con botones
+
+3. Equipos con botón "Ver series" que abre página separada:
+   - Cada modelo tiene un botón "Ver series →" que lleva a /series/[modelo]
+   - Página de series sin sidebar lateral, solo contenido + botón "Volver al panel"
+   - Tabla con #, Serie, Estado, Ubicación, Observación
+   - Paginación: 20 series por página
+   - Botones anterior/siguiente
+   - Buscador + filtros por estado
+   - Botón "Volver al panel de equipos" regresa a /equipos
+
+Verificación:
+- IA: pregunta "¿Qué productos necesito pedir?" → respondió con análisis ✓
+- IA: recargar página → historial persiste ✓
+- Equipos: botón "Ver series" → abre /series/ROUTER%20ONT... ✓
+- Series: 3 series en tabla, botón "Volver" regresa a /equipos ✓
+- Empresa: editar → campo multilinea visible ✓
+- Lint limpio, sin errores
