@@ -32,7 +32,7 @@ export function SeriesView() {
   const models = Object.entries(byModel).sort((a, b) => b[1].length - a[1].length);
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-6">
+    <div className="px-6 py-6">
       <div className="anim-fade-up mb-5">
         <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
           <Hash className="h-5 w-5" /> Series

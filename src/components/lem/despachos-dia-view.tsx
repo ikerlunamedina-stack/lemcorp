@@ -252,7 +252,7 @@ export function DespachosDiaView() {
   const totalDespachado = resumen.reduce((s, r) => s + r.cantidad, 0);
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-6">
+    <div className="px-6 py-6">
       {/* Encabezado */}
       <div className="anim-fade-up mb-6">
         <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">

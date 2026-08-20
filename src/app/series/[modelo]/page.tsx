@@ -37,7 +37,7 @@ export default function SeriesModeloPage() {
   const paginated = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-6">
+    <div className="px-6 py-6">
       {/* Botón volver */}
       <Link href="/equipos" className="press mb-4 inline-flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground">
         <ArrowLeft className="h-4 w-4" />

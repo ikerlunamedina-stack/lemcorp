@@ -123,7 +123,7 @@ export function IAView() {
   };
 
   return (
-    <div className="mx-auto flex h-full max-w-3xl flex-col px-6 py-6">
+    <div className="flex h-full flex-col px-6 py-6">
       {/* Header */}
       <div className="anim-fade-up mb-4 flex items-center justify-between">
         <div>

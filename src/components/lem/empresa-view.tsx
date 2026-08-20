@@ -66,7 +66,7 @@ export function EmpresaView() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-6">
+    <div className="px-6 py-6">
       <div className="anim-fade-up mb-6">
         <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
           <Building2 className="h-5 w-5" /> Empresa

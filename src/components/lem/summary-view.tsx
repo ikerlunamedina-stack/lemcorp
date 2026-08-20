@@ -195,7 +195,7 @@ export function SummaryView() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-6">
+    <div className="px-6 py-6">
       {/* Encabezado */}
       <div className="anim-fade-up mb-6">
         <h1 className="text-xl font-semibold tracking-tight">Resumen general</h1>

@@ -46,7 +46,7 @@ export function DashboardView() {
   ];
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-6">
+    <div className="px-6 py-6">
       <div className="anim-fade-up mb-6 flex items-start justify-between">
         <div>
           <h1 className="text-[22px] font-bold tracking-tight">Dashboard</h1>
