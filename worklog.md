@@ -791,3 +791,26 @@ Verificación:
 - Series: 3 series en tabla, botón "Volver" regresa a /equipos ✓
 - Empresa: editar → campo multilinea visible ✓
 - Lint limpio, sin errores
+
+---
+Task ID: P1-P4
+Agent: main
+Task: Rediseñar estilo WMS profesional tipo SpaceCom
+
+Work Log:
+- Layout: metadata profesional con SEO completo (title, description, keywords, openGraph, twitter), viewport con themeColor
+- Dashboard rediseñado estilo WMS profesional:
+  - KPIs con iconos coloreados (azul=productos, verde=unidades, violeta=equipos, rojo=alertas)
+  - Barras de progreso con colores semáforo (verde=ok, ámbar=medio, rojo=crítico)
+  - Productos con menor stock relativo (top 5 con barras)
+  - Entradas recientes con iconos verdes
+  - Equipos por estado con barras de progreso
+  - Stock por unidad de medida
+  - Accesos rápidos (IA, Series, Bloc, Empresa) con iconos coloreados
+  - Notas fijadas con estilo ámbar
+  - Layout de 3 columnas (2/3 + 1/3) que aprovecha toda la pantalla
+  - Fecha actual en el header
+
+Verificación:
+- VLM: "Sí, es un dashboard WMS bien ejecutado. KPIs con colores (azul, verde, violeta, rojo). Barras de progreso con colores semáforo. Accesos rápidos. Estética tipo SpaceCom/WMS profesional. Transmite eficiencia operativa."
+- Lint limpio, sin errores
