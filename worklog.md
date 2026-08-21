@@ -989,3 +989,50 @@ Stage Summary:
 - IA cuenta todo: agrupa por técnico, suma unidades, detecta errores
 - Vista previa en tiempo real antes de confirmar
 - Una sola operación para registrar todos los despachos del día
+
+---
+Task ID: EXCEL-IMPORT-V15
+Agent: main
+Task: Importar Excel real de despachos (formato SpaceCom) + ver despachos del día
+
+Work Log:
+- Analizado Excel real del usuario (operaciones_seleccion_29.xlsx):
+  - 406 filas, 37 columnas
+  - Columnas clave: Empleado/Técnico (18), SKU (29), Producto (30), Cantidad (32), Fecha Traslado (16), Razón Social Destino (11), Obra (5)
+  - Descubrimiento: columna "Empleado/Técnico" está VACÍA en los datos (solo ", ")
+  - El técnico real está en "Razón Social Destino" (ej: JULIO CESAR BRINGAS MEDRANO)
+- API route /api/import-excel creada:
+  - Recibe FormData con archivo .xlsx
+  - Usa xlsx dinámicamente (import)
+  - Parser inteligente: busca columnas por nombre (case-insensitive, partial match)
+  - Fallback: si "Empleado/Técnico" está vacío, usa "Razón Social Destino" como técnico
+  - Limpia técnico (quita comas sueltas)
+  - Parsea fecha: maneja Date objects, Excel serial dates (números), strings
+  - Devuelve { ok, despachos[], total, skipped }
+- DespachosView rediseñado:
+  - Botón "Subir Excel" (file input hidden + button outline violet)
+  - Estado "importingExcel" con spinner Loader2
+  - Tras subir: convierte despachos del Excel a texto pegado (Técnico|Destino|SKU*cantidad)
+  - Abre el dialog de pegado con vista previa ya cargada
+  - Toast de confirmación: "✓ Excel procesado, N despachos detectados"
+  - StatCard "Hoy" destacada (border violet) con despachos del día + unidades
+  - Botón toggle "Solo hoy" / "Ver todos" para filtrar historial por fecha actual
+  - Badge "HOY" verde cuando el filtro está activo
+  - Columna Destino agregada al historial (badge cyan con MapPin)
+  - Contador "N despachos mostrados" en toolbar
+
+Verificación:
+- API probada con Excel real: 405 despachos parseados, 0 skipped ✓
+- Técnico detectado: "JULIO CESAR BRINGAS MEDRANO" (de Razón Social) ✓
+- Fecha correcta: "2026-08-20" ✓
+- Botón "Subir Excel" visible en vista Despachos ✓
+- Stats con "Hoy" destacado ✓
+- Lint limpio, sin errores en consola
+
+Stage Summary:
+- Ahora puedes SUBIR tu Excel de operaciones (formato SpaceCom) directamente
+- El sistema detecta automáticamente técnico, SKU, cantidad, fecha, destino
+- 405 despachos procesados en una sola operación
+- Vista "Hoy" con filtro por fecha para ver despachos del día
+- Historial completo con técnico, destino, cantidad, fecha
+- Ambos métodos: subir Excel o pegar texto manualmente
