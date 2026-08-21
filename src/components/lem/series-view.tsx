@@ -7,6 +7,7 @@ import { ESTADO_META, type EstadoEquipo } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EstadoIcon } from "@/components/lem/estado-icon";
 
 const ESTADOS: EstadoEquipo[] = ["disponible", "averiado", "en_retiro", "en_reparacion"];
 
@@ -94,9 +95,9 @@ export function SeriesView() {
                         <td className="py-2 pr-3">
                           <span className={cn(
                             "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                            (e.estado === "averiado" || e.estado === "en_retiro") ? "bg-destructive/10 text-destructive" : e.estado === "disponible" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                            (e.estado === "averiado" || e.estado === "en_retiro") ? "bg-red-500/15 text-red-400" : e.estado === "disponible" ? "bg-violet-500/15 text-violet-300" : "bg-muted text-muted-foreground"
                           )}>
-                            {ESTADO_META[e.estado].icon} {ESTADO_META[e.estado].short}
+                            <EstadoIcon name={ESTADO_META[e.estado].icon} className="h-2.5 w-2.5" /> {ESTADO_META[e.estado].short}
                           </span>
                         </td>
                         <td className="py-2 pr-3 text-[11px] text-muted-foreground">{e.ubicacion ?? "—"}</td>
@@ -114,7 +115,7 @@ export function SeriesView() {
       {/* Ir a Equipos */}
       <div className="mt-4 text-center">
         <Button variant="ghost" onClick={() => setActiveView("equipos")} className="press rounded-xl">
-          <FileText className="mr-1.5 h-4 w-4" /> Gestionar equipos <ArrowRight className="ml-1 h-3 w-3" />
+          <FileText className="mr-1.5 h-4 w-4 text-violet-400" /> Gestionar equipos <ArrowRight className="ml-1 h-3 w-3" />
         </Button>
       </div>
     </div>
@@ -125,7 +126,7 @@ function Chip({ active, onClick, label, count }: { active: boolean; onClick: () 
   return (
     <button onClick={onClick} className={cn(
       "press flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
-      active ? "border-primary bg-accent text-foreground" : "border-border bg-muted/40 text-muted-foreground hover:bg-accent/50"
+      active ? "border-violet-500/40 bg-violet-500/15 text-violet-300" : "border-border bg-muted/40 text-muted-foreground hover:bg-accent/50"
     )}>
       {label}<span className="rounded-full bg-background px-1.5 text-[10px]">{count}</span>
     </button>

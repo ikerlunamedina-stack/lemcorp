@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { ThemeProvider } from "@/components/lem/theme-provider";
 
 export const metadata: Metadata = {
   title: "LEMCORP — Sistema de Gestión de Almacén | WMS",
@@ -36,7 +37,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#2563eb",
+  themeColor: "#7C3AED",
   width: "device-width",
   initialScale: 1,
 };
@@ -46,10 +47,19 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Inline script: aplica el tema oscuro/claro antes de pintar para evitar FOUC.
+  // Default es oscuro; respeta lo guardado por el usuario en localStorage.
+  const themeScript = `(function(){try{var raw=localStorage.getItem('lemcorp-v3');var tema='oscuro';if(raw){var s=JSON.parse(raw);tema=(s&&s.state&&s.state.settings&&s.state.settings.tema)||'oscuro';}var prefersDark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var isDark=tema==='oscuro'||(tema==='sistema'&&prefersDark);var root=document.documentElement;if(isDark){root.classList.add('dark');root.classList.remove('light');}else{root.classList.remove('dark');root.classList.add('light');}}catch(e){document.documentElement.classList.add('dark');}})();`;
+
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es" className="dark" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="antialiased bg-background text-foreground font-sans">
-        {children}
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
         <Toaster />
       </body>
     </html>

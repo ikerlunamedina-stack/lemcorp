@@ -9,6 +9,7 @@ import { fmtNum } from "@/lib/num";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ESTADO_META, type ActiveView } from "@/lib/types";
+import { EstadoIcon } from "@/components/lem/estado-icon";
 
 export function DashboardView() {
   const products = useStore((s) => s.products) ?? [];
@@ -39,10 +40,10 @@ export function DashboardView() {
   }).slice(0, 5);
 
   const kpis = [
-    { label: "Productos", value: products.length, sub: "en catálogo", icon: Package, view: "inventario" as ActiveView, grad: "kpi-gradient-blue", color: "text-blue-600 dark:text-blue-400", iconBg: "from-blue-500/20 to-blue-500/5" },
-    { label: "Unidades", value: fmtNum(totalUnidades), sub: "en stock", icon: Boxes, view: "inventario" as ActiveView, grad: "kpi-gradient-emerald", color: "text-emerald-600 dark:text-emerald-400", iconBg: "from-emerald-500/20 to-emerald-500/5" },
-    { label: "Equipos", value: equipos.length, sub: `${equiposDisponibles} disponibles`, icon: Cpu, view: "equipos" as ActiveView, grad: "kpi-gradient-violet", color: "text-violet-600 dark:text-violet-400", iconBg: "from-violet-500/20 to-violet-500/5" },
-    { label: "Alertas", value: bajoStock.length, sub: bajoStock.length === 0 ? "Todo OK" : "bajo stock", icon: AlertTriangle, view: "inventario" as ActiveView, grad: "kpi-gradient-red", color: bajoStock.length > 0 ? "text-red-600 dark:text-red-400" : "text-gray-400", iconBg: bajoStock.length > 0 ? "from-red-500/20 to-red-500/5" : "from-gray-500/20 to-gray-500/5" },
+    { label: "Productos", value: products.length, sub: "en catálogo", icon: Package, view: "inventario" as ActiveView, grad: "kpi-gradient-violet", color: "text-violet-300", iconBg: "from-violet-500/20 to-violet-500/5" },
+    { label: "Unidades", value: fmtNum(totalUnidades), sub: "en stock", icon: Boxes, view: "inventario" as ActiveView, grad: "kpi-gradient-emerald", color: "text-emerald-300", iconBg: "from-emerald-500/20 to-emerald-500/5" },
+    { label: "Equipos", value: equipos.length, sub: `${equiposDisponibles} disponibles`, icon: Cpu, view: "equipos" as ActiveView, grad: "kpi-gradient-cyan", color: "text-cyan-300", iconBg: "from-cyan-500/20 to-cyan-500/5" },
+    { label: "Alertas", value: bajoStock.length, sub: bajoStock.length === 0 ? "Todo OK" : "bajo stock", icon: AlertTriangle, view: "inventario" as ActiveView, grad: "kpi-gradient-red", color: bajoStock.length > 0 ? "text-red-400" : "text-gray-400", iconBg: bajoStock.length > 0 ? "from-red-500/20 to-red-500/5" : "from-gray-500/20 to-gray-500/5" },
   ];
 
   return (
@@ -57,7 +58,7 @@ export function DashboardView() {
             {new Date().toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}
           </p>
         </div>
-        <Button onClick={() => exportInventarioExcel()} className="press rounded-xl bg-gradient-to-r from-primary to-primary/90 shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 hover:-translate-y-0.5 transition-all">
+        <Button onClick={() => exportInventarioExcel()} className="press btn-spacecom rounded-xl hover:-translate-y-0.5 transition-all">
           <Download className="mr-1.5 h-4 w-4" /> Exportar
         </Button>
       </div>
@@ -177,8 +178,8 @@ export function DashboardView() {
                       <div className="mb-1.5 flex items-center justify-between text-sm">
                         <span className="flex items-center gap-2">
                           <span className={cn("flex h-6 w-6 items-center justify-center rounded-lg text-[11px] font-bold",
-                            (est === "averiado" || est === "en_retiro") ? "bg-red-500/15 text-red-500" : est === "disponible" ? "bg-emerald-500/15 text-emerald-500" : "bg-amber-500/15 text-amber-500")}>
-                            {meta.icon}
+                            (est === "averiado" || est === "en_retiro") ? "bg-red-500/15 text-red-400" : est === "disponible" ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-400")}>
+                            <EstadoIcon name={meta.icon} className="h-3.5 w-3.5" />
                           </span>
                           <span className="font-medium">{meta.label}</span>
                         </span>
@@ -197,10 +198,10 @@ export function DashboardView() {
           {/* Stock por unidad */}
           {categorias.length > 0 && (
             <div className="press-card anim-fade-up glow-border overflow-hidden rounded-2xl border border-border/60 bg-card shadow-md">
-              <div className="flex items-center justify-between border-b border-border/40 bg-gradient-to-r from-blue-500/5 to-transparent px-5 py-4">
+              <div className="flex items-center justify-between border-b border-border/40 bg-gradient-to-r from-violet-500/5 to-transparent px-5 py-4">
                 <h2 className="flex items-center gap-2 text-sm font-bold">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/15">
-                    <TrendingUp className="h-4 w-4 text-blue-500" />
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/15">
+                    <TrendingUp className="h-4 w-4 text-violet-400" />
                   </span>
                   Stock por unidad
                 </h2>
@@ -231,7 +232,7 @@ export function DashboardView() {
             </div>
             <div className="grid grid-cols-2 gap-2 p-4">
               <QuickLink onClick={go("ia")} icon={Sparkles} label="Asistente IA" color="text-violet-600 dark:text-violet-400" bg="from-violet-500/15 to-violet-500/5" />
-              <QuickLink onClick={go("series")} icon={Hash} label="Series" color="text-blue-600 dark:text-blue-400" bg="from-blue-500/15 to-blue-500/5" />
+              <QuickLink onClick={go("series")} icon={Hash} label="Series" color="text-cyan-300" bg="from-cyan-500/15 to-cyan-500/5" />
               <QuickLink onClick={go("bloc")} icon={StickyNote} label="Bloc" color="text-amber-600 dark:text-amber-400" bg="from-amber-500/15 to-amber-500/5" />
               <QuickLink onClick={go("empresa")} icon={Users} label="Empresas" color="text-emerald-600 dark:text-emerald-400" bg="from-emerald-500/15 to-emerald-500/5" />
             </div>

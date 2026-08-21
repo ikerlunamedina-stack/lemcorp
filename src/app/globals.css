@@ -43,22 +43,23 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* ===== PREMIUM UI/UX — LEMCORP WMS v3 ===== */
-/* Diseño por: UI/UX Lead — estética Apple Pro, glassmorphism real, animaciones visibles */
+/* ===== PREMIUM DARK THEME — LEMCORP WMS v3 (REBUILD-1) ===== */
+/* Estética SpaceCom-like: dark slate + violeta + cyan glow */
+
 :root {
-  --radius: 1.25rem;
+  --radius: 0.875rem;
   --font-geist-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-geist-mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
 
-  /* Fondo con gradiente sutil para que el glassmorphism se note */
-  --background: oklch(0.97 0.008 240);
+  /* Variante light: tokens equivalentes (cuando el usuario cambia a claro) */
+  --background: oklch(0.97 0.006 250);
   --foreground: oklch(0.18 0.025 255);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.18 0.025 255);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.18 0.025 255);
-  --primary: oklch(0.50 0.19 255);
-  --primary-foreground: oklch(0.99 0.005 255);
+  --primary: oklch(0.58 0.22 295);
+  --primary-foreground: oklch(0.99 0.005 250);
   --secondary: oklch(0.95 0.008 240);
   --secondary-foreground: oklch(0.30 0.03 250);
   --muted: oklch(0.95 0.008 240);
@@ -68,64 +69,75 @@
   --destructive: oklch(0.58 0.22 27);
   --border: oklch(0.90 0.008 240);
   --input: oklch(0.94 0.008 240);
-  --ring: oklch(0.50 0.19 255);
-  --chart-1: oklch(0.55 0.20 255);
+  --ring: oklch(0.58 0.22 295);
+  --chart-1: oklch(0.58 0.22 295);
   --chart-2: oklch(0.65 0.17 160);
   --chart-3: oklch(0.70 0.19 50);
-  --chart-4: oklch(0.60 0.22 300);
+  --chart-4: oklch(0.62 0.20 220);
   --chart-5: oklch(0.72 0.16 200);
+  --sidebar: oklch(0.96 0.006 240);
+  --sidebar-foreground: oklch(0.18 0.025 255);
+  --sidebar-primary: oklch(0.58 0.22 295);
+  --sidebar-primary-foreground: oklch(0.99 0.005 250);
+  --sidebar-accent: oklch(0.94 0.012 240);
+  --sidebar-accent-foreground: oklch(0.30 0.03 250);
+  --sidebar-border: oklch(0.90 0.008 240);
+  --sidebar-ring: oklch(0.58 0.22 295);
 
-  /* Sidebar más oscuro para que el glassmorphism sea VISIBLE */
-  --sidebar: oklch(0.22 0.03 255);
-  --sidebar-foreground: oklch(0.96 0.008 240);
-  --sidebar-primary: oklch(0.62 0.20 255);
-  --sidebar-primary-foreground: oklch(0.99 0.005 255);
-  --sidebar-accent: oklch(0.30 0.04 255);
-  --sidebar-accent-foreground: oklch(0.96 0.008 240);
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.62 0.20 255);
-
-  /* Sombras premium DRAMÁTICAS */
+  /* Sombras premium */
   --shadow-xs: 0 1px 3px 0 oklch(0.18 0.02 255 / 0.06);
   --shadow-sm: 0 2px 8px -2px oklch(0.18 0.02 255 / 0.10), 0 1px 4px -1px oklch(0.18 0.02 255 / 0.06);
   --shadow-md: 0 12px 32px -6px oklch(0.18 0.02 255 / 0.14), 0 4px 12px -3px oklch(0.18 0.02 255 / 0.08);
   --shadow-lg: 0 24px 64px -12px oklch(0.18 0.02 255 / 0.20), 0 8px 24px -6px oklch(0.18 0.02 255 / 0.10);
-  --shadow-primary: 0 12px 32px -8px oklch(0.50 0.19 255 / 0.50);
-  --shadow-glow: 0 0 0 1px oklch(0.62 0.20 255 / 0.15), 0 12px 40px -8px oklch(0.62 0.20 255 / 0.40);
+  --shadow-primary: 0 12px 32px -8px oklch(0.58 0.22 295 / 0.50);
+  --shadow-glow: 0 0 0 1px oklch(0.58 0.22 295 / 0.15), 0 12px 40px -8px oklch(0.58 0.22 295 / 0.40);
 }
 
+/* DARK theme: dark slate + violet glow */
 .dark {
-  --background: oklch(0.13 0.018 255);
-  --foreground: oklch(0.96 0.008 240);
-  --card: oklch(0.18 0.022 255);
-  --card-foreground: oklch(0.96 0.008 240);
-  --popover: oklch(0.18 0.022 255);
-  --popover-foreground: oklch(0.96 0.008 240);
-  --primary: oklch(0.70 0.20 255);
-  --primary-foreground: oklch(0.13 0.018 255);
-  --secondary: oklch(0.24 0.022 255);
-  --secondary-foreground: oklch(0.96 0.008 240);
-  --muted: oklch(0.22 0.018 255);
-  --muted-foreground: oklch(0.68 0.015 240);
-  --accent: oklch(0.26 0.025 255);
-  --accent-foreground: oklch(0.96 0.008 240);
-  --destructive: oklch(0.70 0.22 22);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.70 0.20 255);
-  --chart-1: oklch(0.72 0.20 255);
-  --chart-2: oklch(0.75 0.17 160);
+  --background: oklch(0.16 0.012 255);
+  --foreground: oklch(0.97 0.005 250);
+  --card: oklch(0.20 0.014 255);
+  --card-foreground: oklch(0.97 0.005 250);
+  --popover: oklch(0.20 0.014 255);
+  --popover-foreground: oklch(0.97 0.005 250);
+  --primary: oklch(0.58 0.22 295);
+  --primary-foreground: oklch(0.99 0.005 250);
+  --secondary: oklch(0.24 0.018 255);
+  --secondary-foreground: oklch(0.97 0.005 250);
+  --muted: oklch(0.23 0.014 255);
+  --muted-foreground: oklch(0.70 0.012 250);
+  --accent: oklch(0.26 0.025 295);
+  --accent-foreground: oklch(0.97 0.005 250);
+  --destructive: oklch(0.65 0.22 22);
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 10%);
+  --ring: oklch(0.58 0.22 295);
+  --chart-1: oklch(0.70 0.22 295);
+  --chart-2: oklch(0.72 0.17 160);
   --chart-3: oklch(0.78 0.19 50);
-  --chart-4: oklch(0.70 0.22 300);
-  --chart-5: oklch(0.82 0.16 200);
-  --sidebar: oklch(0.16 0.025 255);
-  --sidebar-foreground: oklch(0.96 0.008 240);
-  --sidebar-primary: oklch(0.70 0.20 255);
-  --sidebar-primary-foreground: oklch(0.13 0.018 255);
-  --sidebar-accent: oklch(0.26 0.03 255);
-  --sidebar-accent-foreground: oklch(0.96 0.008 240);
+  --chart-4: oklch(0.68 0.20 220);
+  --chart-5: oklch(0.78 0.16 200);
+  --sidebar: oklch(0.18 0.012 255);
+  --sidebar-foreground: oklch(0.97 0.005 250);
+  --sidebar-primary: oklch(0.58 0.22 295);
+  --sidebar-primary-foreground: oklch(0.99 0.005 250);
+  --sidebar-accent: oklch(0.26 0.025 295);
+  --sidebar-accent-foreground: oklch(0.97 0.005 250);
   --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.70 0.20 255);
+  --sidebar-ring: oklch(0.58 0.22 295);
+}
+
+/* Default the html element to dark (since the app starts in dark) */
+html {
+  color-scheme: dark;
+}
+html:not(.light) {
+  background-color: oklch(0.16 0.012 255);
+}
+html.light {
+  color-scheme: light;
+  background-color: oklch(0.97 0.006 250);
 }
 
 @layer base {
@@ -134,10 +146,10 @@
   }
   body {
     @apply text-foreground;
-    /* FONDO CON GRADIENTE para que el glassmorphism sea visible */
+    /* Fondo con gradiente radial violet + cyan para que el glassmorphism sea visible */
     background:
-      radial-gradient(ellipse 80% 50% at 20% 0%, oklch(0.62 0.16 255 / 0.10), transparent 70%),
-      radial-gradient(ellipse 60% 50% at 100% 100%, oklch(0.55 0.18 300 / 0.06), transparent 70%),
+      radial-gradient(ellipse 80% 50% at 15% 0%, oklch(0.58 0.22 295 / 0.18), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 100% 100%, oklch(0.70 0.18 200 / 0.10), transparent 60%),
       var(--background);
     background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
@@ -145,31 +157,59 @@
     font-feature-settings: "ss01", "cv01", "cv02", "cv03";
     letter-spacing: -0.012em;
   }
-  .dark body {
+  /* Light variant:Cuando el usuario elige "claro", el fondo se aclara y pierde glow */
+  html.light body {
     background:
-      radial-gradient(ellipse 80% 50% at 20% 0%, oklch(0.70 0.20 255 / 0.16), transparent 70%),
-      radial-gradient(ellipse 60% 50% at 100% 100%, oklch(0.60 0.22 300 / 0.10), transparent 70%),
+      radial-gradient(ellipse 80% 50% at 15% 0%, oklch(0.70 0.20 295 / 0.08), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 100% 100%, oklch(0.78 0.18 200 / 0.05), transparent 60%),
       var(--background);
     background-attachment: fixed;
   }
 }
 
+/* ===== Botón SpaceCom (gradient violet → indigo with glow) ===== */
+.btn-spacecom {
+  background: linear-gradient(135deg, oklch(0.58 0.22 295) 0%, oklch(0.52 0.24 280) 100%);
+  color: oklch(0.99 0.005 250);
+  box-shadow:
+    0 4px 14px -2px oklch(0.58 0.22 295 / 0.45),
+    inset 0 1px 0 0 oklch(1 0 0 / 0.15);
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, filter 0.2s ease;
+}
+.btn-spacecom:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+  box-shadow:
+    0 8px 22px -4px oklch(0.58 0.22 295 / 0.60),
+    inset 0 1px 0 0 oklch(1 0 0 / 0.20);
+}
+.btn-spacecom:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 8px -2px oklch(0.58 0.22 295 / 0.50);
+}
+.btn-spacecom:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  filter: grayscale(0.4);
+}
+
 /* ===== Scrollbar premium macOS-style ===== */
 .scroll-thin {
   scrollbar-width: thin;
-  scrollbar-color: oklch(0.75 0.01 240) transparent;
+  scrollbar-color: oklch(0.40 0.02 255) transparent;
 }
 .scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
 .scroll-thin::-webkit-scrollbar-track { background: transparent; }
 .scroll-thin::-webkit-scrollbar-thumb {
-  background: oklch(0.75 0.01 240);
+  background: oklch(0.40 0.02 255);
   border-radius: 999px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
-.scroll-thin::-webkit-scrollbar-thumb:hover { background: oklch(0.62 0.02 240); background-clip: content-box; }
-.dark .scroll-thin { scrollbar-color: oklch(0.40 0.02 255) transparent; }
-.dark .scroll-thin::-webkit-scrollbar-thumb { background: oklch(0.40 0.02 255); background-clip: content-box; }
+.scroll-thin::-webkit-scrollbar-thumb:hover { background: oklch(0.50 0.04 295); background-clip: content-box; }
+html.light .scroll-thin { scrollbar-color: oklch(0.75 0.01 240) transparent; }
+html.light .scroll-thin::-webkit-scrollbar-thumb { background: oklch(0.75 0.01 240); background-clip: content-box; }
 
 /* ===== Animaciones premium VISIBLES ===== */
 @keyframes lem-fade-up {
@@ -190,7 +230,7 @@
   50% { opacity: 0.4; }
 }
 @keyframes lem-pulse-ring {
-  0% { box-shadow: 0 0 0 0 oklch(0.62 0.20 255 / 0.6); }
+  0% { box-shadow: 0 0 0 0 oklch(0.58 0.22 295 / 0.6); }
   70% { box-shadow: 0 0 0 14px transparent; }
   100% { box-shadow: 0 0 0 0 transparent; }
 }
@@ -211,16 +251,14 @@
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
-@keyframes lem-spin {
-  to { transform: rotate(360deg); }
-}
+@keyframes lem-spin { to { transform: rotate(360deg); } }
 @keyframes lem-float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-4px); }
 }
 @keyframes lem-glow-pulse {
-  0%, 100% { box-shadow: 0 0 20px -4px oklch(0.62 0.20 255 / 0.5); }
-  50% { box-shadow: 0 0 32px -4px oklch(0.62 0.20 255 / 0.8); }
+  0%, 100% { box-shadow: 0 0 20px -4px oklch(0.58 0.22 295 / 0.5); }
+  50% { box-shadow: 0 0 32px -4px oklch(0.58 0.22 295 / 0.8); }
 }
 
 .anim-fade-up { animation: lem-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
@@ -240,13 +278,6 @@
   background: color-mix(in oklch, var(--card) 70%, transparent);
   backdrop-filter: saturate(180%) blur(24px);
   -webkit-backdrop-filter: saturate(180%) blur(24px);
-}
-
-.glass-sidebar {
-  background:
-    linear-gradient(180deg, color-mix(in oklch, var(--sidebar) 92%, transparent), color-mix(in oklch, var(--sidebar) 78%, transparent));
-  backdrop-filter: saturate(180%) blur(32px);
-  -webkit-backdrop-filter: saturate(180%) blur(32px);
 }
 
 .glass-topbar {
@@ -271,14 +302,17 @@
 }
 
 /* KPI con gradiente de fondo */
-.kpi-gradient-blue {
-  background: linear-gradient(135deg, oklch(0.55 0.20 255 / 0.12), oklch(0.55 0.20 255 / 0.04));
+.kpi-gradient-violet {
+  background: linear-gradient(135deg, oklch(0.58 0.22 295 / 0.14), oklch(0.58 0.22 295 / 0.04));
 }
 .kpi-gradient-emerald {
   background: linear-gradient(135deg, oklch(0.65 0.17 160 / 0.12), oklch(0.65 0.17 160 / 0.04));
 }
-.kpi-gradient-violet {
-  background: linear-gradient(135deg, oklch(0.60 0.22 300 / 0.12), oklch(0.60 0.22 300 / 0.04));
+.kpi-gradient-amber {
+  background: linear-gradient(135deg, oklch(0.70 0.19 50 / 0.12), oklch(0.70 0.19 50 / 0.04));
+}
+.kpi-gradient-cyan {
+  background: linear-gradient(135deg, oklch(0.72 0.16 200 / 0.12), oklch(0.72 0.16 200 / 0.04));
 }
 .kpi-gradient-red {
   background: linear-gradient(135deg, oklch(0.58 0.22 27 / 0.12), oklch(0.58 0.22 27 / 0.04));
@@ -299,4 +333,12 @@
 /* Glow border en hover para tarjetas */
 .glow-border:hover {
   border-color: color-mix(in oklch, var(--primary) 40%, transparent);
+}
+
+/* Texto con gradiente violet→indigo */
+.text-gradient-violet {
+  background: linear-gradient(135deg, oklch(0.62 0.22 295), oklch(0.55 0.24 280));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }

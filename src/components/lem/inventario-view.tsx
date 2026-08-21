@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Plus,
   Search,
@@ -11,6 +11,8 @@ import {
   Download,
   ArrowDownToLine,
   Trash,
+  Check,
+  X,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import type { Product } from "@/lib/types";
@@ -93,6 +95,35 @@ export function InventarioView() {
     }
   };
 
+  // ─── Live preview de la entrada (parseo SKU*cantidad) ───
+  const entradaPreview = useMemo(() => {
+    const lines = entradaText.split("\n").map((l) => l.trim()).filter(Boolean);
+    return lines.map((line, i) => {
+      const parts = line.split("*");
+      if (parts.length < 2) {
+        return { i, line, sku: "", cantidad: NaN, producto: null, ok: false, motivo: "Formato incorrecto. Usa SKU*cantidad." };
+      }
+      const sku = parts[0].trim();
+      const cantidad = parseInt(parts[1].trim(), 10);
+      if (!sku || isNaN(cantidad) || cantidad <= 0) {
+        return { i, line, sku, cantidad, producto: null, ok: false, motivo: "Cantidad inválida." };
+      }
+      const prod = findProductBySku(sku);
+      return {
+        i,
+        line,
+        sku,
+        cantidad,
+        producto: prod,
+        ok: true,
+        motivo: prod ? "" : "SKU no encontrado en el catálogo (se registrará como SKU literal).",
+      };
+    });
+  }, [entradaText, findProductBySku]);
+
+  const validCount = entradaPreview.filter((p) => p.ok && p.producto).length;
+  const invalidCount = entradaPreview.filter((p) => !p.ok || !p.producto).length;
+
   return (
     <div className="px-6 py-6">
       <div className="anim-fade-up mb-5 flex flex-wrap items-start justify-between gap-3">
@@ -170,17 +201,30 @@ export function InventarioView() {
         <div className="anim-fade-up mt-4 rounded-2xl border border-border bg-card p-5">
           <h2 className="mb-3 text-sm font-semibold">Entradas recientes</h2>
           <div className="space-y-1.5 max-h-[200px] overflow-y-auto scroll-thin">
-            {entradas.slice(0, 15).map((e) => (
-              <div key={e.id} className="group flex items-center gap-2.5 rounded-xl border border-border/60 p-2">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-[11px] font-bold text-primary">+{e.cantidad}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[12px] font-medium">{e.producto}</p>
-                  <p className="font-mono text-[10px] text-muted-foreground">{e.sku}</p>
+            {entradas.slice(0, 15).map((e) => {
+              // Re-resolver el nombre del producto (por si se añadió al catálogo después)
+              const prodActual = findProductBySku(e.sku);
+              const nombreMostrar = prodActual?.name ?? e.producto;
+              const enCatalogo = !!prodActual;
+              return (
+                <div key={e.id} className="group flex items-center gap-2.5 rounded-xl border border-border/60 p-2">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-[11px] font-bold text-emerald-400">+{e.cantidad}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-1.5 truncate text-[12px] font-medium">
+                      {nombreMostrar}
+                      {!enCatalogo && (
+                        <span className="inline-flex items-center rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-400">
+                          NO CAT.
+                        </span>
+                      )}
+                    </p>
+                    <p className="font-mono text-[10px] text-muted-foreground">{e.sku}</p>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">{new Date(e.fecha).toLocaleDateString("es-PE")}</span>
+                  <button onClick={() => deleteEntrada(e.id)} className="press rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"><Trash className="h-3 w-3" /></button>
                 </div>
-                <span className="text-[10px] text-muted-foreground">{new Date(e.fecha).toLocaleDateString("es-PE")}</span>
-                <button onClick={() => deleteEntrada(e.id)} className="press rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"><Trash className="h-3 w-3" /></button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -228,17 +272,55 @@ export function InventarioView() {
             <DialogTitle className="flex items-center gap-2"><ArrowDownToLine className="h-4 w-4" />Entrada de mercadería</DialogTitle>
             <DialogDescription>
               Escribe una línea por entrada con el formato: <strong>SKU*cantidad</strong><br />
-              Ejemplo: <code className="font-mono text-primary">1066990*100</code>
+              Ejemplo: <code className="font-mono text-violet-400">1066990*100</code>
             </DialogDescription>
           </DialogHeader>
           <Textarea
             value={entradaText}
             onChange={(e) => { setEntradaText(e.target.value); setEntradaMsg(""); }}
             placeholder={"1066990*100\n1002900*50\n4076358*5"}
-            className="min-h-[120px] rounded-xl font-mono text-[13px]"
+            className="min-h-[100px] rounded-xl font-mono text-[13px]"
             autoFocus
           />
-          {entradaMsg && <p className={cn("text-[12px] font-medium", entradaMsg.includes("incorrecto") ? "text-destructive" : "text-primary")}>{entradaMsg}</p>}
+          {/* Live preview */}
+          {entradaPreview.length > 0 && (
+            <div className="space-y-1.5 max-h-[180px] overflow-y-auto scroll-thin">
+              {entradaPreview.map((p) => (
+                <div
+                  key={p.i}
+                  className={cn(
+                    "flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[12px]",
+                    p.ok && p.producto
+                      ? "border-emerald-500/30 bg-emerald-500/5"
+                      : "border-red-500/30 bg-red-500/5"
+                  )}
+                >
+                  {p.ok && p.producto ? (
+                    <Check className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                  ) : (
+                    <X className="h-3.5 w-3.5 shrink-0 text-red-400" />
+                  )}
+                  <span className="font-mono text-[11px] font-semibold">{p.sku || "?"}</span>
+                  <span className="text-muted-foreground">×</span>
+                  <span className="tabular-nums">{isNaN(p.cantidad) ? "?" : p.cantidad}</span>
+                  <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                    {p.producto ? p.producto.name : p.motivo}
+                  </span>
+                </div>
+              ))}
+              <div className="flex items-center justify-between pt-1 text-[11px]">
+                <span className="flex items-center gap-1 text-emerald-400">
+                  <Check className="h-3 w-3" /> {validCount} válida(s)
+                </span>
+                {invalidCount > 0 && (
+                  <span className="flex items-center gap-1 text-red-400">
+                    <X className="h-3 w-3" /> {invalidCount} con problema(s)
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+          {entradaMsg && <p className={cn("text-[12px] font-medium", entradaMsg.includes("incorrecto") ? "text-destructive" : "text-violet-400")}>{entradaMsg}</p>}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEntradaOpen(false)} className="rounded-xl">Cancelar</Button>
             <Button onClick={handleEntrada} disabled={!entradaText.trim()} className="rounded-xl">Registrar entrada</Button>

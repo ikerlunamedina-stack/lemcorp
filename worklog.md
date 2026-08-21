@@ -905,3 +905,87 @@ Stage Summary:
 - Gradientes en barras de progreso
 - Glow decorativos
 - Fondo con gradiente radial
+
+---
+Task ID: REBUILD-1
+Agent: main
+Task: Reconstrucción premium completa del LEMCORP WMS (Next.js 16 + TypeScript + Tailwind 4 + shadcn/ui + Zustand).
+
+Work Log:
+- Capa de datos (REPLACE):
+  - `src/lib/types.ts` — ActiveView ampliado con `despachos` + `pistolear`; tipo `Despacho`; `Tema` ("claro" | "oscuro" | "sistema"); `Settings` expandido (lowStockAlerts, pistoleoPrefijoEnabled, pistoleoPrefijo="ZTEATV", tema="oscuro", usuario="Admin"); `DEFAULT_SETTINGS`, `DEFAULT_EMPRESA`, `uid()`; `PistoleoCampo` + `PISTOLEO_CAMPOS` metadata; `FilaPistoleo`; `ReglaPrefijo` + `REGLAS_PREFIJO` (ZTEATV → DECODIFICADOR IPTV ZXVAB B866V2-H ZTE; 4857544 → ROUTER ONT HG8145X6-13 HUAWEI). `ESTADO_META` ahora con icon: "check" | "x" | "undo" | "wrench" (nombre de icono Lucide, sin emojis) y tone: "ok" | "danger" | "warn" | "neutral".
+  - `src/lib/store.ts` — Zustand + persist "lemcorp-v3" v8. Añadidos: `despachos[]`, pistoleo (pistoleoCampo, pistoleoModelo, pistoleoEstado, pistoleoFilas[]), `registrarDespacho` (valida SKU+stock, descuenta), `deleteDespacho` (devuelve stock), `addEquipmentBulk`, `deleteEquipmentBulk`, `importProductsBulk`, `confirmarPistoleo`, `addPistoleoFila`, `deletePistoleoFila`, `clearPistoleoFilas`, `setPistoleoConfig`. `setSetting` ampliado a boolean|string. `seedDemo` (limpia + carga 10 productos, 7 equipos, 3 notas, 6 miembros). Migrate merguea settings con DEFAULT_SETTINGS y fuerza tema="oscuro".
+- Tema premium DARK (REPLACE):
+  - `src/app/globals.css` — Tokens exactos: fondo `oklch(0.16 0.012 255)`, card `oklch(0.20 0.014 255)`, primary `oklch(0.58 0.22 295)` violet #7C3AED, foreground `oklch(0.97 0.005 250)`, border `oklch(1 0 0 / 8%)`, radius 0.875rem. Body con gradiente radial violet+cyan. `.btn-spacecom` gradiente violet→indigo con glow. `.press`, `.press-card`, `.scroll-thin`, animaciones (fade-up, scale-in, pulse-ring, bar-grow, glow-pulse). Variante `html.light` para modo claro.
+  - `src/components/lem/theme-provider.tsx` (CREATE) — Lee `settings.tema` del store, aplica clases `dark`/`light` en `<html>`. Escucha `matchMedia` cuando tema="sistema".
+  - `src/app/layout.tsx` — `<html className="dark">`, inline `<script>` antes de pintar para evitar FOUC, `themeColor="#7C3AED"`, envuelve children con `<ThemeProvider>`.
+- Shell premium (CREATE):
+  - `src/components/lem/navbar.tsx` — Navbar sticky top con: logo "L" gradiente violet→indigo + "LEMCORP" (CORP en gradiente), nav horizontal con 9 ítems (Dashboard, Inventario, Despachos, Equipos, Series, Pistolear, IA, Bloc, Empresas) activo = `bg-violet-500/15 text-violet-300`. Zona derecha: Search, Empresa button, theme toggle (claro→oscuro→sistema), campana con badge rojo de bajo stock, settings gear, avatar gradiente con iniciales del usuario.
+  - `src/components/lem/sub-header.tsx` — Sub-header con icono en gradiente + título + "· greeting, {usuario}" + subtitle. Derecha: "Actualizado: HH:MM:SS" con RefreshCw (tick cada 1s).
+  - `src/app/page.tsx` (REPLACE) — Sin seedDemoIfEmpty (empieza vacío). Navbar + SubHeader + main con todas las vistas (10), `key={activeView}` para animación.
+- Vistas nuevas (CREATE):
+  - `src/components/lem/despachos-view.tsx` — Stats (despachos, unidades enviadas, productos catálogo, técnicos), search, tabla con badges (técnico violet, destino cyan, cantidad −X red). Dialog "Nuevo despacho" con SKU live preview (nombre producto + stock + check verde), datalist de técnicos desde miembros, valida y descuenta stock.
+  - `src/components/lem/pistolear-view.tsx` — Panel de config toggleable (validación de prefijo ZTEATV, input prefijo, reglas de auto-detección). 3 botones de modo: Solo Serie / Serie+UA / Serie+MAC. Input grande autofocus (h-14, font-mono) que acepta Enter. Valida prefijo, detecta modelo, agrega a tabla. Feedback live verde "Aceptada" o rojo "Rechazada: no empieza con ZTEATV". "Guardar en sistema" llama `confirmarPistoleo`.
+  - `src/components/lem/estado-icon.tsx` — Helper para mapear nombres de icono ("check"|"x"|"undo"|"wrench") a componentes Lucide reales.
+- IA premium (REPLACE):
+  - `src/app/api/ia/route.ts` — System prompt con 7 capacidades (análisis de stock, cálculo de consumo, recomendaciones de compra con SKU+cantidad+justificación, trazabilidad de equipos, gestión de técnicos, alertas tempranas, reportes ejecutivos). Análisis en tiempo real: bajo stock, top 10 críticos, equipos por estado, técnicos, despachos de hoy. Recibe `usuario` en body y lo saluda por nombre.
+  - `src/components/lem/ia-view.tsx` — Avatar gradiente violet, badge "ACTIVO" verde pulsante, 8 botones de sugerencias con iconos coloreados, botón send con `btn-spacecom`, historial persistente en localStorage (key "lemcorp-ia-historial-v3").
+- Ediciones a vistas existentes:
+  - `src/components/lem/inventario-view.tsx` — Live preview en dialog "Entrada": parsea líneas SKU*cantidad, muestra nombre producto (verde) o "SKU no encontrado" (rojo), contadores válidos/inválidos. Entradas recientes re-resuelven el nombre del producto y muestran badge "NO CAT." para SKUs no catalogados.
+  - `src/components/lem/config-view.tsx` — Sección Personalización (input usuario + 3 botones de tema Claro/Oscuro/Sistema), "Cargar datos demo" (con confirmación, llama `seedDemo`), config de prefijo de pistoleo.
+  - `src/components/lem/dashboard-view.tsx`, `equipos-view.tsx`, `series-view.tsx` — Migrados a violet (bg-violet-500/15, text-violet-300) en lugar de indigo/blue. `ESTADO_META[est].icon` reemplazado por `<EstadoIcon>` (Lucide real).
+- Limpieza: `topbar.tsx` y `app-layout.tsx` quedan como stubs (legacy, ya no usados por el nuevo shell).
+- Verificación final: `bun run lint` pasa con 0 errores y 0 warnings. `GET /` 200 OK. `POST /api/ia` 200 OK con respuesta que saluda al usuario por nombre.
+
+Stage Summary:
+- LEMCORP WMS v3.1.0 REBUILD-1 entregado: dark slate + violet + cyan premium theme, navbar horizontal estilo SpaceCom, pistoleo con lector óptico, despachos con validación de stock, IA con 7 capacidades y contexto en tiempo real.
+- App inicia vacía (sin auto-seed). El usuario puede cargar datos demo desde Config.
+- Historial IA persistente entre sesiones.
+- Registro de agente en `/home/z/agent-ctx/REBUILD-1-main.md` (el directorio `/agent-ctx` en raíz no es escribible).
+
+---
+Task ID: DESPACHOS-MASIVOS-V14
+Agent: main
+Task: Rediseñar Despachos para pegado masivo tipo Excel + IA cuenta todo automáticamente
+
+Work Log:
+- DespachosView rediseñado completamente:
+  - Botón "Pegar despachos" (no "Nuevo despacho" individual)
+  - Dialog max-w-4xl para pegado masivo
+  - Formatos aceptados (parser inteligente):
+    * SKU*cantidad (sin técnico)
+    * Técnico | SKU*cantidad (con separador |)
+    * Técnico | Destino | SKU*cantidad (3 columnas)
+    * Técnico [TAB] SKU*cantidad (copiado directo de Excel)
+  - parsearLinea(): detecta automáticamente qué parte es técnico, destino, SKU*cantidad
+    * Busca el componente con * → es el SKU*cantidad
+    * Los componentes antes son: técnico, destino (en orden)
+  - Vista previa en tiempo real (useMemo):
+    * "Resumen automático" con icono Sparkles
+    * Contadores: N válidos (verde), N errores (rojo), N técnicos (violeta), total unidades (cyan)
+    * Agrupado por técnico (expandible con ChevronRight/Down):
+      - Cada técnico muestra: nombre, N despachos, total unidades
+      - Expandir muestra detalle: SKU + nombre producto + cantidad -X
+    * Sección de errores con razones: "SKU no encontrado", "Stock insuficiente (disponible: X)"
+  - Botón dinámico: "Registrar N despacho(s)"
+  - handleConfirm: llama registrarDespacho por cada línea válida (objeto, no args posicionales)
+  - Toast de éxito con conteo
+  - Stats: despachos total, unidades enviadas, productos catálogo, técnicos activos
+  - Historial: tabla con fecha, producto, técnico (badge violeta), cantidad (-X rojo), eliminar
+
+- Bug corregido: registrarDespacho en store recibe objeto {sku, cantidad, tecnico, destino, observacion}, no args posicionales. handleConfirm actualizado para pasar objeto.
+
+Verificación con Agent Browser:
+- Pegado masivo con formato "Técnico|SKU*cantidad" (4 líneas) → detectó 4 despachos válidos, 3 técnicos, 388 unidades ✓
+- Vista previa agrupada por técnico funcionando ✓
+- Registro individual de 1 despacho → guardado correctamente ✓
+- Historial muestra: J. Pérez, CONECTOR FIBRA OPTICA FTTH PPC, -20 ✓
+- Stock descontado automáticamente ✓
+- Lint limpio, sin errores en consola
+
+Stage Summary:
+- Despachos ahora acepta pegado masivo (40+ despachos en una sola operación)
+- Formato flexible: Técnico|SKU*cantidad, con tabs de Excel, o con destino
+- IA cuenta todo: agrupa por técnico, suma unidades, detecta errores
+- Vista previa en tiempo real antes de confirmar
+- Una sola operación para registrar todos los despachos del día
