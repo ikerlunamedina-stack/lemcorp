@@ -13,8 +13,10 @@ import type {
   InfoEmpresa,
   MiembroEquipo,
   Nota,
+  Notificacion,
   PistoleoCampo,
   Product,
+  Recordatorio,
   Rol,
   Settings,
 } from "./types";
@@ -32,6 +34,8 @@ interface StoreState {
   entradas: Entrada[];
   despachos: Despacho[];
   notas: Nota[];
+  recordatorios: Recordatorio[];
+  notificaciones: Notificacion[];
   miembros: MiembroEquipo[];
   empresa: InfoEmpresa;
   settings: Settings;
@@ -108,6 +112,18 @@ interface StoreState {
   togglePinNota: (id: string) => void;
   deleteNota: (id: string) => void;
 
+  // ─── Acciones: recordatorios (IA) ───
+  addRecordatorio: (texto: string, cuando: number, origen?: "ia" | "manual") => string;
+  deleteRecordatorio: (id: string) => void;
+  marcarRecordatorioDisparado: (id: string) => void;
+  checkRecordatorios: () => Recordatorio[];
+
+  // ─── Acciones: notificaciones (estilo iPhone) ───
+  addNotificacion: (titulo: string, cuerpo: string, tipo?: Notificacion["tipo"]) => string;
+  markNotificacionLeida: (id: string) => void;
+  clearNotificaciones: () => void;
+  clearNotificacionesLeidas: () => void;
+
   // ─── Acciones: empresa / miembros ───
   updateEmpresa: (data: Partial<InfoEmpresa>) => void;
   addMiembro: (nombre: string, rol: Rol, correo?: string, telefono?: string) => void;
@@ -144,6 +160,8 @@ export const useStore = create<StoreState>()(
       entradas: [],
       despachos: [],
       notas: [],
+      recordatorios: [],
+      notificaciones: [],
       miembros: [],
       empresa: { ...DEFAULT_EMPRESA },
       settings: { ...DEFAULT_SETTINGS },
@@ -516,6 +534,62 @@ export const useStore = create<StoreState>()(
         }),
       deleteNota: (id) => set({ notas: get().notas.filter((n) => n.id !== id) }),
 
+      // ─── Recordatorios (controlados por la IA) ───
+      addRecordatorio: (texto, cuando, origen = "ia") => {
+        const id = uid();
+        const nuevo: Recordatorio = {
+          id,
+          texto: texto.trim(),
+          fecha: Date.now(),
+          cuando,
+          disparado: false,
+          origen,
+        };
+        set({ recordatorios: [...get().recordatorios, nuevo] });
+        return id;
+      },
+      deleteRecordatorio: (id) =>
+        set({ recordatorios: get().recordatorios.filter((r) => r.id !== id) }),
+      marcarRecordatorioDisparado: (id) =>
+        set({
+          recordatorios: get().recordatorios.map((r) =>
+            r.id === id ? { ...r, disparado: true } : r
+          ),
+        }),
+      checkRecordatorios: () => {
+        const ahora = Date.now();
+        const pendientes = get().recordatorios.filter(
+          (r) => !r.disparado && r.cuando <= ahora
+        );
+        return pendientes;
+      },
+
+      // ─── Notificaciones (estilo iPhone) ───
+      addNotificacion: (titulo, cuerpo, tipo = "info") => {
+        const id = uid();
+        const nueva: Notificacion = {
+          id,
+          titulo,
+          cuerpo,
+          tipo,
+          fecha: Date.now(),
+          leida: false,
+        };
+        // Mantener máximo 20 notificaciones
+        const todas = [nueva, ...get().notificaciones].slice(0, 20);
+        set({ notificaciones: todas });
+        return id;
+      },
+      markNotificacionLeida: (id) =>
+        set({
+          notificaciones: get().notificaciones.map((n) =>
+            n.id === id ? { ...n, leida: true } : n
+          ),
+        }),
+      clearNotificaciones: () => set({ notificaciones: [] }),
+      clearNotificacionesLeidas: () =>
+        set({ notificaciones: get().notificaciones.filter((n) => !n.leida) }),
+
       // ─── Empresa / miembros ───
       updateEmpresa: (data) => set({ empresa: { ...get().empresa, ...data } }),
 
@@ -569,6 +643,8 @@ export const useStore = create<StoreState>()(
           entradas: [],
           despachos: [],
           notas: [],
+          recordatorios: [],
+          notificaciones: [],
           miembros: [],
           empresa: { ...DEFAULT_EMPRESA },
           settings: { ...DEFAULT_SETTINGS },
@@ -588,6 +664,8 @@ export const useStore = create<StoreState>()(
           entradas: [],
           despachos: [],
           notas: [],
+          recordatorios: [],
+          notificaciones: [],
           miembros: [],
           pistoleoFilas: [],
         });
@@ -642,6 +720,8 @@ export const useStore = create<StoreState>()(
         entradas: s.entradas,
         despachos: s.despachos,
         notas: s.notas,
+        recordatorios: s.recordatorios,
+        notificaciones: s.notificaciones,
         miembros: s.miembros,
         empresa: s.empresa,
         settings: s.settings,
@@ -658,6 +738,8 @@ export const useStore = create<StoreState>()(
         if (!Array.isArray(p.entradas)) p.entradas = [];
         if (!Array.isArray(p.despachos)) p.despachos = [];
         if (!Array.isArray(p.notas)) p.notas = [];
+        if (!Array.isArray(p.recordatorios)) p.recordatorios = [];
+        if (!Array.isArray(p.notificaciones)) p.notificaciones = [];
         if (!Array.isArray(p.miembros)) p.miembros = [];
         if (!Array.isArray(p.pistoleoFilas)) p.pistoleoFilas = [];
         if (!p.empresa) p.empresa = { ...DEFAULT_EMPRESA };
@@ -676,7 +758,7 @@ export const useStore = create<StoreState>()(
         }));
         return p;
       },
-      version: 8,
+      version: 9,
     }
   )
 );

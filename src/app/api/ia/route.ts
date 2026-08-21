@@ -101,6 +101,26 @@ TUS 7 CAPACIDADES PRINCIPALES:
 7. 📋 REPORTES EJECUTIVOS: Generar resúmenes accionables del estado del almacén.
 
 ═══════════════════════════════════════
+CAPACIDAD ESPECIAL: RECORDATORIOS
+═══════════════════════════════════════
+Si el usuario te pide un recordatorio (ej: "recuérdame pedir conectores mañana", "avísame el viernes", "en 2 horas revisa el stock"), DEBES responder con un bloque especial al FINAL de tu respuesta, en este formato exacto:
+
+[[RECORDATORIO]]
+texto: <descripción del recordatorio>
+cuando: <timestamp ISO 8601>
+[[/RECORDATORIO]]
+
+Ejemplo:
+Usuario: "recuérdame pedir conectores mañana a las 9am"
+Tu respuesta normal + al final:
+[[RECORDATORIO]]
+texto: Pedir conectores FTTH urgente
+cuando: 2026-08-22T09:00:00
+[[/RECORDATORIO]]
+
+Para calcular el timestamp, usa la fecha actual (${new Date().toISOString()}) como referencia.
+
+═══════════════════════════════════════
 DATOS DEL INVENTARIO DEL ALMACÉN LEMCORP:
 ═══════════════════════════════════════
 - Productos en catálogo: ${valorCatalogo}
@@ -133,11 +153,31 @@ INSTRUCCIONES DE RESPUESTA:
       thinking: { type: "disabled" },
     });
 
-    const respuesta =
+    let respuesta =
       response.choices[0]?.message?.content ||
       "No pude procesar tu consulta. Por favor intenta de nuevo.";
 
-    return NextResponse.json({ ok: true, respuesta });
+    // Extraer recordatorios del bloque [[RECORDATORIO]]...[[/RECORDATORIO]]
+    const recordatorios: Array<{ texto: string; cuando: string }> = [];
+    const regex = /\[\[RECORDATORIO\]\]([\s\S]*?)\[\[\/RECORDATORIO\]\]/g;
+    let match;
+    while ((match = regex.exec(respuesta)) !== null) {
+      const bloque = match[1];
+      const textoMatch = bloque.match(/texto:\s*(.+)/);
+      const cuandoMatch = bloque.match(/cuando:\s*(.+)/);
+      if (textoMatch && cuandoMatch) {
+        recordatorios.push({
+          texto: textoMatch[1].trim(),
+          cuando: cuandoMatch[1].trim(),
+        });
+      }
+    }
+    // Limpiar el bloque de la respuesta visible
+    if (recordatorios.length > 0) {
+      respuesta = respuesta.replace(/\[\[RECORDATORIO\]\][\s\S]*?\[\[\/RECORDATORIO\]\]/g, "").trim();
+    }
+
+    return NextResponse.json({ ok: true, respuesta, recordatorios });
   } catch (error: any) {
     console.error("Error en API IA:", error);
     return NextResponse.json(

@@ -1096,3 +1096,65 @@ Stage Summary:
 - Trazabilidad completa: ver qué se despachó cada día y a quién
 - Stock se descuenta automáticamente al registrar
 - Eliminar despacho devuelve stock
+
+---
+Task ID: IA-CHATGPT-V17
+Agent: main
+Task: IA estilo ChatGPT + auto-clear 5h + recordatorios + notificaciones estilo iPhone
+
+Work Log:
+- Tipos: agregado Recordatorio { id, texto, fecha, cuando, disparado, origen } y Notificacion { id, titulo, cuerpo, tipo, fecha, leida }
+- Store: agregados recordatorios[], notificaciones[]
+  - addRecordatorio(texto, cuando, origen) → crea recordatorio programado
+  - deleteRecordatorio(id), marcarRecordatorioDisparado(id)
+  - checkRecordatorios() → devuelve los pendientes cuya fecha ya llegó
+  - addNotificacion(titulo, cuerpo, tipo) → crea notificación (máx 20)
+  - markNotificacionLeida(id), clearNotificaciones(), clearNotificacionesLeidas()
+  - partialize + migrate v9 incluye nuevos campos
+- API IA actualizada:
+  - System prompt con CAPACIDAD ESPECIAL: RECORDATORIOS
+  - Si el usuario pide recordatorio, la IA responde con bloque [[RECORDATORIO]]...[[/RECORDATORIO]]
+  - API extrae los recordatorios del bloque, los devuelve en data.recordatorios[]
+  - Limpia el bloque de la respuesta visible
+- IAView rediseñada estilo ChatGPT:
+  - Layout flex column que llena la pantalla (h-full, sin scroll de página)
+  - Header compacto con badge ACTIVO + contador de mensajes
+  - "se borra en 5h · historial persistente"
+  - Chat con scroll interno propio (max-w-3xl centrado)
+  - Burbujas tipo ChatGPT: avatar + burbuja redondeada
+  - Timestamps en cada mensaje (timeAgo: ahora, hace Xm, hace Xh)
+  - Badge "Recordatorio creado" cuando la IA crea un recordatorio (con texto + fecha)
+  - Botón "Historial" → panel lateral con conversaciones anteriores (click para reusar)
+  - Botón "Borrar" → limpia chat y localStorage
+  - Sugerencias compactas (6) siempre visibles arriba del input
+  - Input fijo abajo con botón enviar
+  - Auto-clear después de 5 horas (CINCO_HORAS = 5*60*60*1000)
+    * localStorage con timestamp, si > 5h se borra automáticamente
+    * Guarda máx 60 mensajes
+- NotificationStack component (notificaciones estilo iPhone):
+  - Fixed top-right, z-[100]
+  - Animación lem-iphone-notification: slide from right + bounce (cubic-bezier spring)
+  - Cards con backdrop-blur, border, shadow-2xl
+  - Icono gradiente según tipo (recordatorio=violeta, stock=amber, alerta=rose, info=cyan)
+  - Auto-dismiss después de 8 segundos
+  - Botón X para cerrar manualmente
+  - Check recordatorios cada 10 segundos → dispara notificación automática
+- globals.css: animación lem-iphone-notification (slide + bounce spring)
+- page.tsx: vista IA sin SubHeader ni Footer (chat llena toda la pantalla)
+  - NotificationStack global (aparece en cualquier vista)
+
+Verificación con Agent Browser:
+- IAView: layout ChatGPT con chat, sugerencias e input ✓
+- Pregunté "Recuérdame pedir conectores FTTH mañana a las 9am" → IA respondió + badge "Recordatorio creado: Pedir conectores FTTH PPC (SKU: 1066990) | 22/8, 09:00" ✓
+- Recordatorio guardado en store (1 recordatorio) ✓
+- Creé recordatorio con fecha pasada → recargué → notificación estilo iPhone apareció en esquina superior derecha ✓
+- Notificación con icono campana violeta, título "Recordatorio", texto del recordatorio ✓
+- Lint limpio, sin errores en consola
+
+Stage Summary:
+- IA con diseño ChatGPT: chat llena la pantalla, sin scroll de página, scroll interno del chat
+- Auto-clear: conversación se borra después de 5 horas, pero el historial de conversaciones anteriores persiste
+- IA puede crear recordatorios: "recuérdame X mañana" → crea recordatorio programado
+- Notificaciones estilo iPhone: animación slide+bounce desde la derecha, backdrop-blur, auto-dismiss 8s
+- Recordatorios se disparan automáticamente cuando llega la hora → notificación aparece
+- Historial lateral: ver conversaciones anteriores y reusarlas con click

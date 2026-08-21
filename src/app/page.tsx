@@ -14,29 +14,37 @@ import { IAView } from "@/components/lem/ia-view";
 import { BlocView } from "@/components/lem/bloc-view";
 import { EmpresaView } from "@/components/lem/empresa-view";
 import { ConfigView } from "@/components/lem/config-view";
+import { NotificationStack } from "@/components/lem/notification-stack";
 
 export default function Home() {
   const activeView = useStore((s) => s.activeView);
 
+  // La vista de IA tiene su propio layout (tipo ChatGPT), sin scroll de página
+  const isChatView = activeView === "ia";
+
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
+    <div className="flex h-screen flex-col bg-background text-foreground">
       <Navbar />
-      <SubHeader />
-      <main className="relative flex-1">
-        <div key={activeView} className="h-full overflow-y-auto scroll-thin anim-fade-in">
-          {activeView === "dashboard" && <DashboardView />}
-          {activeView === "inventario" && <InventarioView />}
-          {activeView === "despachos" && <DespachosView />}
-          {activeView === "equipos" && <EquiposView />}
-          {activeView === "series" && <SeriesView />}
-          {activeView === "pistolear" && <PistolearView />}
-          {activeView === "ia" && <IAView />}
-          {activeView === "bloc" && <BlocView />}
-          {activeView === "empresa" && <EmpresaView />}
-          {activeView === "config" && <ConfigView />}
-        </div>
+      {!isChatView && <SubHeader />}
+      <main className="relative flex-1 overflow-hidden">
+        {isChatView ? (
+          <IAView />
+        ) : (
+          <div key={activeView} className="h-full overflow-y-auto scroll-thin anim-fade-in">
+            {activeView === "dashboard" && <DashboardView />}
+            {activeView === "inventario" && <InventarioView />}
+            {activeView === "despachos" && <DespachosView />}
+            {activeView === "equipos" && <EquiposView />}
+            {activeView === "series" && <SeriesView />}
+            {activeView === "pistolear" && <PistolearView />}
+            {activeView === "bloc" && <BlocView />}
+            {activeView === "empresa" && <EmpresaView />}
+            {activeView === "config" && <ConfigView />}
+          </div>
+        )}
       </main>
-      <Footer />
+      {!isChatView && <Footer />}
+      <NotificationStack />
     </div>
   );
 }

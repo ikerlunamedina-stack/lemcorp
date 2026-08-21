@@ -86,6 +86,26 @@ export interface Nota {
   pinned: boolean;
 }
 
+// ─────────── Recordatorios (controlados por la IA) ───────────
+export interface Recordatorio {
+  id: string;
+  texto: string;
+  fecha: number;          // cuándo se creó
+  cuando: number;         // cuándo debe dispararse (timestamp)
+  disparado: boolean;     // ya se notificó?
+  origen: "ia" | "manual";
+}
+
+// ─────────── Notificaciones estilo iPhone ───────────
+export interface Notificacion {
+  id: string;
+  titulo: string;
+  cuerpo: string;
+  tipo: "recordatorio" | "stock" | "info" | "alerta";
+  fecha: number;
+  leida: boolean;
+}
+
 // ─────────── Empresa y equipo de trabajo ───────────
 export type Rol =
   | "jefe_operaciones"
