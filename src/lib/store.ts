@@ -77,7 +77,16 @@ interface StoreState {
     tecnico?: string;
     destino?: string;
     observacion?: string;
+    fecha?: number;
   }) => { ok: boolean; msg: string };
+  registrarDespachosBulk: (despachos: Array<{
+    sku: string;
+    cantidad: number;
+    tecnico?: string;
+    destino?: string;
+    observacion?: string;
+    fecha?: number;
+  }>) => { ok: number; fail: number; fails: string[]; totalUnidades: number };
   deleteDespacho: (id: string) => void;
 
   // ─── Acciones: equipos ───
@@ -316,7 +325,7 @@ export const useStore = create<StoreState>()(
       },
 
       // ─── Despachos (valida SKU y stock, descuenta inventario) ───
-      registrarDespacho: ({ sku, cantidad, tecnico, destino, observacion }) => {
+      registrarDespacho: ({ sku, cantidad, tecnico, destino, observacion, fecha }) => {
         const skuTrim = sku.trim();
         const product = get().findProductBySku(skuTrim);
         if (!product) {
@@ -333,7 +342,7 @@ export const useStore = create<StoreState>()(
         }
         const d: Despacho = {
           id: uid(),
-          fecha: Date.now(),
+          fecha: fecha || Date.now(),
           sku: product.sku,
           producto: product.name,
           cantidad,
@@ -353,6 +362,64 @@ export const useStore = create<StoreState>()(
           ok: true,
           msg: `Despacho registrado: ${cantidad} × ${product.name} → stock: ${product.quantity - cantidad}`,
         };
+      },
+
+      // Registro masivo de despachos (para Excel importado)
+      registrarDespachosBulk: (inputDespachos) => {
+        let ok = 0;
+        let fail = 0;
+        let totalUnidades = 0;
+        const fails: string[] = [];
+        const nuevosDespachos: Despacho[] = [];
+        const productosActualizados = new Map<string, number>();
+
+        for (const item of inputDespachos) {
+          const skuTrim = item.sku.trim();
+          const product = get().findProductBySku(skuTrim);
+          if (!product) {
+            fail++;
+            fails.push(`SKU "${skuTrim}" no encontrado`);
+            continue;
+          }
+          if (!Number.isFinite(item.cantidad) || item.cantidad <= 0) {
+            fail++;
+            fails.push(`Cantidad inválida para ${skuTrim}`);
+            continue;
+          }
+          // Calcular stock disponible considerando despachos anteriores del mismo bulk
+          const stockActual = productosActualizados.get(product.id) ?? product.quantity;
+          if (stockActual < item.cantidad) {
+            fail++;
+            fails.push(`Stock insuficiente para ${product.name} (disp: ${stockActual}, solicitado: ${item.cantidad})`);
+            continue;
+          }
+          productosActualizados.set(product.id, stockActual - item.cantidad);
+          nuevosDespachos.push({
+            id: uid(),
+            fecha: item.fecha || Date.now(),
+            sku: product.sku,
+            producto: product.name,
+            cantidad: item.cantidad,
+            tecnico: item.tecnico?.trim() || undefined,
+            destino: item.destino?.trim() || undefined,
+            observacion: item.observacion?.trim() || undefined,
+          });
+          ok++;
+          totalUnidades += item.cantidad;
+        }
+
+        if (nuevosDespachos.length > 0) {
+          // Ordenar por fecha (más reciente primero)
+          nuevosDespachos.sort((a, b) => b.fecha - a.fecha);
+          set({
+            despachos: [...nuevosDespachos, ...get().despachos],
+            products: get().products.map((p) => {
+              const newQty = productosActualizados.get(p.id);
+              return newQty !== undefined ? { ...p, quantity: newQty, updatedAt: Date.now() } : p;
+            }),
+          });
+        }
+        return { ok, fail, fails, totalUnidades };
       },
 
       deleteDespacho: (id) => {

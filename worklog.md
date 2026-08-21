@@ -1036,3 +1036,63 @@ Stage Summary:
 - Vista "Hoy" con filtro por fecha para ver despachos del día
 - Historial completo con técnico, destino, cantidad, fecha
 - Ambos métodos: subir Excel o pegar texto manualmente
+
+---
+Task ID: IA-HISTORIAL-V16
+Agent: main
+Task: IA analiza Excel automáticamente + historial avanzado por día con trazabilidad de stock
+
+Work Log:
+- Store: agregado registrarDespachosBulk (registro masivo optimizado)
+  - Recibe array de despachos con fecha opcional
+  - Valida SKU + stock considerando despachos anteriores del mismo bulk
+  - Descuenta stock en una sola operación (más eficiente)
+  - Ordena despachos por fecha (más reciente primero)
+  - Devuelve { ok, fail, fails[], totalUnidades }
+- registrarDespacho actualizado para aceptar fecha opcional (para Excel importado)
+- DespachosView rediseñado completamente:
+  - Botón "Pegar despachos" → ahora dice "Analizar despachos con IA"
+  - Análisis automático en vivo mientras escribes (useMemo):
+    * Valida cada línea contra el catálogo
+    * Detecta SKU no encontrado, stock insuficiente, formato inválido
+    * Muestra contadores: N válidos (verde), N errores (rojo), total unidades (cyan)
+  - Botón "Analizar y registrar N" (no manual):
+    * Spinner "Analizando…" (1.5s delay para feedback IA)
+    * Llama registrarDespachosBulk automáticamente
+    * Muestra resultado: "¡Listo! N despachos registrados y stock descontado"
+    * Desglose por técnico con unidades
+    * Toast de confirmación
+  - HISTORIAL AVANZADO POR DÍA (timeline):
+    * Agrupa despachos por fecha (toDateString)
+    * Cada día es una card expandible con:
+      - Icono calendario + fecha + día de la semana
+      - Badge "HOY" si es hoy
+      - Stats: despachos, técnicos, productos, unidades
+    * Expandir día → muestra técnicos agrupados:
+      - Cada técnico con: nombre, N items, total unidades
+      - Expandir técnico → tabla de productos con destino, hora, cantidad
+    * Eliminar despacho devuelve stock
+  - Stats nuevas: Total despachos, Unidades, Hoy, Días con despachos, Técnicos
+  - Botón toggle "Solo hoy" / "Ver todos"
+  - Subir Excel → procesa → pega en el dialog automáticamente
+
+Verificación con Agent Browser:
+- Pegué 5 despachos con técnicos → IA detectó 5 válidos, 178 unidades ✓
+- Click "Analizar y registrar 5" → spinner → resultado exitoso ✓
+- Mensaje: "¡Listo! 5 despachos registrados y stock descontado" ✓
+- Desglose por técnico: R. García 100, M. Luna 55, J. Pérez 23 ✓
+- Historial por día: "21 Ago. 2026 - Viernes" con badge HOY ✓
+- Expandir día → técnicos agrupados con detalle ✓
+- Expandir técnico → tabla de productos con destino y cantidad ✓
+- Stock descontado automáticamente ✓
+- Lint limpio, sin errores en consola
+
+Stage Summary:
+- IA analiza el Excel/pegado automáticamente (no hay que confirmar línea por línea)
+- Validación en vivo: detecta SKU no encontrado, stock insuficiente, formato inválido
+- Registro masivo en una operación (optimizado)
+- Historial avanzado tipo timeline: agrupado por día → técnico → productos
+- Cada día muestra: fecha, día semana, despachos, técnicos, productos, unidades
+- Trazabilidad completa: ver qué se despachó cada día y a quién
+- Stock se descuenta automáticamente al registrar
+- Eliminar despacho devuelve stock
