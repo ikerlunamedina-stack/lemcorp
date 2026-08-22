@@ -282,12 +282,16 @@ export function IAView() {
             ))}
             {loading && (
               <div className="flex gap-3">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg   text-white shadow-sm">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
                   <Bot className="h-4 w-4" />
                 </div>
-                <div className="flex items-center gap-2 rounded-2xl rounded-tl-sm border border-border bg-card px-3.5 py-2.5 shadow-sm">
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                  <span className="text-[13px] text-muted-foreground">Analizando inventario…</span>
+                <div className="flex items-center gap-2 rounded-2xl rounded-tl-sm border border-border bg-card px-4 py-3 shadow-sm">
+                  <span className="flex gap-1">
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "0ms", animationDuration: "0.8s" }} />
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "150ms", animationDuration: "0.8s" }} />
+                    <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "300ms", animationDuration: "0.8s" }} />
+                  </span>
+                  <span className="text-[13px] text-muted-foreground">Pensando…</span>
                 </div>
               </div>
             )}

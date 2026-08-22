@@ -1294,3 +1294,28 @@ Verificación:
 - Botón "Importar Excel" visible en Inventario ✓
 - API probado: 71 productos del Excel real detectados ✓
 - Lint limpio ✓
+
+---
+Task ID: MOBILE-FIX-THINKING-V31
+Agent: main
+Task: Cambiar 'Analizando inventario' a 'Pensando' + arreglar móvil
+
+Work Log:
+- IA loading: cambiado "Analizando inventario…" a "Pensando…"
+- IA loading: cambiado spinner (Loader2) por 3 puntos animados (tipo WhatsApp/iMessage)
+  - 3 puntos bounce con delays escalonados (0ms, 150ms, 300ms)
+- Viewport meta: agregado maximumScale=1, userScalable=false (evita zoom accidental en móvil)
+- viewportFit: cover (respeta safe areas de iOS)
+- themeColor: cambiado a #1a1a1a (gris oscuro)
+- CSS mobile fixes:
+  - overflow-x: hidden (evita scroll horizontal accidental)
+  - overscroll-behavior: none (evita pull-to-refresh)
+  - -webkit-tap-highlight-color: transparent (sin flash azul al tocar)
+  - -webkit-touch-callout: none (sin menú contextual al mantener)
+  - touch-action: pan-y (solo scroll vertical, no horizontal)
+  - -webkit-overflow-scrolling: touch (scroll suave iOS)
+  - Inputs: font-size 16px en móvil (evita zoom automático de iOS al focus)
+  - button: user-select none (evita selección accidental)
+- Verificación móvil (375x812): IA funciona, input visible, botón enviar accesible ✓
+- Verificación desktop (1920x1080): layout estable, sin desbordamientos ✓
+- Lint limpio ✓

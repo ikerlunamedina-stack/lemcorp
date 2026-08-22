@@ -193,9 +193,38 @@ html.light {
     text-rendering: optimizeLegibility;
     font-feature-settings: "ss01", "cv01", "cv02", "cv03";
     letter-spacing: -0.011em;
+    /* Prevenir movimiento/zoom en móvil */
+    overflow-x: hidden;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    touch-action: pan-y;
+  }
+  html {
+    overflow-x: hidden;
+    overscroll-behavior: none;
   }
   html.light body {
     background: var(--background);
+  }
+  /* Prevenir selección de texto en botones */
+  button, [role="button"] {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Inputs: tamaño mínimo 16px para que iOS no haga zoom */
+  input, textarea, select {
+    font-size: 16px;
+  }
+  @media (min-width: 640px) {
+    input, textarea, select {
+      font-size: inherit;
+    }
+  }
+  /* Mejorar scroll en móvil */
+  * {
+    -webkit-overflow-scrolling: touch;
   }
 }
 
