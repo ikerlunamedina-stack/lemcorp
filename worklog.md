@@ -1158,3 +1158,17 @@ Stage Summary:
 - Notificaciones estilo iPhone: animación slide+bounce desde la derecha, backdrop-blur, auto-dismiss 8s
 - Recordatorios se disparan automáticamente cuando llega la hora → notificación aparece
 - Historial lateral: ver conversaciones anteriores y reusarlas con click
+
+---
+Task ID: DIALOG-SCROLL-FIX-V26
+Agent: main
+Task: Dialog de despachos no cabía en pantalla con mucha info
+
+Work Log:
+- DialogContent: agregado max-h-[90vh] + overflow-y-auto (scroll dentro del dialog)
+- Textarea: cambiado min-h-[140px] a max-h-[200px] (no crece indefinidamente)
+- Formatos: compactado a 1 línea (antes era grid de 4 líneas)
+- Errores: max-h-[80px] con scroll (antes 100px)
+- Desglose por técnico: max-h-[150px] con scroll interno
+- DialogFooter: sticky bottom-0 con bg-card (siempre visible)
+- Verificado en móvil (375x812): "el dialog cabe en pantalla, botones visibles abajo, scroll interno" ✓

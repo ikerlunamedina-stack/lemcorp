@@ -436,7 +436,7 @@ export function DespachosView() {
 
       {/* Dialog PEGAR/SUBIR DESPACHOS + IA */}
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
-        <DialogContent className="max-w-4xl rounded-xl">
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto scroll-thin rounded-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base font-bold">
               <Sparkles className="h-5 w-5 text-violet-400" /> Analizar despachos con IA
@@ -446,28 +446,23 @@ export function DespachosView() {
             </DialogDescription>
           </DialogHeader>
 
-          {/* Formatos */}
-          <div className="rounded-lg border border-border bg-muted/30 p-3">
-            <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-              <FileSpreadsheet className="h-3 w-3" /> Formatos aceptados (uno por línea):
+          {/* Formatos (compacto) */}
+          <div className="rounded-lg border border-border bg-muted/30 px-3 py-2">
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+              Formatos: SKU*cantidad · Técnico | SKU*cantidad · Técnico [TAB] SKU*cantidad (de Excel)
             </p>
-            <div className="grid grid-cols-1 gap-0.5 text-[10px] font-mono text-muted-foreground sm:grid-cols-2">
-              <div><span className="text-violet-400">•</span> SKU*cantidad</div>
-              <div><span className="text-violet-400">•</span> Técnico | SKU*cantidad</div>
-              <div><span className="text-violet-400">•</span> Técnico | Destino | SKU*cantidad</div>
-              <div><span className="text-violet-400">•</span> Técnico [TAB] SKU*cantidad (de Excel)</div>
-            </div>
           </div>
 
+          {/* Textarea con altura limitada */}
           <Textarea
             value={bulkText}
             onChange={(e) => { setBulkText(e.target.value); setResultadoIA(null); }}
             placeholder={"Pega tus despachos aquí (uno por línea):\n\nJ. Pérez|1066990*20\nM. Luna|1002900*50\n..."}
-            className="min-h-[140px] rounded-lg font-mono text-[12px] leading-relaxed shadow-inner"
+            className="max-h-[200px] rounded-lg font-mono text-[12px] leading-relaxed shadow-inner"
             autoFocus
           />
 
-          {/* Análisis IA en vivo */}
+          {/* Análisis IA en vivo (compacto, con scroll) */}
           {lineasParseadas.length > 0 && !resultadoIA && (
             <div className="rounded-lg border border-border bg-muted/30">
               <div className="flex items-center justify-between border-b border-border px-3 py-2">
@@ -488,9 +483,9 @@ export function DespachosView() {
                   </span>
                 </div>
               </div>
-              {/* Errores */}
+              {/* Errores (máximo 80px) */}
               {validacion.invalidos.length > 0 && (
-                <div className="max-h-[100px] overflow-y-auto scroll-thin px-3 py-2">
+                <div className="max-h-[80px] overflow-y-auto scroll-thin px-3 py-2">
                   {validacion.invalidos.slice(0, 8).map((inv, i) => (
                     <div key={i} className="flex items-center gap-2 py-0.5 text-[10px]">
                       <AlertTriangle className="h-2.5 w-2.5 shrink-0 text-rose-400" />
@@ -507,9 +502,9 @@ export function DespachosView() {
             </div>
           )}
 
-          {/* Resultado final IA */}
+          {/* Resultado final IA (compacto) */}
           {resultadoIA && (
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className={cn("rounded-lg border p-3", resultadoIA.ok > 0 ? "border-emerald-500/30 bg-emerald-500/10" : "border-rose-500/30 bg-rose-500/10")}>
                 <p className={cn("flex items-center gap-2 text-[13px] font-bold", resultadoIA.ok > 0 ? "text-emerald-400" : "text-rose-400")}>
                   {resultadoIA.ok > 0 ? <Check className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
@@ -523,11 +518,11 @@ export function DespachosView() {
                 </p>
               </div>
 
-              {/* Resumen por técnico */}
+              {/* Resumen por técnico (máximo 150px con scroll) */}
               {Object.keys(resultadoIA.porTecnico).length > 0 && (
                 <div className="rounded-lg border border-border bg-muted/30 p-3">
                   <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Desglose por técnico</p>
-                  <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                  <div className="grid max-h-[150px] grid-cols-1 gap-1.5 overflow-y-auto scroll-thin sm:grid-cols-2">
                     {Object.entries(resultadoIA.porTecnico)
                       .sort((a, b) => b[1] - a[1])
                       .map(([tecnico, unidades]) => (
@@ -542,7 +537,7 @@ export function DespachosView() {
             </div>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="sticky bottom-0 bg-card">
             <Button variant="outline" onClick={() => setBulkOpen(false)} className="rounded-lg">Cancelar</Button>
             <Button
               onClick={analizarYRegistrar}
