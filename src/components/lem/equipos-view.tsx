@@ -110,7 +110,7 @@ export function EquiposView() {
       ) : (
         <div className="space-y-2.5">
           {models.map(([modelo, items], i) => (
-            <div key={modelo} className="anim-fade-up rounded-2xl border border-border bg-card overflow-hidden" style={{ animationDelay: `${i * 30}ms` }}>
+            <div key={modelo} className="anim-fade-up rounded-2xl border border-border bg-card" style={{ animationDelay: `${i * 30}ms` }}>
               <div className="flex items-center gap-3 px-4 py-3.5">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-muted-foreground"><Cpu className="h-4 w-4" /></span>
                 <div className="min-w-0 flex-1">

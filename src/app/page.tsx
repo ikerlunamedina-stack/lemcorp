@@ -26,11 +26,11 @@ export default function Home() {
     <div className="flex h-screen flex-col bg-background text-foreground">
       <Navbar />
       {!isChatView && <SubHeader />}
-      <main className="relative flex-1 overflow-hidden">
+      <main className="relative flex-1 overflow-auto scroll-thin">
         {isChatView ? (
           <IAView />
         ) : (
-          <div key={activeView} className="h-full overflow-y-auto scroll-thin anim-fade-in">
+          <div key={activeView} className="min-h-full pb-14 lg:pb-0 anim-fade-in">
             {activeView === "dashboard" && <DashboardView />}
             {activeView === "inventario" && <InventarioView />}
             {activeView === "despachos" && <DespachosView />}

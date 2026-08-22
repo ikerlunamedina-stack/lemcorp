@@ -1260,3 +1260,37 @@ Verificación:
 - "Página carga sin error. Todo gris mate. Cero morado. Logo de cubo se ve bien." ✓
 - Lint limpio ✓
 - Sin errores en consola ✓
+
+---
+Task ID: SCROLL-IMPORT-V30
+Agent: main
+Task: Arreglar scroll en todas las vistas + importar inventario completo desde Excel
+
+Work Log:
+- Scroll arreglado:
+  - page.tsx: main cambiado de overflow-hidden a overflow-auto
+  - Contenido: min-h-full (crece con contenido) en vez de h-full overflow-y-auto
+  - pb-14 lg:pb-0 para que no tape la bottom nav en móvil
+  - inventario-view: eliminado overflow-hidden de la tabla
+  - inventario-view: eliminados max-h-[200px] y max-h-[180px] (ahora crecen libre)
+  - equipos-view: eliminado overflow-hidden de las tarjetas de modelo
+  - despachos-view: eliminado overflow-hidden de las tarjetas de día
+- Importar inventario desde Excel:
+  - API /api/import-inventario: parsea Excel con columnas SKU/Producto/Físico/UdM
+  - Detecta automáticamente las columnas por nombre (físico, stock, cantidad)
+  - Devuelve array de productos con sku, nombre, cantidad, udm, categoria, ubicacion, almacen
+  - Probado con Excel real: 71 productos detectados correctamente
+- InventarioView: botón "Importar Excel" con icono Upload
+  - Sube Excel al API
+  - Vista previa en dialog con tabla (SKU, producto, cantidad, UdM, estado)
+  - Resumen: total, a actualizar, nuevos
+  - Botón "Confirmar importación (N)"
+  - Si SKU existe: actualiza stock
+  - Si SKU no existe: crea producto nuevo
+  - Dialog con max-h-[90vh] + overflow-y-auto (scroll interno)
+
+Verificación:
+- Scroll: la página hace scroll completo ✓
+- Botón "Importar Excel" visible en Inventario ✓
+- API probado: 71 productos del Excel real detectados ✓
+- Lint limpio ✓

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import {
   Plus,
   Search,
@@ -13,6 +13,9 @@ import {
   Trash,
   Check,
   X,
+  FileUp,
+  Loader2,
+  Upload,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import type { Product } from "@/lib/types";
@@ -45,6 +48,11 @@ export function InventarioView() {
   const [entradaOpen, setEntradaOpen] = useState(false);
   const [entradaText, setEntradaText] = useState("");
   const [entradaMsg, setEntradaMsg] = useState("");
+  const [importOpen, setImportOpen] = useState(false);
+  const [importingInv, setImportingInv] = useState(false);
+  const [importPreview, setImportPreview] = useState<Array<{ sku: string; nombre: string; cantidad: number; udm?: string; existe: boolean }>>([]);
+  const [importResult, setImportResult] = useState<{ ok: number; nuevos: number; actualizados: number; msg: string } | null>(null);
+  const importFileRef = useRef<HTMLInputElement>(null);
 
   const filtered = [...products]
     .sort((a, b) => a.sku.localeCompare(b.sku, undefined, { numeric: true }))
@@ -95,6 +103,53 @@ export function InventarioView() {
     }
   };
 
+  const handleImportInventario = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportingInv(true);
+    setImportResult(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/import-inventario", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error);
+
+      const preview = (data.productos || []).map((p: any) => ({
+        sku: p.sku || "",
+        nombre: p.nombre || "",
+        cantidad: p.cantidad || 0,
+        udm: p.udm,
+        existe: !!findProductBySku(p.sku),
+      }));
+      setImportPreview(preview);
+      setImportOpen(true);
+    } catch (err: any) {
+      setImportResult({ ok: 0, nuevos: 0, actualizados: 0, msg: "Error: " + err.message });
+      setImportOpen(true);
+    } finally {
+      setImportingInv(false);
+      if (importFileRef.current) importFileRef.current.value = "";
+    }
+  };
+
+  const confirmImport = () => {
+    let nuevos = 0;
+    let actualizados = 0;
+    for (const p of importPreview) {
+      const existente = findProductBySku(p.sku);
+      if (existente) {
+        updateProduct(existente.id, { quantity: p.cantidad, udm: p.udm, name: p.nombre });
+        actualizados++;
+      } else {
+        const id = addProduct(p.sku, p.nombre, p.cantidad, undefined, p.udm);
+        if (id) nuevos++;
+      }
+    }
+    setImportResult({ ok: nuevos + actualizados, nuevos, actualizados, msg: `${nuevos + actualizados} producto(s) importado(s): ${nuevos} nuevo(s), ${actualizados} actualizado(s)` });
+    setTimeout(() => { setImportOpen(false); setImportResult(null); setImportPreview([]); }, 3000);
+  };
+
   // ─── Live preview de la entrada (parseo SKU*cantidad) ───
   const entradaPreview = useMemo(() => {
     const lines = entradaText.split("\n").map((l) => l.trim()).filter(Boolean);
@@ -131,11 +186,16 @@ export function InventarioView() {
           <h1 className="text-xl font-semibold tracking-tight">Inventario</h1>
           <p className="text-sm text-muted-foreground">{products.length} producto(s) · {fmtNum(totalUnidades)} unidades</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <input ref={importFileRef} type="file" accept=".xlsx,.xls" onChange={handleImportInventario} className="hidden" />
           <div className="relative w-48">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar SKU…" className="h-9 rounded-xl bg-muted/50 pl-8 text-sm" />
           </div>
+          <Button variant="outline" onClick={() => importFileRef.current?.click()} disabled={importingInv} className="press h-9 rounded-xl">
+            {importingInv ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Upload className="mr-1.5 h-4 w-4" />}
+            {importingInv ? "…" : "Importar Excel"}
+          </Button>
           <Button variant="outline" onClick={() => setEntradaOpen(true)} className="press h-9 rounded-xl">
             <ArrowDownToLine className="mr-1.5 h-4 w-4" /> Entrada
           </Button>
@@ -153,7 +213,7 @@ export function InventarioView() {
           {products.length === 0 ? "No hay productos. Haz clic en \"Añadir\"." : "Sin coincidencias."}
         </div>
       ) : (
-        <div className="anim-fade-up overflow-hidden rounded-2xl border border-border bg-card">
+        <div className="anim-fade-up rounded-2xl border border-border bg-card">
           <div className="overflow-x-auto scroll-thin">
             <table className="w-full text-sm">
               <thead>
@@ -200,7 +260,7 @@ export function InventarioView() {
       {entradas.length > 0 && (
         <div className="anim-fade-up mt-4 rounded-2xl border border-border bg-card p-5">
           <h2 className="mb-3 text-sm font-semibold">Entradas recientes</h2>
-          <div className="space-y-1.5 max-h-[200px] overflow-y-auto scroll-thin">
+          <div className="space-y-1.5 overflow-y-auto scroll-thin">
             {entradas.slice(0, 15).map((e) => {
               // Re-resolver el nombre del producto (por si se añadió al catálogo después)
               const prodActual = findProductBySku(e.sku);
@@ -284,7 +344,7 @@ export function InventarioView() {
           />
           {/* Live preview */}
           {entradaPreview.length > 0 && (
-            <div className="space-y-1.5 max-h-[180px] overflow-y-auto scroll-thin">
+            <div className="space-y-1.5 overflow-y-auto scroll-thin">
               {entradaPreview.map((p) => (
                 <div
                   key={p.i}
@@ -324,6 +384,70 @@ export function InventarioView() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setEntradaOpen(false)} className="rounded-xl">Cancelar</Button>
             <Button onClick={handleEntrada} disabled={!entradaText.trim()} className="rounded-xl">Registrar entrada</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog importar inventario completo */}
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto scroll-thin rounded-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+              <Upload className="h-5 w-5" /> Importar inventario desde Excel
+            </DialogTitle>
+            <DialogDescription>
+              Se detectaron {importPreview.length} producto(s). Los que ya existen se actualizarán con el stock del Excel.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Resumen */}
+          <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
+            <span className="rounded-full bg-muted px-2 py-1">{importPreview.length} total</span>
+            <span className="rounded-full bg-muted px-2 py-1">{importPreview.filter(p => p.existe).length} a actualizar</span>
+            <span className="rounded-full bg-muted px-2 py-1">{importPreview.filter(p => !p.existe).length} nuevos</span>
+          </div>
+
+          {/* Vista previa con scroll */}
+          <div className="max-h-[300px] overflow-y-auto scroll-thin rounded-lg border border-border">
+            <table className="w-full text-xs">
+              <thead className="sticky top-0 bg-card">
+                <tr className="border-b border-border text-left text-[10px] uppercase text-muted-foreground">
+                  <th className="px-3 py-2">SKU</th>
+                  <th className="px-3 py-2">Producto</th>
+                  <th className="px-3 py-2 text-right">Cantidad</th>
+                  <th className="px-3 py-2">UdM</th>
+                  <th className="px-3 py-2">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {importPreview.map((p, i) => (
+                  <tr key={i} className="border-b border-border/40">
+                    <td className="px-3 py-1.5 font-mono text-[11px]">{p.sku}</td>
+                    <td className="px-3 py-1.5 truncate max-w-[200px]">{p.nombre}</td>
+                    <td className="px-3 py-1.5 text-right font-bold tabular-nums">{fmtNum(p.cantidad)}</td>
+                    <td className="px-3 py-1.5 text-muted-foreground">{p.udm ?? "—"}</td>
+                    <td className="px-3 py-1.5">
+                      {p.existe
+                        ? <span className="rounded bg-muted px-1.5 py-0.5 text-[9px] font-medium">Actualizar</span>
+                        : <span className="rounded bg-muted px-1.5 py-0.5 text-[9px] font-medium">Nuevo</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {importResult && (
+            <div className="rounded-lg border border-border bg-muted p-3 text-sm font-medium">
+              <Check className="mr-1.5 inline h-4 w-4" /> {importResult.msg}
+            </div>
+          )}
+
+          <DialogFooter className="sticky bottom-0 bg-card">
+            <Button variant="outline" onClick={() => setImportOpen(false)} className="rounded-lg">Cancelar</Button>
+            <Button onClick={confirmImport} disabled={importPreview.length === 0 || !!importResult} className="btn-spacecom rounded-lg border-0">
+              <Check className="mr-1.5 h-4 w-4" /> Confirmar importación ({importPreview.length})
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

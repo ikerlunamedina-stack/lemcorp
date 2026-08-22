@@ -326,7 +326,7 @@ export function DespachosView() {
             const isToday = isSameDay(diaTs, today);
 
             return (
-              <div key={dia} className={cn("anim-fade-up overflow-hidden rounded-xl border bg-card shadow-sm", isToday ? "border-primary/40" : "border-border")}>
+              <div key={dia} className={cn("anim-fade-up rounded-xl border bg-card shadow-sm", isToday ? "border-primary/40" : "border-border")}>
                 {/* Header del día */}
                 <button
                   onClick={() => setExpandedDay(isExpanded ? null : dia)}
