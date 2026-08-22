@@ -8,6 +8,7 @@ export type ActiveView =
   | "equipos"
   | "series"
   | "pistolear"
+  | "horario"
   | "bloc"
   | "ia"
   | "empresa"
@@ -86,6 +87,48 @@ export interface Nota {
   pinned: boolean;
 }
 
+// ─────────── Horario de almacén ───────────
+export type TipoHorario = "despacho" | "almuerzo" | "reunion" | "otro";
+export type DiaSemana =
+  | "lunes"
+  | "martes"
+  | "miercoles"
+  | "jueves"
+  | "viernes"
+  | "sabado"
+  | "domingo";
+
+export interface Horario {
+  id: string;
+  dia: DiaSemana;
+  horaInicio: string; // "08:00"
+  horaFin: string;    // "09:00"
+  actividad: string;
+  tipo: TipoHorario;
+  // flag interno: si ya se disparó la notificación del día (se resetea a false cuando cambia el día)
+  ultimoDisparo?: string; // ISO date (YYYY-MM-DD) del último disparo
+}
+
+export const DIA_SEMANA_META: Record<DiaSemana, { label: string; short: string }> = {
+  lunes: { label: "Lunes", short: "Lun" },
+  martes: { label: "Martes", short: "Mar" },
+  miercoles: { label: "Miércoles", short: "Mié" },
+  jueves: { label: "Jueves", short: "Jue" },
+  viernes: { label: "Viernes", short: "Vie" },
+  sabado: { label: "Sábado", short: "Sáb" },
+  domingo: { label: "Domingo", short: "Dom" },
+};
+
+export const TIPO_HORARIO_META: Record<
+  TipoHorario,
+  { label: string; tone: "neutral" | "info" | "warn" | "ok"; dot: string }
+> = {
+  despacho: { label: "Despacho", tone: "neutral", dot: "bg-primary" },
+  almuerzo: { label: "Almuerzo", tone: "warn", dot: "bg-amber-500" },
+  reunion: { label: "Reunión", tone: "info", dot: "bg-cyan-600" },
+  otro: { label: "Otro", tone: "ok", dot: "bg-emerald-500" },
+};
+
 // ─────────── Recordatorios (controlados por la IA) ───────────
 export interface Recordatorio {
   id: string;
@@ -101,7 +144,7 @@ export interface Notificacion {
   id: string;
   titulo: string;
   cuerpo: string;
-  tipo: "recordatorio" | "stock" | "info" | "alerta";
+  tipo: "recordatorio" | "stock" | "info" | "alerta" | "horario";
   fecha: number;
   leida: boolean;
 }
@@ -150,6 +193,7 @@ export interface Settings {
   pistoleoPrefijo: string;
   tema: Tema;
   usuario: string;
+  voz: boolean; // TTS (text-to-speech) para Alana
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -158,6 +202,7 @@ export const DEFAULT_SETTINGS: Settings = {
   pistoleoPrefijo: "ZTEATV",
   tema: "oscuro",
   usuario: "Iker",
+  voz: false,
 };
 
 export const DEFAULT_EMPRESA: InfoEmpresa = {

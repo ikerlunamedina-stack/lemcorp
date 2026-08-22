@@ -42,6 +42,8 @@ function buildPayload(state: any): SyncPayload {
     pistoleoCampo: state.pistoleoCampo,
     pistoleoModelo: state.pistoleoModelo,
     pistoleoEstado: state.pistoleoEstado,
+    horario: state.horario ?? [],
+    memoriaIA: state.memoriaIA ?? [],
     activeView: state.activeView,
     __syncedAt: Date.now(),
   };
@@ -91,6 +93,8 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
                 ? { ...cur.settings, ...serverPayload.settings }
                 : cur.settings,
               pistoleoFilas: serverPayload.pistoleoFilas ?? [],
+              horario: serverPayload.horario ?? [],
+              memoriaIA: serverPayload.memoriaIA ?? [],
             });
             localStorage.setItem("nuclon-synced-at", String(serverSyncedAt));
             setLastSync(Date.now());
@@ -126,7 +130,9 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         state.notificaciones === prev.notificaciones &&
         state.miembros === prev.miembros &&
         state.empresa === prev.empresa &&
-        state.settings === prev.settings
+        state.settings === prev.settings &&
+        state.horario === prev.horario &&
+        state.memoriaIA === prev.memoriaIA
       ) {
         return;
       }

@@ -16,6 +16,10 @@ import {
   Sparkles,
   DatabaseZap,
   Check,
+  Volume2,
+  Brain,
+  VolumeX,
+  Square,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import type { Tema } from "@/lib/types";
@@ -33,6 +37,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { speak, stopSpeaking, ttsDisponible } from "@/lib/tts";
 
 const TEMAS: { value: Tema; label: string; icon: typeof Sun }[] = [
   { value: "claro", label: "Claro", icon: Sun },
@@ -51,18 +56,60 @@ export function ConfigView() {
   const exportInventarioExcel = useStore((s) => s.exportInventarioExcel);
   const clearAllData = useStore((s) => s.clearAllData);
   const seedDemo = useStore((s) => s.seedDemo);
+  const memoriaIA = useStore((s) => s.memoriaIA);
+  const deleteMemoria = useStore((s) => s.deleteMemoria);
+  const clearMemoria = useStore((s) => s.clearMemoria);
   const { toast } = useToast();
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [seedConfirm, setSeedConfirm] = useState(false);
+  const [memConfirmOpen, setMemConfirmOpen] = useState(false);
+
+  const ttsSoportado = typeof window !== "undefined" && ttsDisponible();
 
   const handleSeed = () => {
     seedDemo();
     toast({
       title: "Datos demo cargados",
-      description: "10 productos · 7 equipos · 3 notas · 6 miembros",
+      description: "10 productos · 7 equipos · 3 notas · 6 miembros · 10 horarios",
     });
     setSeedConfirm(false);
+  };
+
+  const toggleVoz = (on: boolean) => {
+    setSetting("voz", on);
+    if (on) {
+      // Demo de voz
+      speak("Hola, soy Alana, asistente del almacén Lemcorp.");
+      toast({
+        title: "Voz activada",
+        description: "Alana leerá sus respuestas y los recordatorios en voz alta.",
+      });
+    } else {
+      stopSpeaking();
+      toast({
+        title: "Voz desactivada",
+        description: "Las respuestas solo se mostrarán en texto.",
+      });
+    }
+  };
+
+  const handleDeleteMemoria = (index: number) => {
+    const item = memoriaIA[index];
+    deleteMemoria(index);
+    toast({
+      title: "Aprendizaje eliminado",
+      description: item.length > 60 ? item.slice(0, 60) + "…" : item,
+    });
+  };
+
+  const handleClearMemoria = () => {
+    clearMemoria();
+    setMemConfirmOpen(false);
+    toast({
+      title: "Memoria borrada",
+      description: "Alana olvidó todo lo que había aprendido.",
+    });
   };
 
   return (
@@ -186,6 +233,102 @@ export function ConfigView() {
         </div>
       </section>
 
+      {/* ─── Voz (TTS) ─── */}
+      <section className="anim-fade-up mb-5 rounded-3xl border border-border bg-card p-5 shadow-sm">
+        <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold">
+          {settings.voz ? <Volume2 className="h-4 w-4 text-primary" /> : <VolumeX className="h-4 w-4 text-muted-foreground" />} Voz de Alana
+        </h2>
+        <p className="mb-4 text-[11px] text-muted-foreground">
+          Cuando la voz está activada, Alana lee sus respuestas en español y anuncia los recordatorios del horario en voz alta.
+        </p>
+        <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/30 p-3.5">
+          <div className="flex-1">
+            <p className="text-[13px] font-medium">Text-to-Speech (TTS)</p>
+            <p className="text-[11px] text-muted-foreground">
+              {ttsSoportado
+                ? "Usa la Web Speech API de tu navegador para leer en español."
+                : "Tu navegador no soporta Web Speech API — la función no estará disponible."}
+            </p>
+          </div>
+          <Switch
+            checked={settings.voz}
+            onCheckedChange={toggleVoz}
+            disabled={!ttsSoportado}
+          />
+        </div>
+        {ttsSoportado && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="press h-8 rounded-lg text-xs"
+              onClick={() => speak("Hola, soy Alana, asistente del almacén Lemcorp.")}
+            >
+              <Volume2 className="mr-1.5 h-3.5 w-3.5" /> Probar voz
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="press h-8 rounded-lg text-xs"
+              onClick={() => stopSpeaking()}
+            >
+              <Square className="mr-1.5 h-3.5 w-3.5" /> Detener
+            </Button>
+          </div>
+        )}
+      </section>
+
+      {/* ─── Memoria de Alana (aprendizajes) ─── */}
+      <section className="anim-fade-up mb-5 rounded-3xl border border-border bg-card p-5 shadow-sm">
+        <div className="mb-1 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <Brain className="h-4 w-4 text-primary" /> Memoria de Alana
+          </h2>
+          {memoriaIA.length > 0 && (
+            <button
+              onClick={() => setMemConfirmOpen(true)}
+              className="press flex h-7 items-center gap-1 rounded-lg border border-border px-2 text-[10px] font-medium text-muted-foreground transition-colors hover:border-rose-500/40 hover:text-rose-400"
+            >
+              <Trash2 className="h-3 w-3" /> Borrar todo
+            </button>
+          )}
+        </div>
+        <p className="mb-3 text-[11px] text-muted-foreground">
+          Cosas que Alana ha aprendido de ti. Dile en el chat cosas como <em>"recuerda que…"</em> o <em>"aprende que…"</em> para que las guarde aquí.
+        </p>
+
+        {memoriaIA.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20 py-8 text-center">
+            <Brain className="mb-2 h-8 w-8 text-muted-foreground/50" />
+            <p className="text-[12px] font-semibold text-muted-foreground">Todavía no has enseñado nada a Alana</p>
+            <p className="mt-0.5 text-[10px] text-muted-foreground">
+              Abre la pestaña IA y prueba: <em>"Recuerda que el técnico Pérez trabaja de lunes a miércoles"</em>
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            {memoriaIA.map((m, i) => (
+              <div
+                key={i}
+                className="group flex items-start gap-2.5 rounded-2xl border border-border bg-background/40 p-2.5"
+              >
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-emerald-500/15 text-[10px] font-bold text-emerald-500">
+                  {i + 1}
+                </span>
+                <p className="flex-1 break-words text-[12px] leading-snug text-foreground">{m}</p>
+                <button
+                  onClick={() => handleDeleteMemoria(i)}
+                  className="press shrink-0 rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-rose-500 group-hover:opacity-100"
+                  title="Eliminar este aprendizaje"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       {/* ─── Datos del sistema ─── */}
       <section className="anim-fade-up mb-5 rounded-3xl border border-border bg-card p-5 shadow-sm">
         <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold">
@@ -245,8 +388,12 @@ export function ConfigView() {
             <span className="font-medium text-foreground">Nuclon WMS</span>
           </div>
           <div className="flex items-center justify-between">
+            <span>Asistente IA</span>
+            <span className="font-medium text-foreground">Alana</span>
+          </div>
+          <div className="flex items-center justify-between">
             <span>Versión</span>
-            <span className="font-mono">3.2.0 · SYNC-1</span>
+            <span className="font-mono">3.3.0 · ALANA</span>
           </div>
           <div className="flex items-center justify-between">
             <span>Propietario</span>
@@ -263,6 +410,16 @@ export function ConfigView() {
           <div className="flex items-center justify-between">
             <span>Tema</span>
             <span className="font-medium capitalize">{settings.tema}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span>Voz (TTS)</span>
+            <span className={cn("font-medium", settings.voz ? "text-emerald-500" : "text-muted-foreground")}>
+              {settings.voz ? "Activada" : "Desactivada"}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span>Memoria de Alana</span>
+            <span className="font-medium text-foreground">{memoriaIA.length} aprendizaje(s)</span>
           </div>
           <div className="flex items-center justify-between">
             <span>Sincronización</span>
@@ -309,7 +466,7 @@ export function ConfigView() {
               <DatabaseZap className="h-4 w-4 text-primary" /> Cargar datos demo
             </DialogTitle>
             <DialogDescription>
-              Se reemplazarán los datos actuales por el set de demostración (10 productos, 7 equipos, 3 notas, 6 miembros). Los datos existentes se perderán.
+              Se reemplazarán los datos actuales por el set de demostración (10 productos, 7 equipos, 3 notas, 6 miembros, 10 horarios). Los datos existentes se perderán.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -318,6 +475,28 @@ export function ConfigView() {
             </Button>
             <Button onClick={handleSeed} className="btn-spacecom rounded-xl">
               Cargar demo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmar borrado de memoria */}
+      <Dialog open={memConfirmOpen} onOpenChange={setMemConfirmOpen}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-400">
+              <Brain className="h-4 w-4" /> Borrar memoria de Alana
+            </DialogTitle>
+            <DialogDescription>
+              Se eliminarán los {memoriaIA.length} aprendizaje(s) que Alana ha guardado. No se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMemConfirmOpen(false)} className="rounded-xl">
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={handleClearMemoria} className="rounded-xl">
+              Sí, borrar memoria
             </Button>
           </DialogFooter>
         </DialogContent>

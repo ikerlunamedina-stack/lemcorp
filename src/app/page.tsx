@@ -10,6 +10,7 @@ import { DespachosView } from "@/components/lem/despachos-view";
 import { EquiposView } from "@/components/lem/equipos-view";
 import { SeriesView } from "@/components/lem/series-view";
 import { PistolearView } from "@/components/lem/pistolear-view";
+import { HorarioView } from "@/components/lem/horario-view";
 import { IAView } from "@/components/lem/ia-view";
 import { BlocView } from "@/components/lem/bloc-view";
 import { EmpresaView } from "@/components/lem/empresa-view";
@@ -39,6 +40,7 @@ export default function Home() {
               {activeView === "equipos" && <EquiposView />}
               {activeView === "series" && <SeriesView />}
               {activeView === "pistolear" && <PistolearView />}
+              {activeView === "horario" && <HorarioView />}
               {activeView === "bloc" && <BlocView />}
               {activeView === "empresa" && <EmpresaView />}
               {activeView === "config" && <ConfigView />}

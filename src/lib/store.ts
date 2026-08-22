@@ -10,6 +10,7 @@ import type {
   Entrada,
   EstadoEquipo,
   FilaPistoleo,
+  Horario,
   InfoEmpresa,
   MiembroEquipo,
   Nota,
@@ -39,6 +40,12 @@ interface StoreState {
   miembros: MiembroEquipo[];
   empresa: InfoEmpresa;
   settings: Settings;
+
+  // Horario de almacén
+  horario: Horario[];
+
+  // Memoria de aprendizaje de Alana (cosas que ha aprendido del usuario)
+  memoriaIA: string[];
 
   // UI / sesión
   activeView: ActiveView;
@@ -112,6 +119,18 @@ interface StoreState {
   togglePinNota: (id: string) => void;
   deleteNota: (id: string) => void;
 
+  // ─── Acciones: horario ───
+  addHorarioItem: (item: Omit<Horario, "id">) => void;
+  updateHorarioItem: (id: string, data: Partial<Omit<Horario, "id">>) => void;
+  deleteHorarioItem: (id: string) => void;
+  marcarHorarioDisparado: (id: string, fechaISO: string) => void;
+  checkHorario: () => Horario[];
+
+  // ─── Acciones: memoria IA ───
+  addMemoria: (texto: string) => void;
+  deleteMemoria: (index: number) => void;
+  clearMemoria: () => void;
+
   // ─── Acciones: recordatorios (IA) ───
   addRecordatorio: (texto: string, cuando: number, origen?: "ia" | "manual") => string;
   deleteRecordatorio: (id: string) => void;
@@ -165,6 +184,9 @@ export const useStore = create<StoreState>()(
       miembros: [],
       empresa: { ...DEFAULT_EMPRESA },
       settings: { ...DEFAULT_SETTINGS },
+
+      horario: [],
+      memoriaIA: [],
 
       activeView: "dashboard",
 
@@ -534,6 +556,73 @@ export const useStore = create<StoreState>()(
         }),
       deleteNota: (id) => set({ notas: get().notas.filter((n) => n.id !== id) }),
 
+      // ─── Horario de almacén ───
+      addHorarioItem: (item) =>
+        set({
+          horario: [
+            ...get().horario,
+            {
+              id: uid(),
+              dia: item.dia,
+              horaInicio: item.horaInicio,
+              horaFin: item.horaFin,
+              actividad: item.actividad.trim(),
+              tipo: item.tipo,
+            },
+          ],
+        }),
+      updateHorarioItem: (id, data) =>
+        set({
+          horario: get().horario.map((h) =>
+            h.id === id
+              ? {
+                  ...h,
+                  ...data,
+                  actividad: data.actividad !== undefined ? data.actividad.trim() : h.actividad,
+                }
+              : h
+          ),
+        }),
+      deleteHorarioItem: (id) =>
+        set({ horario: get().horario.filter((h) => h.id !== id) }),
+      marcarHorarioDisparado: (id, fechaISO) =>
+        set({
+          horario: get().horario.map((h) =>
+            h.id === id ? { ...h, ultimoDisparo: fechaISO } : h
+          ),
+        }),
+      checkHorario: () => {
+        const ahora = new Date();
+        const dias = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
+        const diaHoy = dias[ahora.getDay()] as Horario["dia"];
+        const hh = ahora.getHours().toString().padStart(2, "0");
+        const mm = ahora.getMinutes().toString().padStart(2, "0");
+        const ahoraStr = `${hh}:${mm}`;
+        // Usar fecha local (YYYY-MM-DD) en lugar de UTC para evitar desfases horarios
+        const fechaISO = `${ahora.getFullYear()}-${(ahora.getMonth() + 1)
+          .toString()
+          .padStart(2, "0")}-${ahora.getDate().toString().padStart(2, "0")}`;
+        return get().horario.filter(
+          (h) => h.dia === diaHoy && h.horaInicio === ahoraStr && h.ultimoDisparo !== fechaISO
+        );
+      },
+
+      // ─── Memoria de aprendizaje de Alana ───
+      addMemoria: (texto) => {
+        const t = texto.trim();
+        if (!t) return;
+        const existente = get().memoriaIA.find(
+          (x) => x.trim().toLowerCase() === t.toLowerCase()
+        );
+        if (existente) return;
+        // máximo 50 aprendizajes
+        const nuevas = [...get().memoriaIA, t].slice(-50);
+        set({ memoriaIA: nuevas });
+      },
+      deleteMemoria: (index) =>
+        set({ memoriaIA: get().memoriaIA.filter((_, i) => i !== index) }),
+      clearMemoria: () => set({ memoriaIA: [] }),
+
       // ─── Recordatorios (controlados por la IA) ───
       addRecordatorio: (texto, cuando, origen = "ia") => {
         const id = uid();
@@ -653,6 +742,8 @@ export const useStore = create<StoreState>()(
           pistoleoCampo: "serie",
           pistoleoModelo: "",
           pistoleoEstado: "disponible",
+          horario: [],
+          memoriaIA: [],
         }),
 
       // ─── Demo data (siempre limpia y carga) ───
@@ -668,7 +759,23 @@ export const useStore = create<StoreState>()(
           notificaciones: [],
           miembros: [],
           pistoleoFilas: [],
+          horario: [],
         });
+
+        // Horario demo (Lunes-Viernes)
+        const horarioDemo: Array<Omit<Horario, "id">> = [
+          { dia: "lunes", horaInicio: "08:00", horaFin: "09:00", actividad: "Despacho matutino a técnicos", tipo: "despacho" },
+          { dia: "lunes", horaInicio: "13:00", horaFin: "14:00", actividad: "Almuerzo", tipo: "almuerzo" },
+          { dia: "lunes", horaInicio: "15:00", horaFin: "16:00", actividad: "Reunión de coordinación", tipo: "reunion" },
+          { dia: "martes", horaInicio: "08:00", horaFin: "09:00", actividad: "Despacho matutino a técnicos", tipo: "despacho" },
+          { dia: "martes", horaInicio: "13:00", horaFin: "14:00", actividad: "Almuerzo", tipo: "almuerzo" },
+          { dia: "miercoles", horaInicio: "08:00", horaFin: "09:00", actividad: "Despacho matutino a técnicos", tipo: "despacho" },
+          { dia: "miercoles", horaInicio: "10:00", horaFin: "11:00", actividad: "Inventario físico semanal", tipo: "otro" },
+          { dia: "jueves", horaInicio: "08:00", horaFin: "09:00", actividad: "Despacho matutino a técnicos", tipo: "despacho" },
+          { dia: "viernes", horaInicio: "08:00", horaFin: "09:00", actividad: "Despacho matutino a técnicos", tipo: "despacho" },
+          { dia: "viernes", horaInicio: "16:00", horaFin: "17:00", actividad: "Cierre semanal", tipo: "reunion" },
+        ];
+        for (const h of horarioDemo) get().addHorarioItem(h);
 
         // 10 productos
         const demo: [string, string, number, number?, string?][] = [
@@ -730,6 +837,8 @@ export const useStore = create<StoreState>()(
         pistoleoModelo: s.pistoleoModelo,
         pistoleoEstado: s.pistoleoEstado,
         pistoleoFilas: s.pistoleoFilas,
+        horario: s.horario,
+        memoriaIA: s.memoriaIA,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
@@ -748,6 +857,8 @@ export const useStore = create<StoreState>()(
         if (!Array.isArray(p.notificaciones)) p.notificaciones = [];
         if (!Array.isArray(p.miembros)) p.miembros = [];
         if (!Array.isArray(p.pistoleoFilas)) p.pistoleoFilas = [];
+        if (!Array.isArray(p.horario)) p.horario = [];
+        if (!Array.isArray(p.memoriaIA)) p.memoriaIA = [];
         if (!p.empresa) p.empresa = { ...DEFAULT_EMPRESA };
         // Migrar empresa: si era "Nuclon" o vacío, cambiar a "Lemcorp"
         if (!p.empresa.nombre || p.empresa.nombre === "Nuclon") {
@@ -772,7 +883,7 @@ export const useStore = create<StoreState>()(
         }));
         return p;
       },
-      version: 10,
+      version: 11,
     }
   )
 );

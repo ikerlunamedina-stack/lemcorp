@@ -1,4 +1,4 @@
-// API route para el asistente IA de Nuclon WMS
+// API route para Alana, asistente del almacén Lemcorp (Nuclon WMS)
 // Usa z-ai-web-dev-sdk (GLM) en el backend, con análisis en tiempo real del inventario.
 import { NextRequest, NextResponse } from "next/server";
 import ZAI from "z-ai-web-dev-sdk";
@@ -105,7 +105,7 @@ function proyectarNecesidades(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { mensaje, inventario, equipos, miembros, despachos, empresa, usuario } = body;
+    const { mensaje, inventario, equipos, miembros, despachos, empresa, usuario, memoria } = body;
 
     const productos: ProductDTO[] = Array.isArray(inventario) ? inventario : [];
     const eqs: EquipmentDTO[] = Array.isArray(equipos) ? equipos : [];
@@ -113,6 +113,7 @@ export async function POST(req: NextRequest) {
     const desps: DespachoDTO[] = Array.isArray(despachos) ? despachos : [];
     const emp = typeof empresa === "object" && empresa ? (empresa as any) : {};
     const usuarioNombre = typeof usuario === "string" && usuario ? usuario : "operador";
+    const memoriaAprendida: string[] = Array.isArray(memoria) ? memoria.filter((m: any) => typeof m === "string" && m.trim()) : [];
 
     // ─── Análisis en tiempo real ───
     const bajoStock = productos.filter(
@@ -213,7 +214,7 @@ export async function POST(req: NextRequest) {
       : "";
 
     // ─── System prompt con 8 capacidades ───
-    const systemPrompt = `Eres Nuclon AI, el asistente experto en gestión de almacén para Nuclon, el almacén central de Lemcorp. Nuclon despacha equipos y materiales a una empresa contratista (${emp.nombre || "LPS"} — contratista de Claro) que tiene técnicos en campo.
+    const systemPrompt = `Eres Alana, asistente del almacén Lemcorp. Tu nombre es Alana. Te presentas SIEMPRE como Alana cuando te preguntan tu nombre o cuando el usuario te saluda por primera vez en una conversación. Eres la asistente experta en gestión de almacén para Nuclon, el almacén central de Lemcorp. Nuclon despacha equipos y materiales a una empresa contratista (${emp.nombre || "LPS"} — contratista de Claro) que tiene técnicos en campo.
 
 OPERADOR ACTUAL: ${usuarioNombre}
 FECHA/HORA LIMA: ${new Date().toLocaleString("es-PE", { timeZone: "America/Lima" })}
@@ -254,6 +255,37 @@ Para calcular el timestamp, usa la fecha actual (${new Date().toISOString()}) co
 - "el viernes" = próximo viernes a las 9:00 si no se especifica hora
 
 ═══════════════════════════════════════
+CAPACIDAD ESPECIAL: APRENDIZAJE (MEMORIA)
+═══════════════════════════════════════
+Tienes una memoria de aprendizaje. Estas son las cosas que has aprendido del usuario:${memoriaAprendida.length > 0 ? memoriaAprendida.map((m, i) => `\n  ${i + 1}. ${m}`).join("") : "\n  (Todavía no has aprendido nada del usuario."}
+
+Cuando el usuario te dé información nueva o corrija algo, debes RECORDARLO. Si el usuario dice algo como:
+- "recuerda que..."
+- "aprende que..."
+- "anota que..."
+- "a partir de ahora..."
+- "ten en cuenta que..."
+- o cualquier otra frase que entregue información para guardar
+...debes responder con un bloque especial al FINAL de tu respuesta, en este formato exacto:
+
+[[MEMORIA]]
+texto: <lo que aprendiste, en una frase clara y concisa>
+[[/MEMORIA]]
+
+Ejemplo:
+Usuario: "Recuerda que el técnico Pérez trabaja solo de lunes a miércoles"
+Alana: Entendido. Lo recordaré.
+[[MEMORIA]]
+texto: El técnico Pérez trabaja solo de lunes a miércoles
+[[/MEMORIA]]
+
+Reglas para la memoria:
+- Guarda SOLO información útil y permanente (no guardes consultas puntuales).
+- Sé conciso: una frase que capture el dato clave.
+- Si ya tienes algo similar en memoria, no lo repitas.
+- No guardes números de stock temporales ni estados que cambien.
+
+═══════════════════════════════════════
 DATOS DEL INVENTARIO DEL ALMACÉN Nuclon (propietario: Lemcorp):
 ═══════════════════════════════════════
 - Productos en catálogo: ${valorCatalogo}
@@ -274,12 +306,13 @@ INSTRUCCIONES DE RESPUESTA:
 - Cuando recomiendes una compra, incluye: SKU del producto, cantidad sugerida, y justificación basada en datos reales del inventario.
 - Sé específico con números: no digas "varios", di exactamente cuántos.
 - Si detectas un problema urgente (stock crítico, agotado), márcalo con 🚨 al inicio de la línea.
-- Si el operador te saluda, salúdalo por su nombre (${usuarioNombre}) y ofrece un resumen rápido del estado.
+- Si el operador te saluda, salúdalo por su nombre (${usuarioNombre}) y presenta como Alana: "Soy Alana, asistente del almacén Lemcorp".
 - Para preguntas de "¿cuánto pedir para X días?", usa la fórmula: consumoDiario × días + stockMínimo - stockActual. Redondea hacia arriba.
 - Para reportes ejecutivos, estructura la respuesta en secciones: 📊 Estado, 📈 Tendencias, 🚨 Alertas, ✅ Acciones.
 - Mantén un tono profesional pero cercano. Eres un colega experto, no un robot.
 - Si no tienes datos suficientes, pídelos. No inventes cantidades.
-- Si el usuario pregunta por un SKU específico, busca en el inventario detallado y responde con sus datos exactos.`;
+- Si el usuario pregunta por un SKU específico, busca en el inventario detallado y responde con sus datos exactos.
+- Si el usuario pregunta tu nombre, responde: "Soy Alana".`;
 
     const zai = await ZAI.create();
     const response = await zai.chat.completions.create({
@@ -314,7 +347,23 @@ INSTRUCCIONES DE RESPUESTA:
       respuesta = respuesta.replace(/\[\[RECORDATORIO\]\][\s\S]*?\[\[\/RECORDATORIO\]\]/g, "").trim();
     }
 
-    return NextResponse.json({ ok: true, respuesta, recordatorios });
+    // Extraer memoria (cosas aprendidas) del bloque [[MEMORIA]]...[[/MEMORIA]]
+    const memorias: string[] = [];
+    const regexMemoria = /\[\[MEMORIA\]\]([\s\S]*?)\[\[\/MEMORIA\]\]/g;
+    let matchMemoria;
+    while ((matchMemoria = regexMemoria.exec(respuesta)) !== null) {
+      const bloque = matchMemoria[1];
+      const textoMatch = bloque.match(/texto:\s*([\s\S]+?)(?=\n\[\[|$)/);
+      if (textoMatch && textoMatch[1].trim()) {
+        memorias.push(textoMatch[1].trim());
+      }
+    }
+    // Limpiar el bloque de la respuesta visible
+    if (memorias.length > 0) {
+      respuesta = respuesta.replace(/\[\[MEMORIA\]\][\s\S]*?\[\[\/MEMORIA\]\]/g, "").trim();
+    }
+
+    return NextResponse.json({ ok: true, respuesta, recordatorios, memorias });
   } catch (error: any) {
     console.error("Error en API IA:", error);
     return NextResponse.json(

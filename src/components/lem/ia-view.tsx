@@ -2,18 +2,21 @@
 
 import { useRef, useEffect, useState } from "react";
 import {
-  Sparkles, Send, Bot, User, Loader2, Trash2,
+  Sparkles, Send, Bot, User, Trash2,
   TrendingDown, Package, AlertTriangle, Cpu, Users,
   BarChart3, ShoppingCart, Zap, BellRing, Clock,
+  Volume2, Square, Brain,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { speak, stopSpeaking } from "@/lib/tts";
 
 interface ChatMsg {
   role: "user" | "assistant";
   content: string;
   ts: number;
   recordatorio?: { texto: string; cuando: number };
+  aprendido?: string[]; // lista de memorias guardadas desde este mensaje
 }
 
 const SUGERENCIAS: { text: string; icon: typeof TrendingDown; color: string }[] = [
@@ -24,10 +27,11 @@ const SUGERENCIAS: { text: string; icon: typeof TrendingDown; color: string }[] 
   { text: "¿Qué equipos están averiados o en reparación?", icon: Cpu, color: "text-amber-400" },
   { text: "Recomienda cantidades a comprar para cable RG-6", icon: Package, color: "text-foreground" },
   { text: "Recuérdame pedir conectores en 1 minuto", icon: BellRing, color: "text-primary" },
+  { text: "Recuerda que el técnico Pérez trabaja solo de lunes a miércoles", icon: Brain, color: "text-emerald-400" },
   { text: "¿Cómo está el equipo de técnicos hoy?", icon: Users, color: "text-foreground" },
 ];
 
-const STORAGE_KEY = "nuclon-ia-chat-v1";
+const STORAGE_KEY = "nuclon-ia-chat-v2";
 const CINCO_HORAS = 5 * 60 * 60 * 1000; // 5 horas en ms
 
 function loadChat(): ChatMsg[] {
@@ -74,13 +78,17 @@ export function IAView() {
   const despachos = useStore((s) => s.despachos);
   const empresa = useStore((s) => s.empresa);
   const usuario = useStore((s) => s.settings.usuario);
+  const vozEnabled = useStore((s) => s.settings.voz);
+  const memoriaIA = useStore((s) => s.memoriaIA);
   const addRecordatorio = useStore((s) => s.addRecordatorio);
   const addNotificacion = useStore((s) => s.addNotificacion);
+  const addMemoria = useStore((s) => s.addMemoria);
 
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -91,7 +99,7 @@ export function IAView() {
       const bienvenida: ChatMsg[] = [
         {
           role: "assistant",
-          content: `¡Hola${usuario ? " " + usuario : ""}! 👋 Soy Nuclon AI.\n\nPuedo analizar tu inventario, recomendar compras, calcular consumos y **crear recordatorios** que te avisarán en el momento indicado.\n\n¿Qué necesitas hoy?`,
+          content: `¡Hola${usuario ? " " + usuario : ""}! 👋 Soy Alana, asistente del almacén Lemcorp.\n\nPuedo analizar tu inventario, recomendar compras, calcular consumos, **crear recordatorios** que te avisarán en el momento indicado, y **aprender** datos nuevos que me digas para recordarlos siempre.\n\n¿Qué necesitas hoy?`,
           ts: Date.now(),
         },
       ];
@@ -109,6 +117,33 @@ export function IAView() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, loading]);
+
+  // Cargar voces TTS si hace falta (algunos navegadores las cargan async)
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const load = () => window.speechSynthesis.getVoices();
+    load();
+    window.speechSynthesis.onvoiceschanged = load;
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, []);
+
+  const hablar = (texto: string, msgId: string) => {
+    if (speakingId === msgId) {
+      stopSpeaking();
+      setSpeakingId(null);
+      return;
+    }
+    setSpeakingId(msgId);
+    speak(texto);
+    // Resetear el estado cuando termine (aproximado, no hay hook fácil aquí)
+    const words = texto.split(/\s+/).length;
+    const duracion = Math.max(2500, (words / 2.5) * 1000);
+    setTimeout(() => {
+      setSpeakingId((cur) => (cur === msgId ? null : cur));
+    }, duracion);
+  };
 
   const enviar = async (texto?: string) => {
     const msg = (texto ?? input).trim();
@@ -132,6 +167,7 @@ export function IAView() {
           despachos,
           empresa,
           usuario,
+          memoria: memoriaIA,
         }),
       });
       const data = await res.json();
@@ -152,9 +188,34 @@ export function IAView() {
         }
       }
 
+      // Procesar memoria (cosas aprendidas) de la IA
+      if (data.ok && Array.isArray(data.memorias) && data.memorias.length > 0) {
+        for (const m of data.memorias) {
+          if (typeof m === "string" && m.trim()) {
+            addMemoria(m.trim());
+          }
+        }
+        assistantMsg.aprendido = data.memorias.filter(
+          (m: unknown) => typeof m === "string" && (m as string).trim()
+        );
+      }
+
       const finalMessages = [...newMessages, assistantMsg];
       setMessages(finalMessages);
       saveChat(finalMessages);
+
+      // Si la voz está activada, leer la respuesta automáticamente
+      if (vozEnabled) {
+        const lastIdx = finalMessages.length - 1;
+        const autoMsgId = `ts-${assistantMsg.ts}-${lastIdx}`;
+        speak(respuesta);
+        setSpeakingId(autoMsgId);
+        const words = respuesta.split(/\s+/).length;
+        const duracion = Math.max(2500, (words / 2.5) * 1000);
+        setTimeout(() => {
+          setSpeakingId((cur) => (cur === autoMsgId ? null : cur));
+        }, duracion);
+      }
     } catch {
       const errorMsg: ChatMsg = {
         role: "assistant",
@@ -174,7 +235,7 @@ export function IAView() {
     const bienvenida: ChatMsg[] = [
       {
         role: "assistant",
-        content: `Historial borrado. ¿En qué puedo ayudarte${usuario ? ", " + usuario : ""}?`,
+        content: `Historial borrado. Soy Alana. ¿En qué puedo ayudarte${usuario ? ", " + usuario : ""}?`,
         ts: Date.now(),
       },
     ];
@@ -192,7 +253,7 @@ export function IAView() {
           </div>
           <div>
             <h1 className="flex items-center gap-2 text-[15px] font-bold tracking-tight">
-              Nuclon AI
+              Alana
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400">
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
@@ -200,9 +261,17 @@ export function IAView() {
                 </span>
                 ACTIVO
               </span>
+              {vozEnabled && (
+                <span
+                  className="inline-flex items-center gap-0.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold text-primary"
+                  title="Voz activada — Alana leerá sus respuestas en voz alta"
+                >
+                  <Volume2 className="h-2.5 w-2.5" /> VOZ
+                </span>
+              )}
             </h1>
             <p className="text-[10px] text-muted-foreground">
-              {messages.length} mensaje(s) · se borra en 5h · historial persistente
+              {messages.length} mensaje(s) · se borra en 5h · {memoriaIA.length} aprendizajes
             </p>
           </div>
         </div>
@@ -220,7 +289,11 @@ export function IAView() {
           </button>
           {messages.length > 1 && (
             <button
-              onClick={limpiarHistorial}
+              onClick={() => {
+                stopSpeaking();
+                setSpeakingId(null);
+                limpiarHistorial();
+              }}
               className="press flex h-8 items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -237,49 +310,81 @@ export function IAView() {
           className="h-full overflow-y-auto scroll-thin px-4 py-4 lg:px-6"
         >
           <div className="mx-auto max-w-3xl space-y-3">
-            {messages.map((m, i) => (
-              <div
-                key={i}
-                className={cn("flex gap-3 anim-fade-in", m.role === "user" && "flex-row-reverse")}
-              >
+            {messages.map((m, i) => {
+              const msgId = `ts-${m.ts}-${i}`;
+              const isSpeaking = speakingId === msgId;
+              return (
                 <div
-                  className={cn(
-                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[12px] font-bold shadow-sm",
-                    m.role === "assistant"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  )}
+                  key={i}
+                  className={cn("flex gap-3 anim-fade-in", m.role === "user" && "flex-row-reverse")}
                 >
-                  {m.role === "assistant" ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
-                </div>
-                <div className={cn("flex max-w-[85%] flex-col", m.role === "user" && "items-end")}>
                   <div
                     className={cn(
-                      "rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap break-words shadow-sm",
+                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[12px] font-bold shadow-sm",
                       m.role === "assistant"
-                        ? "rounded-tl-sm bg-card border border-border text-foreground"
-                        : "rounded-tr-sm bg-primary text-primary-foreground"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground"
                     )}
                   >
-                    {m.content}
+                    {m.role === "assistant" ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
                   </div>
-                  {/* Badge de recordatorio creado */}
-                  {m.recordatorio && (
-                    <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-primary/30 bg-muted px-2.5 py-1.5 text-[10px]">
-                      <BellRing className="h-3 w-3 text-primary" />
-                      <span className="font-semibold text-primary">Recordatorio creado:</span>
-                      <span className="text-muted-foreground">{m.recordatorio.texto}</span>
-                      <span className="ml-auto text-primary">
-                        {new Date(m.recordatorio.cuando).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                      </span>
+                  <div className={cn("flex max-w-[85%] flex-col", m.role === "user" && "items-end")}>
+                    <div
+                      className={cn(
+                        "rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap break-words shadow-sm",
+                        m.role === "assistant"
+                          ? "rounded-tl-sm bg-card border border-border text-foreground"
+                          : "rounded-tr-sm bg-primary text-primary-foreground"
+                      )}
+                    >
+                      {m.content}
+                      {/* Botón de TTS solo en mensajes de la IA */}
+                      {m.role === "assistant" && (
+                        <button
+                          onClick={() => hablar(m.content, msgId)}
+                          className={cn(
+                            "press ml-2 inline-flex h-6 w-6 items-center justify-center rounded-md border border-border align-middle text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+                            isSpeaking && "border-primary text-primary bg-primary/10"
+                          )}
+                          title={isSpeaking ? "Detener voz" : "Leer en voz alta"}
+                        >
+                          {isSpeaking ? <Square className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                        </button>
+                      )}
                     </div>
-                  )}
-                  <span className="mt-1 px-1 text-[9px] text-muted-foreground/60">
-                    {timeAgo(m.ts)}
-                  </span>
+                    {/* Badge de recordatorio creado */}
+                    {m.recordatorio && (
+                      <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-primary/30 bg-muted px-2.5 py-1.5 text-[10px]">
+                        <BellRing className="h-3 w-3 text-primary" />
+                        <span className="font-semibold text-primary">Recordatorio creado:</span>
+                        <span className="text-muted-foreground">{m.recordatorio.texto}</span>
+                        <span className="ml-auto text-primary">
+                          {new Date(m.recordatorio.cuando).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                    )}
+                    {/* Badge de aprendido */}
+                    {m.aprendido && m.aprendido.length > 0 && (
+                      <div className="mt-1.5 flex flex-col gap-1">
+                        {m.aprendido.map((ap, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-[10px]"
+                          >
+                            <Brain className="h-3 w-3 text-emerald-500" />
+                            <span className="font-semibold text-emerald-500">Aprendido ✓</span>
+                            <span className="text-foreground">{ap}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <span className="mt-1 px-1 text-[9px] text-muted-foreground/60">
+                      {timeAgo(m.ts)}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {loading && (
               <div className="flex gap-3">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
@@ -364,7 +469,7 @@ export function IAView() {
                 enviar();
               }
             }}
-            placeholder="Pregúntame sobre el inventario, pídeme un recordatorio…"
+            placeholder="Pregúntame sobre el inventario, pídeme un recordatorio, o dime qué recordar…"
             className="h-11 flex-1 rounded-xl border border-border bg-background px-4 text-[14px] outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
             disabled={loading}
           />

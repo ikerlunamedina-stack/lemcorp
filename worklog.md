@@ -1457,3 +1457,222 @@ Work Log:
   - Colores: gris mate corporativo (cero morado) ✓
   - Logo: cubo SVG (no letras) ✓
   - Nombre: "Nuclon" ✓
+
+---
+Task ID: ALANA-V33
+Agent: main
+Task: Renombrar IA a "Alana" + módulo Horario + notificaciones iOS full-screen + TTS + memoria de aprendizaje + recordatorios de horario
+
+Work Log:
+
+### 1. IA renombrada a "Alana"
+- `src/app/api/ia/route.ts`:
+  - System prompt cambiado de "Eres Nuclon AI, el asistente..." a "Eres Alana, asistente del almacén Lemcorp"
+  - Sección CAPACIDAD ESPECIAL: APRENDIZAJE (MEMORIA) agregada con instrucciones para `[[MEMORIA]]`
+  - Instrucción nueva: "Si el operador te saluda... presenta como Alana: 'Soy Alana, asistente del almacén Lemcorp'"
+  - Instrucción nueva: "Si el usuario pregunta tu nombre, responde: 'Soy Alana'"
+  - Accepta `memoria` (array de strings) en el body del POST y lo inyecta en el system prompt
+  - Parsea bloques `[[MEMORIA]] texto: ... [[/MEMORIA]]` de la respuesta y los devuelve como `memorias: string[]`
+- `src/components/lem/ia-view.tsx`:
+  - Header: "Nuclon AI" → "Alana"
+  - Welcome message: "Soy Nuclon AI" → "Soy Alana, asistente del almacén Lemcorp"
+  - Reset del historial: "Soy Alana. ¿En qué puedo ayudarte?"
+  - Storage key migrada a `nuclon-ia-chat-v2` para resetear historial con la nueva identidad
+  - Badge "VOZ" en el header cuando settings.voz = true
+  - Contador de aprendizajes en el header: "{n} aprendizajes"
+- `src/components/lem/sub-header.tsx`: META[ia] cambiado a `{ title: "Alana", sub: "Asistente inteligente del almacén Lemcorp" }`
+- **Verificado**: curl a /api/ia con mensaje "Hola, ¿cómo te llamas?" devuelve "Hola Iker, soy Alana, asistente del almacén Lemcorp"
+
+### 2. Módulo Horario (nuevo)
+- `src/lib/types.ts`:
+  - `ActiveView` agregado "horario"
+  - Nuevos tipos: `TipoHorario` ("despacho"|"almuerzo"|"reunion"|"otro"), `DiaSemana` (lunes..domingo)
+  - Interface `Horario` con { id, dia, horaInicio, horaFin, actividad, tipo, ultimoDisparo? }
+  - `DIA_SEMANA_META` y `TIPO_HORARIO_META` con labels/shorts y colores funcionales (gris corporativo para despacho, ámbar para almuerzo, cian para reunión, esmeralda para otro)
+  - `Notificacion.tipo` extendido con "horario"
+- `src/lib/store.ts`:
+  - `horario: Horario[]` y `memoriaIA: string[]` agregados al store
+  - Acciones: `addHorarioItem`, `updateHorarioItem`, `deleteHorarioItem`, `marcarHorarioDisparado`, `checkHorario`
+  - `checkHorario()` devuelve items que coinciden con el día y hora actuales (local-time YYYY-MM-DD, no UTC para evitar desfases)
+  - Demo data seedDemo ahora carga 10 horarios demo (Lun-Vie con despacho 8:00, almuerzo 13:00, reunión viernes 16:00, etc.)
+  - Persistencia (partialize) incluye `horario` y `memoriaIA`
+  - Migrate v10 → v11: añade `horario: []` y `memoriaIA: []` si no existen
+  - clearAllData limpia también `horario` y `memoriaIA`
+- `src/components/lem/horario-view.tsx` (NEW):
+  - Vista semanal responsive (Lunes a Domingo) en grid 1/2/3/4 columnas según breakpoint
+  - Cada día es una tarjeta con su short (Lun, Mar, Mié...) y número de actividades
+  - Tarjeta de "Hoy" destacada con borde primary y ring
+  - Cada actividad muestra: icono coloreado por tipo, rango horario "08:00–09:00", nombre, badge de tipo
+  - Actividad ocurriendo "ahora" destacada con badge "Ahora" + ring primary
+  - Botón eliminar (visible en hover)
+  - KPIs: Total, Hoy, Despachos, Reuniones
+  - Dialog "Nueva actividad" con: selector de día (Select), hora inicio/fin (input type=time), actividad, tipo
+  - Validación: actividad no vacía, horaInicio < horaFin
+  - Estado vacío con CTA
+  - Mensaje informativo: "Al coincidir la hora de inicio, Alana te avisará..."
+  - Colores: gris corporativo para despacho (var(--primary)), ámbar/cian/esmeralda para los otros tipos (sin violeta/neón)
+- `src/components/lem/navbar.tsx`: NAV_ITEMS agrega `{ view: "horario", icon: Calendar, label: "Horario" }` entre Pistolear e IA
+- `src/app/page.tsx`: Router agrega `{activeView === "horario" && <HorarioView />}`
+- `src/components/lem/sub-header.tsx`: META agrega `horario: { icon: Calendar, title: "Horario", sub: "Agenda semanal del almacén con recordatorios automáticos" }`
+- `src/components/lem/sync-provider.tsx` y `src/lib/sync.ts`: SyncPayload agregados `horario` y `memoriaIA`. buildPayload los incluye. Pull los aplica al store. Subscribe check equality también para no disparar pushes innecesarios
+
+### 3. Notificaciones estilo iPhone full-screen
+- `src/components/lem/notification-stack.tsx` reescrito:
+  - Nuevo state `fullNotif` que dispara un overlay FULL-SCREEN con `z-[200]`
+  - Trigger: recordatorios (tipo "recordatorio") y horario (tipo "horario")
+  - Overlay:
+    - Fondo `bg-black/50 backdrop-blur-md` (click cierra)
+    - Tarjeta `rounded-3xl` muy redondeada estilo iOS
+    - Header: icono del cubo (logo Nuclon), "Alana" como nombre app, "ahora" como tiempo, badge tipo
+    - Cuerpo: título grande (16px bold) + cuerpo (14px)
+    - Botones: "Cerrar" (outline) y "Ver" (primary, navega a la vista correspondiente: ia para recordatorios, horario para schedule)
+    - Barra de progreso inferior que se encoge en 15s (animación `lem-progress-shrink`)
+  - Animación `lem-ios-slide-down`: entra desde arriba (translateY -100% → 0) con bounce (cubic-bezier 0.34 1.56 0.64 1)
+  - Auto-dismiss después de 15 segundos
+  - Toasts pequeños (z-[100]) solo para tipos no full-screen (stock, info, alerta)
+- `src/app/globals.css`:
+  - Nuevas animaciones: `lem-ios-slide-down` (entra desde arriba con bounce) y `lem-progress-shrink` (barra de auto-cierre)
+  - Clases `.anim-ios-slide-down` aplicada a la tarjeta
+
+### 4. Voz TTS (Text-to-Speech)
+- `src/lib/tts.ts` (NEW):
+  - `speak(text, opts?)`: usa `window.speechSynthesis`, cancela voces previas, busca voz en español (es-ES > es-MX > es*), rate=1, pitch=1
+  - `limpiarTexto()`: quita emojis, asteriscos, hashtags y normaliza espacios
+  - `stopSpeaking()`: cancela cualquier voz en curso
+  - `ttsDisponible()`: check feature detection
+- `src/lib/types.ts`: `Settings` agregado `voz: boolean` (default false)
+- `src/components/lem/ia-view.tsx`:
+  - Import de `speak`, `stopSpeaking`
+  - Botón de speaker (Volume2/Square) inline en cada mensaje de la IA (al final del contenido)
+  - Click: habla el texto (si no está hablando) o detiene (si está hablando)
+  - Estado `speakingId` trackea qué mensaje está hablando (highlight con border-primary)
+  - Auto-speak cuando `settings.voz = true`: después de recibir la respuesta, llama a `speak(respuesta)` automáticamente
+  - Carga voces async (`onvoiceschanged`)
+  - Click en "Borrar" también detiene la voz
+- `src/components/lem/notification-stack.tsx`: Cuando dispara una notificación full-screen, llama a `speak(n.textoVoz)` si `settings.voz = true`:
+  - Recordatorio: `speak("Recordatorio. " + r.texto)`
+  - Horario: `speak("Es hora de " + h.actividad)`
+- `src/components/lem/config-view.tsx`:
+  - Sección "Voz de Alana" con Switch + botones "Probar voz" y "Detener"
+  - Detección de compatibilidad: si el navegador no soporta Web Speech API, el Switch se deshabilita
+  - Al activar: toast + demo "Hola, soy Alana, asistente del almacén Lemcorp"
+  - Al desactivar: stopSpeaking + toast
+
+### 5. IA Aprende poco a poco (Memoria)
+- `src/lib/store.ts`:
+  - `memoriaIA: string[]` con máximo 50 aprendizajes (FIFO)
+  - `addMemoria(texto)`: ignora duplicados (case-insensitive), hace trim, respeta el límite
+  - `deleteMemoria(index)`: elimina por índice
+  - `clearMemoria()`: limpia todo
+- `src/app/api/ia/route.ts`:
+  - Recibe `memoria` en el body
+  - Inyecta en el system prompt una sección "CAPACIDAD ESPECIAL: APRENDIZAJE (MEMORIA)" con:
+    - La lista numerada de cosas ya aprendidas
+    - Instrucciones para detectar "recuerda que...", "aprende que...", "anota que...", "a partir de ahora...", "ten en cuenta que..."
+    - Formato `[[MEMORIA]] texto: ... [[/MEMORIA]]` al final de la respuesta
+    - Reglas: solo info útil/permanente, sé conciso, no dupliques, no guardes stock temporal
+  - Regex `/[[MEMORIA]]([\s\S]*?)[[/MEMORIA]]/g` extrae los aprendizajes y los devuelve como `memorias: string[]`
+  - Limpia el bloque de la respuesta visible
+- `src/components/lem/ia-view.tsx`:
+  - Envía `memoria: memoriaIA` en cada POST a /api/ia
+  - Recibe `memorias` en la respuesta → llama `addMemoria()` para cada item
+  - Badge "Aprendido ✓" con icono Brain y el texto aprendido, debajo del mensaje
+  - Sugerencia nueva: "Recuerda que el técnico Pérez trabaja solo de lunes a miércoles" (Brain icon)
+- `src/components/lem/config-view.tsx`:
+  - Sección "Memoria de Alana" con icono Brain
+  - Lista numerada de todos los aprendizajes con botón eliminar (hover)
+  - Estado vacío con CTA hacia la pestaña IA
+  - "Borrar todo" con dialog de confirmación
+  - En "Acerca de": "Memoria de Alana: {n} aprendizaje(s)"
+- **Verificado**: curl a /api/ia con mensaje "Recuerda que el técnico Carlos solo trabaja de noche" devuelve `memorias: ["El técnico Carlos solo trabaja de noche"]` ✓
+
+### 6. Recordatorios de horario
+- `src/components/lem/notification-stack.tsx`:
+  - useEffect con `setInterval(check, 60_000)` que ejecuta `checkHorario()` cada minuto (requisito)
+  - Match: si `dia === diaHoy && horaInicio === ahoraStr` (HH:MM exacto) y `ultimoDisparo !== fechaHoy`
+  - Cuando hay match: marca `ultimoDisparo = fechaISO` (evita redisparo el mismo día), agrega notificación al historial, dispara notificación full-screen con `textoVoz: "Es hora de {actividad}"`
+  - Si voz activada, `speak("Es hora de " + h.actividad)` automáticamente
+- `src/lib/store.ts` `checkHorario()`:
+  - Día actual: `["domingo","lunes","martes","miercoles","jueves","viernes","sabado"][new Date().getDay()]`
+  - Hora actual: `HH:MM` con padStart(2,"0")
+  - Fecha local YYYY-MM-DD (NO UTC para evitar desfases a la noche)
+  - Filtro: coincide día + hora + no disparado hoy
+
+### 7. Configuración actualizada
+- `src/components/lem/config-view.tsx` "Acerca de":
+  - Sistema: Nuclon WMS
+  - Asistente IA: Alana (nuevo)
+  - Versión: 3.3.0 · ALANA (era 3.2.0 · SYNC-1)
+  - Propietario: Lemcorp
+  - Usuario activo: Iker
+  - Voz (TTS): Activada/Desactivada (nuevo)
+  - Memoria de Alana: {n} aprendizaje(s) (nuevo)
+  - Sincronización: Activada
+- Toast de carga demo ahora menciona "10 horarios"
+
+### 8. Verificación
+- `bun run lint` → 0 errores, 0 warnings ✓
+- Dev server corriendo en puerto 3000, sin errores de compilación
+- API /api/ia probada con curl:
+  - "Hola, ¿cómo te llamas?" → "Hola Iker, soy Alana, asistente del almacén Lemcorp" ✓
+  - "Recuerda que el técnico Carlos solo trabaja de noche" → `memorias: ["El técnico Carlos solo trabaja de noche"]` ✓
+- API /api/sync: GET/POST 200, incluye horario y memoriaIA en el payload
+- HTML de / contiene "Horario" en el navbar y "Nuclon" como nombre del app ✓
+- Sin colores violeta/neón: solo gris corporativo (var(--primary)) + colores funcionales (rojo/ámbar/esmeralda/cian para estados)
+- TTS solo en cliente (window.speechSynthesis), nunca en el server
+
+Stage Summary:
+- ✅ IA renombrada a "Alana" en API, view, sub-header y welcome message
+- ✅ Módulo Horario completo: vista semanal responsive, add/delete items, color-coded (gris corporativo), sync al server
+- ✅ Notificaciones full-screen estilo iOS: z-[200], rounded-3xl, blur background, slide-down con bounce, 2 botones (Cerrar/Ver), auto-dismiss 15s, barra de progreso
+- ✅ TTS con Web Speech API: speaker button en cada msg de IA, voz en español (es-ES > es-MX), auto-speak si voz activada, toggle en config, botón "Probar voz"
+- ✅ Sistema de memoria de aprendizaje: store con addMemoria/deleteMemoria/clearMemoria, system prompt incluye la memoria, parseo de `[[MEMORIA]]` blocks, badge "Aprendido ✓" en el chat, sección en config con gestión completa
+- ✅ Recordatorios de horario cada minuto: dispara notificación full-screen + speak si voz activada, "Es hora de {actividad}"
+- ✅ Cumple reglas: app "Nuclon", IA "Alana", empresa "Lemcorp", usuario "Iker", solo gris corporativo (sin violeta/neón), z-ai-web-dev-sdk solo en /api/ia, fetch con paths relativos, lint limpio
+
+---
+Task ID: ALANA-V33-VERIFY
+Agent: main
+Task: Verificación final de Alana + Horario + Voz + Memoria
+
+Work Log:
+- IA renombrada a "Alana" ✓
+  - Header del chat dice "Alana" con badge ACTIVO
+  - API system prompt: "Eres Alana, asistente del almacén Lemcorp"
+  - Bienvenida: "Soy Alana, asistente del almacén Lemcorp"
+  - Sub-header: ia → "Alana"
+- Horario de almacén ✓
+  - Nueva vista "Horario" en navbar
+  - Vista semanal Lunes-Domingo
+  - Stats: total actividades, hoy, despachos, reuniones
+  - Botón "Nueva actividad" + diálogo de creación
+  - Badge "Ahora" para actividades en curso
+  - Color-coded por tipo (gris corporativo)
+  - Responsive (móvil + desktop)
+- Notificaciones iPhone full-screen ✓
+  - Overlay z-[200] con backdrop-blur
+  - Card rounded-3xl estilo iOS
+  - Logo del cubo + "Alana" + "ahora"
+  - Botones "Cerrar" y "Ver"
+  - Auto-dismiss 15s con barra de progreso
+  - Animación slide-down desde arriba
+- Voz TTS ✓
+  - src/lib/tts.ts: speak(), stopSpeaking(), ttsDisponible()
+  - Web Speech API, voz es-ES
+  - Botón speaker en cada mensaje de Alana
+  - Auto-speak cuando settings.voz = true
+  - Toggle en configuración + botón "Probar voz"
+  - Speak en recordatorios de horario
+- IA aprende (memoria) ✓
+  - Store: memoriaIA[] (max 50), addMemoria, deleteMemoria, clearMemoria
+  - API: recibe memoria, la inyecta en system prompt, parsea [[MEMORIA]] blocks
+  - IAView: envía memoriaIA, muestra badge "Aprendido ✓"
+  - Config: sección "Memoria de Alana" con gestión completa
+  - Probado: "Recuerda que Carlos trabaja de noche" → se guarda como aprendizaje
+- Recordatorios de horario ✓
+  - checkHorario cada 60s
+  - Dispara notificación full-screen + voz
+  - "Es hora de [actividad]"
+- Sync: horario incluido en sync payload ✓
+- Lint limpio ✓
+- Sin errores en consola ✓

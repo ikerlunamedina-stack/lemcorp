@@ -341,6 +341,32 @@ html.light .scroll-thin::-webkit-scrollbar-thumb { background: oklch(0.75 0.01 2
   100% { opacity: 0; transform: translateX(120%) scale(0.8); }
 }
 
+/* Notificación full-screen estilo iOS: entra desde arriba con bounce */
+@keyframes lem-ios-slide-down {
+  0% {
+    opacity: 0;
+    transform: translateY(-100%) scale(0.85);
+  }
+  55% {
+    opacity: 1;
+    transform: translateY(8px) scale(1.02);
+  }
+  75% {
+    transform: translateY(-4px) scale(0.99);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.anim-ios-slide-down { animation: lem-ios-slide-down 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+/* Barra de progreso (auto-cierre de la notificación full-screen) */
+@keyframes lem-progress-shrink {
+  0% { transform: scaleX(1); transform-origin: left; }
+  100% { transform: scaleX(0); transform-origin: left; }
+}
+
 .anim-iphone-notification { animation: lem-iphone-notification 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
 
 .anim-fade-up { animation: lem-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
