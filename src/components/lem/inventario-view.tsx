@@ -272,7 +272,7 @@ export function InventarioView() {
             <DialogTitle className="flex items-center gap-2"><ArrowDownToLine className="h-4 w-4" />Entrada de mercadería</DialogTitle>
             <DialogDescription>
               Escribe una línea por entrada con el formato: <strong>SKU*cantidad</strong><br />
-              Ejemplo: <code className="font-mono text-text-primary">1066990*100</code>
+              Ejemplo: <code className="font-mono text-primary">1066990*100</code>
             </DialogDescription>
           </DialogHeader>
           <Textarea
@@ -320,7 +320,7 @@ export function InventarioView() {
               </div>
             </div>
           )}
-          {entradaMsg && <p className={cn("text-[12px] font-medium", entradaMsg.includes("incorrecto") ? "text-destructive" : "text-text-primary")}>{entradaMsg}</p>}
+          {entradaMsg && <p className={cn("text-[12px] font-medium", entradaMsg.includes("incorrecto") ? "text-destructive" : "text-primary")}>{entradaMsg}</p>}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEntradaOpen(false)} className="rounded-xl">Cancelar</Button>
             <Button onClick={handleEntrada} disabled={!entradaText.trim()} className="rounded-xl">Registrar entrada</Button>

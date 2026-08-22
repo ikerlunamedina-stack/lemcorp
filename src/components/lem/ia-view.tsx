@@ -20,7 +20,7 @@ const SUGERENCIAS: { text: string; icon: typeof TrendingDown; color: string }[] 
   { text: "¿Qué productos necesito pedir urgentemente?", icon: AlertTriangle, color: "text-red-400" },
   { text: "Calcula el consumo mensual de routers ONT con 3 técnicos", icon: TrendingDown, color: "text-cyan-400" },
   { text: "¿Cuántos conectores FTTH debo pedir para 30 días?", icon: ShoppingCart, color: "text-emerald-400" },
-  { text: "Dame un reporte ejecutivo del estado del almacén", icon: BarChart3, color: "text-text-primary" },
+  { text: "Dame un reporte ejecutivo del estado del almacén", icon: BarChart3, color: "text-primary" },
   { text: "¿Qué equipos están averiados o en reparación?", icon: Cpu, color: "text-amber-400" },
   { text: "Recomienda cantidades a comprar para cable RG-6", icon: Package, color: "text-blue-400" },
   { text: "Recuérdame pedir conectores en 1 minuto", icon: BellRing, color: "text-pink-400" },
@@ -187,7 +187,7 @@ export function IAView() {
       {/* Header compacto */}
       <div className="flex items-center justify-between border-b border-border px-4 py-2.5 lg:px-6">
         <div className="flex items-center gap-2.5">
-          <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-bg-primary to-indigo-600 shadow-md shadow-bg-primary/30">
+          <div className="relative flex h-9 w-9 items-center justify-center rounded-xl   shadow-md ">
             <Sparkles className="h-4 w-4 text-white" />
           </div>
           <div>
@@ -211,7 +211,7 @@ export function IAView() {
             onClick={() => setShowHistory(!showHistory)}
             className={cn(
               "press flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-medium transition-colors",
-              showHistory ? "border-bg-primary bg-bg-primary/10 text-text-primary" : "border-border bg-card text-muted-foreground hover:bg-accent"
+              showHistory ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-accent"
             )}
             title="Ver conversaciones anteriores"
           >
@@ -246,7 +246,7 @@ export function IAView() {
                   className={cn(
                     "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[12px] font-bold shadow-sm",
                     m.role === "assistant"
-                      ? "bg-gradient-to-br from-bg-primary to-indigo-600 text-white"
+                      ? "  text-white"
                       : "bg-muted text-muted-foreground"
                   )}
                 >
@@ -258,18 +258,18 @@ export function IAView() {
                       "rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap break-words shadow-sm",
                       m.role === "assistant"
                         ? "rounded-tl-sm bg-card border border-border text-foreground"
-                        : "rounded-tr-sm bg-gradient-to-br from-bg-primary to-indigo-600 text-white"
+                        : "rounded-tr-sm   text-white"
                     )}
                   >
                     {m.content}
                   </div>
                   {/* Badge de recordatorio creado */}
                   {m.recordatorio && (
-                    <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-bg-primary/30 bg-bg-muted px-2.5 py-1.5 text-[10px]">
-                      <BellRing className="h-3 w-3 text-text-primary" />
-                      <span className="font-semibold text-text-primary">Recordatorio creado:</span>
+                    <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-primary/30 bg-bg-muted px-2.5 py-1.5 text-[10px]">
+                      <BellRing className="h-3 w-3 text-primary" />
+                      <span className="font-semibold text-primary">Recordatorio creado:</span>
                       <span className="text-muted-foreground">{m.recordatorio.texto}</span>
-                      <span className="ml-auto text-text-primary">
+                      <span className="ml-auto text-primary">
                         {new Date(m.recordatorio.cuando).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </div>
@@ -282,11 +282,11 @@ export function IAView() {
             ))}
             {loading && (
               <div className="flex gap-3">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-bg-primary to-indigo-600 text-white shadow-sm">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg   text-white shadow-sm">
                   <Bot className="h-4 w-4" />
                 </div>
                 <div className="flex items-center gap-2 rounded-2xl rounded-tl-sm border border-border bg-card px-3.5 py-2.5 shadow-sm">
-                  <Loader2 className="h-4 w-4 animate-spin text-text-primary" />
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
                   <span className="text-[13px] text-muted-foreground">Analizando inventario…</span>
                 </div>
               </div>
@@ -299,7 +299,7 @@ export function IAView() {
           <div className="absolute right-0 top-0 h-full w-72 border-l border-border bg-card/95 backdrop-blur-xl anim-fade-in">
             <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
               <p className="flex items-center gap-1.5 text-[12px] font-bold">
-                <Clock className="h-3.5 w-3.5 text-text-primary" /> Historial
+                <Clock className="h-3.5 w-3.5 text-primary" /> Historial
               </p>
               <button onClick={() => setShowHistory(false)} className="press text-muted-foreground hover:text-foreground">
                 <Trash2 className="h-3.5 w-3.5" />
@@ -338,7 +338,7 @@ export function IAView() {
                 key={s.text}
                 onClick={() => enviar(s.text)}
                 disabled={loading}
-                className="press flex items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1 text-[10px] font-medium text-muted-foreground transition-all hover:border-bg-primary/40 hover:bg-bg-muted hover:text-foreground disabled:opacity-50"
+                className="press flex items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1 text-[10px] font-medium text-muted-foreground transition-all hover:border-primary/40 hover:bg-bg-muted hover:text-foreground disabled:opacity-50"
               >
                 <Icon className={cn("h-3 w-3", s.color)} />
                 <span className="max-w-[160px] truncate">{s.text}</span>
@@ -361,7 +361,7 @@ export function IAView() {
               }
             }}
             placeholder="Pregúntame sobre el inventario, pídeme un recordatorio…"
-            className="h-11 flex-1 rounded-xl border border-border bg-background px-4 text-[14px] outline-none transition-colors focus:border-bg-primary focus:shadow-[0_0_0_4px_oklch(0.58_0.22_295/0.15)]"
+            className="h-11 flex-1 rounded-xl border border-border bg-background px-4 text-[14px] outline-none transition-colors focus:border-primary focus:shadow-[0_0_0_4px_oklch(0.58_0.22_295/0.15)]"
             disabled={loading}
           />
           <button

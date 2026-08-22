@@ -111,7 +111,7 @@ export function Navbar() {
               className={cn(
                 "press group relative flex h-10 items-center gap-1.5 rounded-xl px-3 text-[13px] font-medium transition-all duration-200",
                 active
-                  ? "bg-bg-primary/10 text-text-primary shadow-sm"
+                  ? "bg-primary/10 text-primary shadow-sm"
                   : "text-muted-foreground hover:bg-accent hover:text-foreground"
               )}
               title={item.label}
@@ -119,7 +119,7 @@ export function Navbar() {
               <Icon
                 className={cn(
                   "h-4 w-4 transition-transform duration-200",
-                  active ? "scale-110 text-text-primary" : "group-hover:scale-105"
+                  active ? "scale-110 text-primary" : "group-hover:scale-105"
                 )}
               />
               <span>{item.label}</span>
@@ -143,7 +143,7 @@ export function Navbar() {
               className={cn(
                 "press flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all",
                 active
-                  ? "bg-bg-primary/10 text-text-primary"
+                  ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:bg-accent"
               )}
               title={item.label}
@@ -168,10 +168,10 @@ export function Navbar() {
         {/* Empresa (desktop) */}
         <button
           onClick={() => setActiveView("empresa")}
-          className="press hidden h-9 items-center gap-2 rounded-xl border border-border/60 bg-card/60 px-3 text-[12px] font-medium hover:border-bg-primary/40 hover:bg-accent/40 md:flex"
+          className="press hidden h-9 items-center gap-2 rounded-xl border border-border/60 bg-card/60 px-3 text-[12px] font-medium hover:border-primary/40 hover:bg-accent/40 md:flex"
           title="Empresa contratista"
         >
-          <Building2 className="h-3.5 w-3.5 text-text-primary" />
+          <Building2 className="h-3.5 w-3.5 text-primary" />
           <span className="max-w-[120px] truncate">{empresa.nombre || "Sin empresa"}</span>
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
         </button>
@@ -204,7 +204,7 @@ export function Navbar() {
           onClick={() => setActiveView("config")}
           className={cn(
             "press flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground",
-            activeView === "config" && "bg-bg-primary/10 text-text-primary"
+            activeView === "config" && "bg-primary/10 text-primary"
           )}
           title="Configuración"
         >
@@ -214,7 +214,7 @@ export function Navbar() {
         {/* Avatar */}
         <button
           onClick={() => setActiveView("config")}
-          className="press relative ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-bg-primary to-indigo-600 text-[11px] font-bold text-white shadow-md shadow-bg-primary/30"
+          className="press relative ml-1 flex h-9 w-9 items-center justify-center rounded-full   text-[11px] font-bold text-white shadow-md "
           title={settings.usuario || "Admin"}
         >
           {iniciales(settings.usuario)}

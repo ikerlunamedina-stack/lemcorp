@@ -73,7 +73,7 @@ export function Sidebar() {
               className={cn(
                 "group relative flex h-11 w-full items-center gap-3 rounded-xl px-3 text-[13px] font-medium transition-all duration-300 anim-fade-up press",
                 active
-                  ? "bg-gradient-to-r from-primary to-primary/90 text-white shadow-lg shadow-primary/30"
+                  ? "bg-primary text-white shadow-lg shadow-primary/30"
                   : "text-white/60 hover:bg-white/5 hover:text-white"
               )}
               style={{ animationDelay: `${i * 50}ms` }}
@@ -115,7 +115,7 @@ export function Sidebar() {
           className={cn(
             "press flex h-11 w-full items-center gap-3 rounded-xl px-3 text-[13px] font-medium transition-all",
             activeView === "config"
-              ? "bg-gradient-to-r from-primary to-primary/90 text-white shadow-lg shadow-primary/30"
+              ? "bg-primary text-white shadow-lg shadow-primary/30"
               : "text-white/60 hover:bg-white/5 hover:text-white"
           )}
         >

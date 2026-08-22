@@ -95,7 +95,7 @@ export function SeriesView() {
                         <td className="py-2 pr-3">
                           <span className={cn(
                             "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                            (e.estado === "averiado" || e.estado === "en_retiro") ? "bg-red-500/15 text-red-400" : e.estado === "disponible" ? "bg-bg-primary/10 text-text-primary" : "bg-muted text-muted-foreground"
+                            (e.estado === "averiado" || e.estado === "en_retiro") ? "bg-red-500/15 text-red-400" : e.estado === "disponible" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
                           )}>
                             <EstadoIcon name={ESTADO_META[e.estado].icon} className="h-2.5 w-2.5" /> {ESTADO_META[e.estado].short}
                           </span>
@@ -115,7 +115,7 @@ export function SeriesView() {
       {/* Ir a Equipos */}
       <div className="mt-4 text-center">
         <Button variant="ghost" onClick={() => setActiveView("equipos")} className="press rounded-xl">
-          <FileText className="mr-1.5 h-4 w-4 text-text-primary" /> Gestionar equipos <ArrowRight className="ml-1 h-3 w-3" />
+          <FileText className="mr-1.5 h-4 w-4 text-primary" /> Gestionar equipos <ArrowRight className="ml-1 h-3 w-3" />
         </Button>
       </div>
     </div>
@@ -126,7 +126,7 @@ function Chip({ active, onClick, label, count }: { active: boolean; onClick: () 
   return (
     <button onClick={onClick} className={cn(
       "press flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
-      active ? "border-bg-primary/40 bg-bg-primary/10 text-text-primary" : "border-border bg-muted/40 text-muted-foreground hover:bg-accent/50"
+      active ? "border-primary/40 bg-primary/10 text-primary" : "border-border bg-muted/40 text-muted-foreground hover:bg-accent/50"
     )}>
       {label}<span className="rounded-full bg-background px-1.5 text-[10px]">{count}</span>
     </button>

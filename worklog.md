@@ -1213,3 +1213,26 @@ Verificación:
 - Color: azul/gris mate corporativo (no violeta neón) ✓
 - Sin errores en consola ✓
 - Lint limpio ✓
+
+---
+Task ID: NEUTRAL-CORPORATE-V28
+Agent: main
+Task: Eliminar TODO el morado/violeta del CSS y componentes
+
+Work Log:
+- globals.css paleta CAMBIADA A GRIS PURO (chroma 0 en todos los colores):
+  - primary: oklch(0.30 0 0) gris oscuro (light) / oklch(0.65 0 0) gris claro (dark)
+  - Todos los colores con saturación 0 (oklch(X 0 0) = gris puro)
+  - Sin tinte violeta, azul, ni ningún color
+- .btn-spacecom: cambiado de gradiente violeta a var(--primary) sólido gris
+- Eliminados gradientes radiales violeta+cyan del body background
+- Eliminados kpi-gradient-violet/emerald/cyan/red → kpi-gradient-neutral
+- Eliminado text-gradient-violet → text-foreground
+- Eliminados todos los oklch(0.58 0.22 295) (violeta) del CSS
+- Animaciones: pulse-ring y glow cambiadas a gris neutro
+- Componentes: arregladas clases CSS rotas (bg-bg-primary → bg-primary, text-text-primary → text-primary)
+- Eliminado último gradiente violeta restante en .text-gradient-violet
+
+Verificación:
+- "Todo gris/negro mate. Cero morado/violeta. Corporativo (no gaming)." ✓
+- Lint limpio ✓

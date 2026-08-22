@@ -69,7 +69,7 @@ export function ConfigView() {
     <div className="px-4 py-6 lg:px-8">
       <div className="anim-fade-up mb-6">
         <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
-          <SettingsIcon className="h-5 w-5 text-text-primary" /> Configuración
+          <SettingsIcon className="h-5 w-5 text-primary" /> Configuración
         </h1>
         <p className="text-sm text-muted-foreground">Personaliza tu experiencia y gestiona los datos del sistema</p>
       </div>
@@ -77,7 +77,7 @@ export function ConfigView() {
       {/* ─── Personalización ─── */}
       <section className="anim-fade-up mb-5 rounded-3xl border border-border bg-card p-5 shadow-sm">
         <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold">
-          <User className="h-4 w-4 text-text-primary" /> Personalización
+          <User className="h-4 w-4 text-primary" /> Personalización
         </h2>
         <p className="mb-4 text-[11px] text-muted-foreground">
           Tu nombre aparece en el sub-header y en los saludos del asistente IA.
@@ -113,7 +113,7 @@ export function ConfigView() {
                   className={cn(
                     "press flex items-center gap-2 rounded-xl border px-4 py-2.5 text-[12px] font-medium transition-all",
                     active
-                      ? "border-bg-primary/40 bg-bg-primary/10 text-text-primary shadow-sm"
+                      ? "border-primary/40 bg-primary/10 text-primary shadow-sm"
                       : "border-border bg-muted/30 text-muted-foreground hover:bg-accent"
                   )}
                 >
@@ -133,7 +133,7 @@ export function ConfigView() {
       {/* ─── Pistoleo ─── */}
       <section className="anim-fade-up mb-5 rounded-3xl border border-border bg-card p-5 shadow-sm">
         <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold">
-          <ScanLine className="h-4 w-4 text-text-primary" /> Pistoleo de series
+          <ScanLine className="h-4 w-4 text-primary" /> Pistoleo de series
         </h2>
         <p className="mb-4 text-[11px] text-muted-foreground">
           Configura el prefijo de validación para la captura rápida con lector óptico.
@@ -170,7 +170,7 @@ export function ConfigView() {
       {/* ─── Alertas ─── */}
       <section className="anim-fade-up mb-5 rounded-3xl border border-border bg-card p-5 shadow-sm">
         <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-          <Sparkles className="h-4 w-4 text-text-primary" /> Alertas
+          <Sparkles className="h-4 w-4 text-primary" /> Alertas
         </h2>
         <div className="flex items-center gap-3 rounded-2xl border border-border bg-muted/30 p-3.5">
           <div className="flex-1">
@@ -189,7 +189,7 @@ export function ConfigView() {
       {/* ─── Datos del sistema ─── */}
       <section className="anim-fade-up mb-5 rounded-3xl border border-border bg-card p-5 shadow-sm">
         <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold">
-          <Database className="h-4 w-4 text-text-primary" /> Datos del sistema
+          <Database className="h-4 w-4 text-primary" /> Datos del sistema
         </h2>
         <p className="mb-4 text-[11px] text-muted-foreground">
           Guardados en este equipo (localStorage). No se envían a ningún servidor.
@@ -232,7 +232,7 @@ export function ConfigView() {
       {/* ─── Acerca de ─── */}
       <section className="anim-fade-up rounded-3xl border border-border bg-card p-5 shadow-sm">
         <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold">
-          <Info className="h-4 w-4 text-text-primary" /> Acerca de
+          <Info className="h-4 w-4 text-primary" /> Acerca de
         </h2>
         <div className="flex flex-col gap-1.5 text-[12px] text-muted-foreground">
           <div className="flex items-center justify-between">
@@ -293,7 +293,7 @@ export function ConfigView() {
         <DialogContent className="rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <DatabaseZap className="h-4 w-4 text-text-primary" /> Cargar datos demo
+              <DatabaseZap className="h-4 w-4 text-primary" /> Cargar datos demo
             </DialogTitle>
             <DialogDescription>
               Se reemplazarán los datos actuales por el set de demostración (10 productos, 7 equipos, 3 notas, 6 miembros). Los datos existentes se perderán.

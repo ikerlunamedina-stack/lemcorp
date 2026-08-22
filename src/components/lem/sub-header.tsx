@@ -65,7 +65,7 @@ export function SubHeader() {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-card/40 px-4 py-3 backdrop-blur lg:px-6">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-bg-primary/20 to-indigo-500/10 text-text-primary shadow-sm">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl  text-primary shadow-sm">
           <Icon className="h-5 w-5" />
         </div>
         <div className="flex flex-col leading-tight">
@@ -80,7 +80,7 @@ export function SubHeader() {
       </div>
 
       <div className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card/60 px-2.5 py-1 text-[11px] text-muted-foreground">
-        <RefreshCw className="h-3 w-3 text-text-primary" />
+        <RefreshCw className="h-3 w-3 text-primary" />
         <span className="hidden sm:inline">Actualizado:</span>
         <span className="font-mono font-semibold tabular-nums text-foreground">
           {now ? fmtTime(now) : "--:--:--"}
