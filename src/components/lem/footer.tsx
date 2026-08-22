@@ -28,7 +28,7 @@ export function Footer() {
         <span className="font-medium text-foreground">{totalUnidades.toLocaleString("es-PE")}</span> und
       </span>
       <span className="flex items-center gap-1.5">
-        <Cpu className="h-3 w-3 text-violet-500" />
+        <Cpu className="h-3 w-3 text-bg-primary" />
         <span className="font-medium text-foreground">{equipos.length}</span> equipos
       </span>
       <span className="flex items-center gap-1.5">
@@ -39,7 +39,7 @@ export function Footer() {
         <Clock className="h-3 w-3 text-emerald-500" />
         <span className="font-medium text-foreground tabular-nums">{now}</span>
       </span>
-      <span className="font-bold tracking-wide text-primary">LEMCORP © 2026</span>
+      <span className="font-bold tracking-wide text-primary">Nuclon © 2026</span>
     </footer>
   );
 }

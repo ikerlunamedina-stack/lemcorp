@@ -121,11 +121,11 @@ export function EquiposView() {
                   {ESTADOS.map((est) => {
                     const n = items.filter((e) => e.estado === est).length;
                     if (n === 0) return null;
-                    return <span key={est} className={cn("flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium", (est === "averiado" || est === "en_retiro") ? "bg-red-500/15 text-red-400" : est === "disponible" ? "bg-violet-500/15 text-violet-300" : "bg-muted text-muted-foreground")}><EstadoIcon name={ESTADO_META[est].icon} className="h-2.5 w-2.5" /> {n}</span>;
+                    return <span key={est} className={cn("flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium", (est === "averiado" || est === "en_retiro") ? "bg-red-500/15 text-red-400" : est === "disponible" ? "bg-bg-primary/10 text-text-primary" : "bg-muted text-muted-foreground")}><EstadoIcon name={ESTADO_META[est].icon} className="h-2.5 w-2.5" /> {n}</span>;
                   })}
                 </div>
                 <span className="rounded-full bg-foreground px-2.5 py-1 text-[11px] font-semibold text-background">{items.length}</span>
-                <button onClick={go("series")} className="press flex items-center gap-1 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 px-3 py-2 text-[12px] font-medium text-white shadow-md shadow-violet-500/30 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-violet-500/40">
+                <button onClick={go("series")} className="press flex items-center gap-1 rounded-xl bg-gradient-to-r from-bg-primary to-indigo-600 px-3 py-2 text-[12px] font-medium text-white shadow-md shadow-bg-primary/30 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-bg-primary/40">
                   Ver series <ArrowRight className="h-3 w-3" />
                 </button>
               </div>
@@ -179,7 +179,7 @@ export function EquiposView() {
 
 function FilterChip({ active, onClick, label, count }: { active: boolean; onClick: () => void; label: string; count: number }) {
   return (
-    <button onClick={onClick} className={cn("press flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors", active ? "border-violet-500/40 bg-violet-500/15 text-violet-300" : "border-border bg-muted/40 text-muted-foreground hover:bg-accent/50")}>
+    <button onClick={onClick} className={cn("press flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors", active ? "border-bg-primary/40 bg-bg-primary/10 text-text-primary" : "border-border bg-muted/40 text-muted-foreground hover:bg-accent/50")}>
       {label}<span className="rounded-full bg-background px-1.5 text-[10px]">{count}</span>
     </button>
   );

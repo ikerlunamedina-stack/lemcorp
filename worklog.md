@@ -1172,3 +1172,44 @@ Work Log:
 - Desglose por técnico: max-h-[150px] con scroll interno
 - DialogFooter: sticky bottom-0 con bg-card (siempre visible)
 - Verificado en móvil (375x812): "el dialog cabe en pantalla, botones visibles abajo, scroll interno" ✓
+
+---
+Task ID: NUCLON-REBRAND-V27
+Agent: main
+Task: Renombrar a Nuclon + logo con símbolo + color corporativo + arreglar errores
+
+Work Log:
+- Renombrado LEMCORP → Nuclon en TODOS los archivos (17 archivos)
+  - layout.tsx: title, description, authors, creator, publisher, openGraph, twitter
+  - loading.tsx: texto "Nuclon WMS · Almacén"
+  - navbar.tsx: texto del logo
+  - sidebar.tsx: texto del logo + versión
+  - footer.tsx: copyright
+  - config-view.tsx: info del sistema
+  - ia-view.tsx: texto de bienvenida
+  - store.ts: nombre de persistencia
+  - API ia/route.ts: system prompt
+  - types.ts: comentarios
+- Nuevo logo: símbolo geométrico SVG (cubo 3D / hexágono con facetas)
+  - NO usa letras, solo líneas geométricas
+  - SVG con paths que forman un cubo isométrico
+  - Usado en: navbar, sidebar, loading.tsx
+  - Color: bg-primary sólido (azul oscuro mate), no gradiente violeta
+- Eliminados TODOS los colores violeta restantes:
+  - violet-500/15 → bg-primary/10
+  - violet-300/400 → text-primary
+  - violet-500 → bg-primary
+  - border-violet-* → border-border
+  - shadow-violet-* → shadow-sm
+  - from-violet-500 to-indigo-600 → bg-primary (sólido)
+  - Eliminados blur/glow decorativos del sidebar
+- Texto "Nuclon" ahora siempre visible (antes hidden en móvil)
+  - "WMS · Almacén" sigue hidden en móvil (sm:block)
+- Avatar del navbar: cambiado de gradiente violeta a bg-primary sólido
+
+Verificación:
+- Logo: símbolo geométrico (cubo), no letra ✓
+- Texto "Nuclon" visible junto al logo ✓
+- Color: azul/gris mate corporativo (no violeta neón) ✓
+- Sin errores en consola ✓
+- Lint limpio ✓

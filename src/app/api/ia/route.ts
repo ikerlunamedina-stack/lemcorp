@@ -1,4 +1,4 @@
-// API route para el asistente IA de LEMCORP WMS
+// API route para el asistente IA de Nuclon WMS
 // Usa z-ai-web-dev-sdk (GLM) en el backend, con análisis en tiempo real del inventario.
 import { NextRequest, NextResponse } from "next/server";
 import ZAI from "z-ai-web-dev-sdk";
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     const despachosTxt = `\n\n📤 DESPACHOS HOY: ${despachosHoy.length} (${unidadesDespachadasHoy} unidades enviadas)`;
 
     // ─── System prompt con 7 capacidades ───
-    const systemPrompt = `Eres LEMCORP AI, el asistente experto en gestión de almacén para LEMCORP, el almacén central. LEMCORP despacha equipos y materiales a una empresa contratista (${emp.nombre || "LPS"} — contratista de Claro) que tiene técnicos en campo.
+    const systemPrompt = `Eres Nuclon AI, el asistente experto en gestión de almacén para Nuclon, el almacén central. Nuclon despacha equipos y materiales a una empresa contratista (${emp.nombre || "LPS"} — contratista de Claro) que tiene técnicos en campo.
 
 OPERADOR ACTUAL: ${usuarioNombre}
 FECHA: ${new Date().toLocaleString("es-PE")}
@@ -121,7 +121,7 @@ cuando: 2026-08-22T09:00:00
 Para calcular el timestamp, usa la fecha actual (${new Date().toISOString()}) como referencia.
 
 ═══════════════════════════════════════
-DATOS DEL INVENTARIO DEL ALMACÉN LEMCORP:
+DATOS DEL INVENTARIO DEL ALMACÉN Nuclon:
 ═══════════════════════════════════════
 - Productos en catálogo: ${valorCatalogo}
 - Total de unidades en stock: ${totalUnidades}

@@ -1,4 +1,4 @@
-// Store global LEMCORP WMS — Zustand + persist (localStorage)
+// Store global Nuclon WMS — Zustand + persist (localStorage)
 // Premium build — REBUILD-1
 
 import { create } from "zustand";
@@ -618,7 +618,7 @@ export const useStore = create<StoreState>()(
       exportInventarioExcel: () => {
         import("xlsx").then((XLSX: any) => {
           const data: any[][] = [
-            ["INVENTARIO LEMCORP", "", "", "", ""],
+            ["INVENTARIO Nuclon", "", "", "", ""],
             ["Exportado:", new Date().toLocaleString("es-PE"), "", "", ""],
             [],
             ["SKU", "PRODUCTO", "STOCK ACTUAL", "STOCK MÍNIMO", "UDM"],
@@ -628,7 +628,7 @@ export const useStore = create<StoreState>()(
           ws["!cols"] = [{ wch: 14 }, { wch: 40 }, { wch: 14 }, { wch: 14 }, { wch: 12 }];
           const wb = XLSX.utils.book_new();
           XLSX.utils.book_append_sheet(wb, ws, "Inventario");
-          XLSX.writeFile(wb, `Inventario_LEMCORP_${new Date().toISOString().slice(0, 10)}.xlsx`);
+          XLSX.writeFile(wb, `Inventario_Nuclon_${new Date().toISOString().slice(0, 10)}.xlsx`);
         });
       },
 
@@ -704,16 +704,16 @@ export const useStore = create<StoreState>()(
         get().addNota("Verificar stock de cable RG-6, parece bajo");
 
         // 6 miembros
-        get().addMiembro("Antonio", "jefe_operaciones", "antonio@lemcorp.com", "999888777");
-        get().addMiembro("Carlos Mendoza", "supervisor", "carlos@lemcorp.com", "999111222");
-        get().addMiembro("J. Pérez", "tecnico", "jperez@lemcorp.com", "999333444");
-        get().addMiembro("M. Luna", "tecnico", "mluna@lemcorp.com", "999555666");
+        get().addMiembro("Antonio", "jefe_operaciones", "antonio@nuclon.com", "999888777");
+        get().addMiembro("Carlos Mendoza", "supervisor", "carlos@nuclon.com", "999111222");
+        get().addMiembro("J. Pérez", "tecnico", "jperez@nuclon.com", "999333444");
+        get().addMiembro("M. Luna", "tecnico", "mluna@nuclon.com", "999555666");
         get().addMiembro("R. García", "tecnico", undefined, "999777888");
-        get().addMiembro("L. Medina", "almacenero", "lmedina@lemcorp.com", undefined);
+        get().addMiembro("L. Medina", "almacenero", "lmedina@nuclon.com", undefined);
       },
     }),
     {
-      name: "lemcorp-v3",
+      name: "nuclon-v3",
       partialize: (s) => ({
         products: s.products,
         equipos: s.equipos,

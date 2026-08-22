@@ -267,7 +267,7 @@ export function DespachosView() {
             variant="outline"
             onClick={() => fileInputRef.current?.click()}
             disabled={importingExcel}
-            className="press h-10 rounded-lg border-violet-500/30 bg-card text-violet-300 hover:bg-violet-500/10"
+            className="press h-10 rounded-lg border-bg-primary/30 bg-card text-text-primary hover:bg-bg-muted"
           >
             {importingExcel ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <FileUp className="mr-1.5 h-4 w-4" />}
             {importingExcel ? "Procesando…" : "Subir Excel"}
@@ -296,7 +296,7 @@ export function DespachosView() {
         <button
           onClick={() => setFilterToday(!filterToday)}
           className={cn("press flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors",
-            filterToday ? "border-violet-500 bg-violet-500/15 text-violet-300" : "border-border bg-card text-muted-foreground hover:bg-accent")}
+            filterToday ? "border-bg-primary bg-bg-primary/10 text-text-primary" : "border-border bg-card text-muted-foreground hover:bg-accent")}
         >
           <Calendar className="h-3.5 w-3.5" />
           {filterToday ? "Solo hoy" : "Ver todos"}
@@ -326,20 +326,20 @@ export function DespachosView() {
             const isToday = isSameDay(diaTs, today);
 
             return (
-              <div key={dia} className={cn("anim-fade-up overflow-hidden rounded-xl border bg-card shadow-sm", isToday ? "border-violet-500/40" : "border-border")}>
+              <div key={dia} className={cn("anim-fade-up overflow-hidden rounded-xl border bg-card shadow-sm", isToday ? "border-bg-primary/40" : "border-border")}>
                 {/* Header del día */}
                 <button
                   onClick={() => setExpandedDay(isExpanded ? null : dia)}
                   className="press flex w-full items-center gap-3 border-b border-border bg-muted/30 px-4 py-3 text-left hover:bg-muted/50 transition-colors"
                 >
                   {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-500/15 text-violet-300">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-bg-primary/10 text-text-primary">
                     <Calendar className="h-5 w-5" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <p className="text-[14px] font-bold capitalize text-foreground">{fechaCorta(diaTs)}</p>
-                      {isToday && <span className="rounded-full bg-violet-500 px-2 py-0.5 text-[9px] font-bold text-white">HOY</span>}
+                      {isToday && <span className="rounded-full bg-bg-primary px-2 py-0.5 text-[9px] font-bold text-white">HOY</span>}
                     </div>
                     <p className="text-[11px] capitalize text-muted-foreground">{diaSemana(diaTs)}</p>
                   </div>
@@ -356,8 +356,8 @@ export function DespachosView() {
                       <p className="font-bold tabular-nums text-foreground">{productosDia}</p>
                       <p className="text-[9px] text-muted-foreground">productos</p>
                     </div>
-                    <div className="rounded-md bg-violet-500/15 px-2 py-1 text-center">
-                      <p className="font-bold tabular-nums text-violet-300">{fmtNum(totalDia)}</p>
+                    <div className="rounded-md bg-bg-primary/10 px-2 py-1 text-center">
+                      <p className="font-bold tabular-nums text-text-primary">{fmtNum(totalDia)}</p>
                       <p className="text-[9px] text-muted-foreground">unidades</p>
                     </div>
                   </div>
@@ -376,12 +376,12 @@ export function DespachosView() {
                             className="press flex w-full items-center gap-2 px-4 py-2.5 text-left hover:bg-accent/30 transition-colors"
                           >
                             {isTecExpanded ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
-                            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-violet-500/15 text-violet-300">
+                            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-bg-primary/10 text-text-primary">
                               <User className="h-3 w-3" />
                             </span>
                             <span className="flex-1 text-[12px] font-semibold text-foreground">{tecnico}</span>
                             <span className="text-[10px] text-muted-foreground">{desps.length} items</span>
-                            <span className="rounded-md bg-violet-500/15 px-2 py-0.5 text-[11px] font-bold tabular-nums text-violet-300">{fmtNum(totalTec)}</span>
+                            <span className="rounded-md bg-bg-primary/10 px-2 py-0.5 text-[11px] font-bold tabular-nums text-text-primary">{fmtNum(totalTec)}</span>
                           </button>
                           {isTecExpanded && (
                             <div className="bg-muted/20 px-4 py-2">
@@ -439,7 +439,7 @@ export function DespachosView() {
         <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto scroll-thin rounded-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base font-bold">
-              <Sparkles className="h-5 w-5 text-violet-400" /> Analizar despachos con IA
+              <Sparkles className="h-5 w-5 text-text-primary" /> Analizar despachos con IA
             </DialogTitle>
             <DialogDescription>
               Pega o sube tus despachos. La IA los analizará, validará el stock y los registrará automáticamente.
@@ -467,7 +467,7 @@ export function DespachosView() {
             <div className="rounded-lg border border-border bg-muted/30">
               <div className="flex items-center justify-between border-b border-border px-3 py-2">
                 <p className="flex items-center gap-1.5 text-[11px] font-bold text-foreground">
-                  <Sparkles className="h-3.5 w-3.5 text-violet-400" /> Análisis automático
+                  <Sparkles className="h-3.5 w-3.5 text-text-primary" /> Análisis automático
                 </p>
                 <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold">
                   <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-emerald-400">
@@ -528,7 +528,7 @@ export function DespachosView() {
                       .map(([tecnico, unidades]) => (
                         <div key={tecnico} className="flex items-center justify-between rounded-md bg-card px-2 py-1 text-[11px]">
                           <span className="truncate text-foreground">{tecnico}</span>
-                          <span className="shrink-0 rounded-md bg-violet-500/15 px-1.5 py-0.5 font-bold tabular-nums text-violet-300">{fmtNum(unidades)} und</span>
+                          <span className="shrink-0 rounded-md bg-bg-primary/10 px-1.5 py-0.5 font-bold tabular-nums text-text-primary">{fmtNum(unidades)} und</span>
                         </div>
                       ))}
                   </div>
@@ -559,9 +559,9 @@ export function DespachosView() {
 
 function StatCard({ label, value, sub, icon, highlight }: { label: string; value: string | number; sub?: string; icon: React.ReactNode; highlight?: boolean }) {
   return (
-    <div className={cn("anim-fade-up rounded-xl border bg-card p-4 shadow-sm", highlight && "border-violet-500/30 bg-violet-500/5")}>
+    <div className={cn("anim-fade-up rounded-xl border bg-card p-4 shadow-sm", highlight && "border-bg-primary/30 bg-bg-primary/5")}>
       <div className="flex items-center justify-between">
-        <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg", highlight ? "bg-violet-500/15 text-violet-300" : "bg-muted text-muted-foreground")}>{icon}</span>
+        <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg", highlight ? "bg-bg-primary/10 text-text-primary" : "bg-muted text-muted-foreground")}>{icon}</span>
         <span className="text-xl font-bold tabular-nums text-foreground">{value}</span>
       </div>
       <p className="mt-2 text-xs font-semibold text-muted-foreground">{label}</p>

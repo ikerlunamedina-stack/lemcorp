@@ -80,18 +80,22 @@ export function Navbar() {
         className="group flex shrink-0 items-center gap-2.5 pr-2"
       >
         <div className="relative">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-500/40 press">
-            <span className="text-[18px] font-bold tracking-tight text-white">L</span>
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-sm press">
+            <svg viewBox="0 0 24 24" className="h-5 w-5 text-primary-foreground" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2 L22 8.5 L22 15.5 L12 22 L2 15.5 L2 8.5 Z" />
+              <path d="M12 2 L12 9" />
+              <path d="M22 8.5 L12 9 L2 8.5" />
+              <path d="M12 9 L12 22" />
+              <path d="M12 9 L17 12 L22 8.5" />
+              <path d="M12 9 L7 12 L2 8.5" />
+              <path d="M17 12 L17 18 L12 22" />
+              <path d="M7 12 L7 18 L12 22" />
+            </svg>
           </div>
-          <div className="absolute -inset-1 rounded-xl bg-violet-500/30 blur-md -z-10 anim-pulse-soft" />
         </div>
-        <div className="hidden leading-none sm:flex sm:flex-col">
-          <span className="text-[17px] font-bold tracking-tight text-foreground">
-            LEM<span className="text-gradient-violet">CORP</span>
-          </span>
-          <span className="mt-0.5 text-[9px] font-semibold tracking-[0.18em] text-muted-foreground uppercase">
-            WMS · Almacén
-          </span>
+        <div className="flex flex-col leading-none">
+          <span className="text-[15px] font-bold tracking-tight text-foreground">Nuclon</span>
+          <span className="mt-0.5 hidden text-[9px] font-semibold tracking-[0.15em] text-muted-foreground uppercase sm:block">WMS · Almacén</span>
         </div>
       </button>
 
@@ -107,7 +111,7 @@ export function Navbar() {
               className={cn(
                 "press group relative flex h-10 items-center gap-1.5 rounded-xl px-3 text-[13px] font-medium transition-all duration-200",
                 active
-                  ? "bg-violet-500/15 text-violet-300 shadow-sm"
+                  ? "bg-bg-primary/10 text-text-primary shadow-sm"
                   : "text-muted-foreground hover:bg-accent hover:text-foreground"
               )}
               title={item.label}
@@ -115,12 +119,12 @@ export function Navbar() {
               <Icon
                 className={cn(
                   "h-4 w-4 transition-transform duration-200",
-                  active ? "scale-110 text-violet-400" : "group-hover:scale-105"
+                  active ? "scale-110 text-text-primary" : "group-hover:scale-105"
                 )}
               />
               <span>{item.label}</span>
               {active && (
-                <span className="absolute -bottom-[1px] left-1/2 h-[2px] w-6 -translate-x-1/2 rounded-full bg-violet-400 anim-scale-in" />
+                <span className="absolute -bottom-[1px] left-1/2 h-[2px] w-6 -translate-x-1/2 rounded-full bg-text-primary anim-scale-in" />
               )}
             </button>
           );
@@ -139,7 +143,7 @@ export function Navbar() {
               className={cn(
                 "press flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all",
                 active
-                  ? "bg-violet-500/15 text-violet-300"
+                  ? "bg-bg-primary/10 text-text-primary"
                   : "text-muted-foreground hover:bg-accent"
               )}
               title={item.label}
@@ -164,10 +168,10 @@ export function Navbar() {
         {/* Empresa (desktop) */}
         <button
           onClick={() => setActiveView("empresa")}
-          className="press hidden h-9 items-center gap-2 rounded-xl border border-border/60 bg-card/60 px-3 text-[12px] font-medium hover:border-violet-500/40 hover:bg-accent/40 md:flex"
+          className="press hidden h-9 items-center gap-2 rounded-xl border border-border/60 bg-card/60 px-3 text-[12px] font-medium hover:border-bg-primary/40 hover:bg-accent/40 md:flex"
           title="Empresa contratista"
         >
-          <Building2 className="h-3.5 w-3.5 text-violet-400" />
+          <Building2 className="h-3.5 w-3.5 text-text-primary" />
           <span className="max-w-[120px] truncate">{empresa.nombre || "Sin empresa"}</span>
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
         </button>
@@ -200,7 +204,7 @@ export function Navbar() {
           onClick={() => setActiveView("config")}
           className={cn(
             "press flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground",
-            activeView === "config" && "bg-violet-500/15 text-violet-300"
+            activeView === "config" && "bg-bg-primary/10 text-text-primary"
           )}
           title="Configuración"
         >
@@ -210,7 +214,7 @@ export function Navbar() {
         {/* Avatar */}
         <button
           onClick={() => setActiveView("config")}
-          className="press relative ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 text-[11px] font-bold text-white shadow-md shadow-violet-500/30"
+          className="press relative ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-bg-primary to-indigo-600 text-[11px] font-bold text-white shadow-md shadow-bg-primary/30"
           title={settings.usuario || "Admin"}
         >
           {iniciales(settings.usuario)}

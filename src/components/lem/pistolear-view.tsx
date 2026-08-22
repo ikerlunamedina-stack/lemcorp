@@ -175,7 +175,7 @@ export function PistolearView() {
       <div className="anim-fade-up mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
-            <ScanLine className="h-5 w-5 text-violet-400" /> Pistolear series
+            <ScanLine className="h-5 w-5 text-text-primary" /> Pistolear series
           </h1>
           <p className="text-sm text-muted-foreground">
             Captura rápida con lector óptico. Cada lectura envía Enter automáticamente.
@@ -268,9 +268,9 @@ export function PistolearView() {
                     key={r.prefijo}
                     className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 p-2"
                   >
-                    <CircleDot className="mt-0.5 h-3 w-3 text-violet-400" />
+                    <CircleDot className="mt-0.5 h-3 w-3 text-text-primary" />
                     <div className="min-w-0 flex-1">
-                      <p className="font-mono text-[11px] font-semibold text-violet-300">{r.prefijo}</p>
+                      <p className="font-mono text-[11px] font-semibold text-text-primary">{r.prefijo}</p>
                       <p className="truncate text-[11px] text-muted-foreground">{r.modelo}</p>
                     </div>
                   </div>
@@ -296,7 +296,7 @@ export function PistolearView() {
               className={cn(
                 "press flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[12px] font-medium transition-all",
                 active
-                  ? "border-violet-500/40 bg-violet-500/15 text-violet-300"
+                  ? "border-bg-primary/40 bg-bg-primary/10 text-text-primary"
                   : "border-border bg-card text-muted-foreground hover:bg-accent"
               )}
             >
@@ -322,7 +322,7 @@ export function PistolearView() {
       {/* Input grande */}
       <div className="anim-fade-up mb-3">
         <div className="relative">
-          <ScanLine className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-violet-400" />
+          <ScanLine className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-primary" />
           <input
             ref={inputRef}
             value={valor}
@@ -333,7 +333,7 @@ export function PistolearView() {
                 ? `Escanear ${campoMeta.campos[parcial.length]}… (Enter para confirmar)`
                 : `Escanear serie con el lector… (Enter para confirmar)`
             }
-            className="h-14 w-full rounded-2xl border-2 border-violet-500/30 bg-card pl-14 pr-4 font-mono text-[16px] font-semibold tracking-wide outline-none transition-all focus:border-violet-500 focus:shadow-[0_0_0_4px_oklch(0.58_0.22_295/0.15)]"
+            className="h-14 w-full rounded-2xl border-2 border-bg-primary/30 bg-card pl-14 pr-4 font-mono text-[16px] font-semibold tracking-wide outline-none transition-all focus:border-bg-primary focus:shadow-[0_0_0_4px_oklch(0.58_0.22_295/0.15)]"
             autoComplete="off"
             spellCheck={false}
           />
@@ -382,7 +382,7 @@ export function PistolearView() {
       <div className="anim-fade-up overflow-hidden rounded-2xl border border-border bg-card">
         <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
           <h2 className="flex items-center gap-2 text-sm font-semibold">
-            <Cpu className="h-4 w-4 text-violet-400" /> Series capturadas
+            <Cpu className="h-4 w-4 text-text-primary" /> Series capturadas
           </h2>
           <span className="text-[11px] text-muted-foreground">{pistoleoFilas.length} captura(s)</span>
         </div>
@@ -434,7 +434,7 @@ export function PistolearView() {
                         </td>
                       )}
                       <td className="px-4 py-2.5">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/15 px-2 py-0.5 text-[10px] font-medium text-violet-300">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-text-primary">
                           <Cpu className="h-2.5 w-2.5" />
                           {modeloDetectado}
                         </span>
@@ -491,7 +491,7 @@ function ResumenCard({
   mono?: boolean;
 }) {
   const toneCls = {
-    violet: "kpi-gradient-violet text-violet-300",
+    violet: "kpi-gradient-violet text-text-primary",
     cyan: "kpi-gradient-cyan text-cyan-300",
     amber: "kpi-gradient-amber text-amber-300",
     emerald: "kpi-gradient-emerald text-emerald-300",

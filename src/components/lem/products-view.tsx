@@ -154,7 +154,7 @@ export function ProductsView() {
           <div className="space-y-1.5">
             <h2 className="text-xl font-semibold">Catálogo de productos</h2>
             <p className="max-w-md text-sm text-muted-foreground">
-              Registra aquí los productos de LEMCORP con su SKU (el código único,
+              Registra aquí los productos de Nuclon con su SKU (el código único,
               como el DNI del producto), su nombre y la cantidad en stock. La app
               lee automáticamente la columna «Cantidad» al importar un Excel.
             </p>

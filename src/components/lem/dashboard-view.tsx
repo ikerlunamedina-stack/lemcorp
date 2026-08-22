@@ -40,7 +40,7 @@ export function DashboardView() {
   }).slice(0, 5);
 
   const kpis = [
-    { label: "Productos", value: products.length, sub: "en catálogo", icon: Package, view: "inventario" as ActiveView, grad: "kpi-gradient-violet", color: "text-violet-300", iconBg: "from-violet-500/20 to-violet-500/5" },
+    { label: "Productos", value: products.length, sub: "en catálogo", icon: Package, view: "inventario" as ActiveView, grad: "kpi-gradient-violet", color: "text-text-primary", iconBg: "from-bg-primary/20 to-bg-primary/5" },
     { label: "Unidades", value: fmtNum(totalUnidades), sub: "en stock", icon: Boxes, view: "inventario" as ActiveView, grad: "kpi-gradient-emerald", color: "text-emerald-300", iconBg: "from-emerald-500/20 to-emerald-500/5" },
     { label: "Equipos", value: equipos.length, sub: `${equiposDisponibles} disponibles`, icon: Cpu, view: "equipos" as ActiveView, grad: "kpi-gradient-cyan", color: "text-cyan-300", iconBg: "from-cyan-500/20 to-cyan-500/5" },
     { label: "Alertas", value: bajoStock.length, sub: bajoStock.length === 0 ? "Todo OK" : "bajo stock", icon: AlertTriangle, view: "inventario" as ActiveView, grad: "kpi-gradient-red", color: bajoStock.length > 0 ? "text-red-400" : "text-gray-400", iconBg: bajoStock.length > 0 ? "from-red-500/20 to-red-500/5" : "from-gray-500/20 to-gray-500/5" },
@@ -159,10 +159,10 @@ export function DashboardView() {
           {/* Equipos por estado */}
           {equipos.length > 0 && (
             <div className="press-card anim-fade-up glow-border overflow-hidden rounded-2xl border border-border/60 bg-card shadow-md">
-              <div className="flex items-center justify-between border-b border-border/40 bg-gradient-to-r from-violet-500/5 to-transparent px-5 py-4">
+              <div className="flex items-center justify-between border-b border-border/40 bg-gradient-to-r from-bg-primary/5 to-transparent px-5 py-4">
                 <h2 className="flex items-center gap-2 text-sm font-bold">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/15">
-                    <Cpu className="h-4 w-4 text-violet-500" />
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-bg-primary/10">
+                    <Cpu className="h-4 w-4 text-bg-primary" />
                   </span>
                   Equipos por estado
                 </h2>
@@ -198,10 +198,10 @@ export function DashboardView() {
           {/* Stock por unidad */}
           {categorias.length > 0 && (
             <div className="press-card anim-fade-up glow-border overflow-hidden rounded-2xl border border-border/60 bg-card shadow-md">
-              <div className="flex items-center justify-between border-b border-border/40 bg-gradient-to-r from-violet-500/5 to-transparent px-5 py-4">
+              <div className="flex items-center justify-between border-b border-border/40 bg-gradient-to-r from-bg-primary/5 to-transparent px-5 py-4">
                 <h2 className="flex items-center gap-2 text-sm font-bold">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/15">
-                    <TrendingUp className="h-4 w-4 text-violet-400" />
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-bg-primary/10">
+                    <TrendingUp className="h-4 w-4 text-text-primary" />
                   </span>
                   Stock por unidad
                 </h2>
@@ -231,7 +231,7 @@ export function DashboardView() {
               <h2 className="text-sm font-bold">Accesos rápidos</h2>
             </div>
             <div className="grid grid-cols-2 gap-2 p-4">
-              <QuickLink onClick={go("ia")} icon={Sparkles} label="Asistente IA" color="text-violet-600 dark:text-violet-400" bg="from-violet-500/15 to-violet-500/5" />
+              <QuickLink onClick={go("ia")} icon={Sparkles} label="Asistente IA" color="text-bg-primary dark:text-text-primary" bg="from-bg-primary/10 to-bg-primary/5" />
               <QuickLink onClick={go("series")} icon={Hash} label="Series" color="text-cyan-300" bg="from-cyan-500/15 to-cyan-500/5" />
               <QuickLink onClick={go("bloc")} icon={StickyNote} label="Bloc" color="text-amber-600 dark:text-amber-400" bg="from-amber-500/15 to-amber-500/5" />
               <QuickLink onClick={go("empresa")} icon={Users} label="Empresas" color="text-emerald-600 dark:text-emerald-400" bg="from-emerald-500/15 to-emerald-500/5" />

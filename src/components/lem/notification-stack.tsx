@@ -40,7 +40,7 @@ export function NotificationStack() {
   const visibles = notificaciones.filter((n) => !n.leida).slice(0, 3);
 
   const tipoConfig = {
-    recordatorio: { icon: BellRing, color: "from-violet-500 to-indigo-600", badge: "Recordatorio" },
+    recordatorio: { icon: BellRing, color: "from-bg-primary to-indigo-600", badge: "Recordatorio" },
     stock: { icon: AlertTriangle, color: "from-amber-500 to-orange-600", badge: "Stock" },
     alerta: { icon: AlertTriangle, color: "from-rose-500 to-red-600", badge: "Alerta" },
     info: { icon: Info, color: "from-cyan-500 to-blue-600", badge: "Info" },
