@@ -56,7 +56,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="antialiased bg-background text-foreground font-sans">
+      <body className="antialiased font-sans" style={{ backgroundColor: "var(--background)", color: "var(--foreground)" }}>
         <ThemeProvider>
           {children}
         </ThemeProvider>
