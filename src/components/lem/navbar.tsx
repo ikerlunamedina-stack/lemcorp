@@ -39,9 +39,10 @@ const NAV_ITEMS: NavItem[] = [
   { view: "series", icon: Hash, label: "Series" },
   { view: "pistolear", icon: ScanLine, label: "Pistolear" },
   { view: "horario", icon: Calendar, label: "Horario" },
-  { view: "ia", icon: Sparkles, label: "IA" },
+  { view: "ia", icon: Sparkles, label: "Alana" },
   { view: "bloc", icon: StickyNote, label: "Bloc" },
   { view: "empresa", icon: Building2, label: "Empresas" },
+  { view: "notificaciones", icon: Bell, label: "Avisos" },
 ];
 
 function iniciales(usuario: string): string {
@@ -187,9 +188,9 @@ export function Navbar() {
           <TemaIcon className="h-4 w-4" />
         </button>
 
-        {/* Notifications bell → abre panel de notificaciones, no inventario */}
+        {/* Notifications bell → vista de Notificaciones */}
         <button
-          onClick={() => setActiveView("config")}
+          onClick={() => setActiveView("notificaciones")}
           className="press relative flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground"
           title="Notificaciones"
         >

@@ -1708,3 +1708,34 @@ Verificación:
 - Transición: fade suave al cambiar de vista ✓
 - Lint limpio ✓
 - Sin errores en consola ✓
+
+---
+Task ID: NOTIF-VIEW-V35
+Agent: main
+Task: Crear vista de Notificaciones aparte (HTML propio)
+
+Work Log:
+- Creado src/components/lem/notificaciones-view.tsx:
+  - Título "Notificaciones" + contador (sin leer / total)
+  - Sección "Productos con bajo stock" (si hay)
+  - Sección "Recordatorios próximos" (si hay)
+  - Sección "Sin leer" con cards de notificaciones no leídas
+    - Icono por tipo, título, cuerpo, tiempo relativo
+    - Botón check para marcar como leída
+  - Sección "Leídas" con cards atenuadas (opacity-70)
+  - Botones: "Limpiar leídas" y "Borrar todo"
+  - Estado vacío con icono Bell
+- ActiveView: agregado "notificaciones"
+- Navbar: agregado "Avisos" (icono Bell) como nuevo item
+- Navbar: campana ahora lleva a "notificaciones" (antes iba a config)
+- page.tsx: agregado NotificacionesView al router con ViewTransition
+- Creado src/lib/lima-time.ts (faltaba, causaba error de import)
+- Arreglado: import de cn no usado eliminado
+- Función tiempoRelativoLima inline en notificaciones-view (evita dependencia circular)
+
+Verificación:
+- Botón "Avisos" visible en navbar ✓
+- Campana dice "Notificaciones" ✓
+- Página carga con título "Notificaciones" ✓
+- Botones "Limpiar leídas" y "Borrar todo" visibles ✓
+- Lint limpio ✓

@@ -16,6 +16,7 @@ import { IAView } from "@/components/lem/ia-view";
 import { BlocView } from "@/components/lem/bloc-view";
 import { EmpresaView } from "@/components/lem/empresa-view";
 import { ConfigView } from "@/components/lem/config-view";
+import { NotificacionesView } from "@/components/lem/notificaciones-view";
 import { NotificationStack } from "@/components/lem/notification-stack";
 import { SyncProvider } from "@/components/lem/sync-provider";
 
@@ -67,6 +68,7 @@ export default function Home() {
               {activeView === "horario" && <HorarioView />}
               {activeView === "bloc" && <BlocView />}
               {activeView === "empresa" && <EmpresaView />}
+              {activeView === "notificaciones" && <NotificacionesView />}
               {activeView === "config" && <ConfigView />}
             </ViewTransition>
           )}

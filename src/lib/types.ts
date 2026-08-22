@@ -12,6 +12,7 @@ export type ActiveView =
   | "bloc"
   | "ia"
   | "empresa"
+  | "notificaciones"
   | "config";
 
 // ─────────── Inventario ───────────
