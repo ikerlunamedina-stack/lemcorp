@@ -65,14 +65,14 @@ export function SubHeader() {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-card/40 px-4 py-3 backdrop-blur lg:px-6">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl  text-primary shadow-sm">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm">
           <Icon className="h-5 w-5" />
         </div>
         <div className="flex flex-col leading-tight">
           <h1 className="flex items-center gap-2 text-[15px] font-bold tracking-tight">
             <span>{m.title}</span>
             <span className="hidden text-[12px] font-normal text-muted-foreground sm:inline">
-              · {now ? greeting(now) : "Hola"}, {usuario || "Admin"}
+              · {now ? greeting(now) : "Hola"}, {usuario || "Iker"}
             </span>
           </h1>
           <p className="text-[11px] text-muted-foreground">{m.sub}</p>

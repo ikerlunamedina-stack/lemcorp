@@ -43,7 +43,7 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 function iniciales(usuario: string): string {
-  const u = (usuario || "Admin").trim();
+  const u = (usuario || "Iker").trim();
   if (u.length >= 2) return u.slice(0, 2).toUpperCase();
   return u.toUpperCase().padEnd(2, "X");
 }
@@ -124,7 +124,7 @@ export function Navbar() {
               />
               <span>{item.label}</span>
               {active && (
-                <span className="absolute -bottom-[1px] left-1/2 h-[2px] w-6 -translate-x-1/2 rounded-full bg-text-primary anim-scale-in" />
+                <span className="absolute -bottom-[1px] left-1/2 h-[2px] w-6 -translate-x-1/2 rounded-full bg-primary anim-scale-in" />
               )}
             </button>
           );
@@ -214,8 +214,8 @@ export function Navbar() {
         {/* Avatar */}
         <button
           onClick={() => setActiveView("config")}
-          className="press relative ml-1 flex h-9 w-9 items-center justify-center rounded-full   text-[11px] font-bold text-white shadow-md "
-          title={settings.usuario || "Admin"}
+          className="press relative ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground shadow-md"
+          title={settings.usuario || "Iker"}
         >
           {iniciales(settings.usuario)}
         </button>

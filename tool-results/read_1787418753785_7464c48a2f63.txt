@@ -1,0 +1,765 @@
+     1→// Store global Nuclon WMS — Zustand + persist (localStorage)
+     2→// Premium build — REBUILD-1
+     3→
+     4→import { create } from "zustand";
+     5→import { persist } from "zustand/middleware";
+     6→import type {
+     7→  ActiveView,
+     8→  Despacho,
+     9→  Equipment,
+    10→  Entrada,
+    11→  EstadoEquipo,
+    12→  FilaPistoleo,
+    13→  InfoEmpresa,
+    14→  MiembroEquipo,
+    15→  Nota,
+    16→  Notificacion,
+    17→  PistoleoCampo,
+    18→  Product,
+    19→  Recordatorio,
+    20→  Rol,
+    21→  Settings,
+    22→} from "./types";
+    23→import {
+    24→  DEFAULT_EMPRESA,
+    25→  DEFAULT_SETTINGS,
+    26→  REGLAS_PREFIJO,
+    27→  uid,
+    28→} from "./types";
+    29→
+    30→interface StoreState {
+    31→  // Datos
+    32→  products: Product[];
+    33→  equipos: Equipment[];
+    34→  entradas: Entrada[];
+    35→  despachos: Despacho[];
+    36→  notas: Nota[];
+    37→  recordatorios: Recordatorio[];
+    38→  notificaciones: Notificacion[];
+    39→  miembros: MiembroEquipo[];
+    40→  empresa: InfoEmpresa;
+    41→  settings: Settings;
+    42→
+    43→  // UI / sesión
+    44→  activeView: ActiveView;
+    45→
+    46→  // Pistoleo
+    47→  pistoleoCampo: PistoleoCampo;
+    48→  pistoleoModelo: string;
+    49→  pistoleoEstado: EstadoEquipo;
+    50→  pistoleoFilas: FilaPistoleo[];
+    51→
+    52→  // ─── Acciones: navegación ───
+    53→  setActiveView: (v: ActiveView) => void;
+    54→
+    55→  // ─── Acciones: pistoleo ───
+    56→  setPistoleoConfig: (patch: Partial<{
+    57→    pistoleoCampo: PistoleoCampo;
+    58→    pistoleoModelo: string;
+    59→    pistoleoEstado: EstadoEquipo;
+    60→  }>) => void;
+    61→  addPistoleoFila: (valores: string[]) => void;
+    62→  deletePistoleoFila: (id: string) => void;
+    63→  clearPistoleoFilas: () => void;
+    64→  confirmarPistoleo: () => { ok: boolean; msg: string; count: number };
+    65→
+    66→  // ─── Acciones: inventario ───
+    67→  addProduct: (sku: string, name: string, quantity: number, minStock?: number, udm?: string) => string | null;
+    68→  updateProduct: (id: string, data: Partial<Omit<Product, "id" | "createdAt">>) => void;
+    69→  deleteProduct: (id: string) => void;
+    70→  findProductBySku: (sku: string) => Product | null;
+    71→  importProductsBulk: (items: { sku: string; name: string; quantity: number; minStock?: number; udm?: string }[]) => { ok: number; dup: number };
+    72→
+    73→  // ─── Acciones: entradas ───
+    74→  registrarEntrada: (input: string) => { ok: boolean; msg: string; count: number };
+    75→  deleteEntrada: (id: string) => void;
+    76→
+    77→  // ─── Acciones: despachos ───
+    78→  registrarDespacho: (input: {
+    79→    sku: string;
+    80→    cantidad: number;
+    81→    tecnico?: string;
+    82→    destino?: string;
+    83→    observacion?: string;
+    84→    fecha?: number;
+    85→  }) => { ok: boolean; msg: string };
+    86→  registrarDespachosBulk: (despachos: Array<{
+    87→    sku: string;
+    88→    cantidad: number;
+    89→    tecnico?: string;
+    90→    destino?: string;
+    91→    observacion?: string;
+    92→    fecha?: number;
+    93→  }>) => { ok: number; fail: number; fails: string[]; totalUnidades: number };
+    94→  deleteDespacho: (id: string) => void;
+    95→
+    96→  // ─── Acciones: equipos ───
+    97→  addEquipment: (e: Omit<Equipment, "id" | "createdAt" | "updatedAt">) => string | null;
+    98→  addEquipmentBulk: (input: {
+    99→    series: string[];
+   100→    modelo: string;
+   101→    estado: EstadoEquipo;
+   102→    ubicacion?: string;
+   103→    observacion?: string;
+   104→  }) => { ok: number; dup: number };
+   105→  updateEquipment: (id: string, data: Partial<Omit<Equipment, "id" | "createdAt">>) => void;
+   106→  deleteEquipment: (id: string) => void;
+   107→  findEquipmentBySerie: (serie: string) => Equipment | null;
+   108→  deleteEquipmentBulk: (ids: string[]) => void;
+   109→
+   110→  // ─── Acciones: bloc ───
+   111→  addNota: (texto: string) => void;
+   112→  togglePinNota: (id: string) => void;
+   113→  deleteNota: (id: string) => void;
+   114→
+   115→  // ─── Acciones: recordatorios (IA) ───
+   116→  addRecordatorio: (texto: string, cuando: number, origen?: "ia" | "manual") => string;
+   117→  deleteRecordatorio: (id: string) => void;
+   118→  marcarRecordatorioDisparado: (id: string) => void;
+   119→  checkRecordatorios: () => Recordatorio[];
+   120→
+   121→  // ─── Acciones: notificaciones (estilo iPhone) ───
+   122→  addNotificacion: (titulo: string, cuerpo: string, tipo?: Notificacion["tipo"]) => string;
+   123→  markNotificacionLeida: (id: string) => void;
+   124→  clearNotificaciones: () => void;
+   125→  clearNotificacionesLeidas: () => void;
+   126→
+   127→  // ─── Acciones: empresa / miembros ───
+   128→  updateEmpresa: (data: Partial<InfoEmpresa>) => void;
+   129→  addMiembro: (nombre: string, rol: Rol, correo?: string, telefono?: string) => void;
+   130→  updateMiembro: (id: string, data: Partial<Omit<MiembroEquipo, "id">>) => void;
+   131→  deleteMiembro: (id: string) => void;
+   132→
+   133→  // ─── Export ───
+   134→  exportInventarioExcel: () => void;
+   135→
+   136→  // ─── Config ───
+   137→  setSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
+   138→  clearAllData: () => void;
+   139→  seedDemo: () => void;
+   140→}
+   141→
+   142→function normalizaSerie(s: string): string {
+   143→  return s.trim();
+   144→}
+   145→
+   146→function detectarModeloPorPrefijo(serie: string): string | null {
+   147→  const s = serie.trim().toUpperCase();
+   148→  if (!s) return null;
+   149→  for (const regla of REGLAS_PREFIJO) {
+   150→    if (s.startsWith(regla.prefijo.toUpperCase())) return regla.modelo;
+   151→  }
+   152→  return null;
+   153→}
+   154→
+   155→export const useStore = create<StoreState>()(
+   156→  persist(
+   157→    (set, get) => ({
+   158→      products: [],
+   159→      equipos: [],
+   160→      entradas: [],
+   161→      despachos: [],
+   162→      notas: [],
+   163→      recordatorios: [],
+   164→      notificaciones: [],
+   165→      miembros: [],
+   166→      empresa: { ...DEFAULT_EMPRESA },
+   167→      settings: { ...DEFAULT_SETTINGS },
+   168→
+   169→      activeView: "dashboard",
+   170→
+   171→      // pistoleo
+   172→      pistoleoCampo: "serie",
+   173→      pistoleoModelo: "",
+   174→      pistoleoEstado: "disponible",
+   175→      pistoleoFilas: [],
+   176→
+   177→      // ─── Navegación ───
+   178→      setActiveView: (v) => set({ activeView: v }),
+   179→
+   180→      // ─── Pistoleo ───
+   181→      setPistoleoConfig: (patch) => set({ ...patch }),
+   182→      addPistoleoFila: (valores) =>
+   183→        set({
+   184→          pistoleoFilas: [
+   185→            { id: uid(), valores: valores.map((v) => v.trim()), timestamp: Date.now() },
+   186→            ...get().pistoleoFilas,
+   187→          ],
+   188→        }),
+   189→      deletePistoleoFila: (id) =>
+   190→        set({ pistoleoFilas: get().pistoleoFilas.filter((f) => f.id !== id) }),
+   191→      clearPistoleoFilas: () => set({ pistoleoFilas: [] }),
+   192→
+   193→      confirmarPistoleo: () => {
+   194→        const filas = get().pistoleoFilas;
+   195→        if (filas.length === 0) return { ok: false, msg: "No hay series para guardar.", count: 0 };
+   196→        const { pistoleoModelo, pistoleoEstado } = get();
+   197→        let count = 0;
+   198→        const nuevos: Equipment[] = [];
+   199→        const existentes = new Set(get().equipos.map((e) => e.serie.trim().toLowerCase()));
+   200→        const fechasNow = Date.now();
+   201→        for (const f of filas) {
+   202→          const serie = (f.valores[0] ?? "").trim();
+   203→          if (!serie) continue;
+   204→          if (existentes.has(serie.toLowerCase())) continue;
+   205→          const modelo = pistoleoModelo.trim() || detectarModeloPorPrefijo(serie) || "SIN MODELO";
+   206→          nuevos.push({
+   207→            id: uid(),
+   208→            serie,
+   209→            modelo,
+   210→            estado: pistoleoEstado,
+   211→            ubicacion: "Almacén HUB",
+   212→            createdAt: fechasNow,
+   213→            updatedAt: fechasNow,
+   214→          });
+   215→          existentes.add(serie.toLowerCase());
+   216→          count++;
+   217→        }
+   218→        if (count === 0) {
+   219→          return { ok: false, msg: "Todas las series ya estaban registradas.", count: 0 };
+   220→        }
+   221→        set({ equipos: [...nuevos, ...get().equipos], pistoleoFilas: [] });
+   222→        return {
+   223→          ok: true,
+   224→          msg: `${count} equipo(s) guardado(s) correctamente.`,
+   225→          count,
+   226→        };
+   227→      },
+   228→
+   229→      // ─── Inventario ───
+   230→      findProductBySku: (sku) => {
+   231→        const norm = sku.trim().toLowerCase();
+   232→        return get().products.find((p) => p.sku.trim().toLowerCase() === norm) ?? null;
+   233→      },
+   234→
+   235→      addProduct: (sku, name, quantity, minStock, udm) => {
+   236→        const skuTrim = sku.trim();
+   237→        if (!skuTrim || !name.trim()) return null;
+   238→        if (get().findProductBySku(skuTrim)) return null;
+   239→        const p: Product = {
+   240→          id: uid(),
+   241→          sku: skuTrim,
+   242→          name: name.trim(),
+   243→          quantity: quantity || 0,
+   244→          minStock,
+   245→          udm,
+   246→          createdAt: Date.now(),
+   247→          updatedAt: Date.now(),
+   248→        };
+   249→        set({ products: [...get().products, p] });
+   250→        return p.id;
+   251→      },
+   252→
+   253→      updateProduct: (id, data) =>
+   254→        set({
+   255→          products: get().products.map((p) =>
+   256→            p.id === id ? { ...p, ...data, updatedAt: Date.now() } : p
+   257→          ),
+   258→        }),
+   259→
+   260→      deleteProduct: (id) =>
+   261→        set({ products: get().products.filter((p) => p.id !== id) }),
+   262→
+   263→      importProductsBulk: (items) => {
+   264→        let ok = 0;
+   265→        let dup = 0;
+   266→        const nuevos: Product[] = [];
+   267→        const existSkus = new Set(get().products.map((p) => p.sku.trim().toLowerCase()));
+   268→        for (const it of items) {
+   269→          const sku = it.sku.trim();
+   270→          if (!sku || !it.name.trim()) continue;
+   271→          if (existSkus.has(sku.toLowerCase())) { dup++; continue; }
+   272→          existSkus.add(sku.toLowerCase());
+   273→          nuevos.push({
+   274→            id: uid(),
+   275→            sku,
+   276→            name: it.name.trim(),
+   277→            quantity: it.quantity || 0,
+   278→            minStock: it.minStock,
+   279→            udm: it.udm,
+   280→            createdAt: Date.now(),
+   281→            updatedAt: Date.now(),
+   282→          });
+   283→          ok++;
+   284→        }
+   285→        if (nuevos.length > 0) set({ products: [...get().products, ...nuevos] });
+   286→        return { ok, dup };
+   287→      },
+   288→
+   289→      // ─── Entradas (formato SKU*cantidad por línea) ───
+   290→      registrarEntrada: (input) => {
+   291→        const lines = input.split("\n").filter((l) => l.trim());
+   292→        let count = 0;
+   293→        const newEntradas: Entrada[] = [];
+   294→        for (const line of lines) {
+   295→          const parts = line.trim().split("*");
+   296→          if (parts.length < 2) continue;
+   297→          const sku = parts[0].trim();
+   298→          const cantidad = parseInt(parts[1].trim(), 10);
+   299→          if (!sku || isNaN(cantidad) || cantidad <= 0) continue;
+   300→          const product = get().findProductBySku(sku);
+   301→          if (product) {
+   302→            set({
+   303→              products: get().products.map((p) =>
+   304→                p.id === product.id
+   305→                  ? { ...p, quantity: p.quantity + cantidad, updatedAt: Date.now() }
+   306→                  : p
+   307→              ),
+   308→            });
+   309→          }
+   310→          newEntradas.push({
+   311→            id: uid(),
+   312→            fecha: Date.now(),
+   313→            sku,
+   314→            producto: product?.name ?? sku,
+   315→            cantidad,
+   316→          });
+   317→          count++;
+   318→        }
+   319→        if (count > 0) set({ entradas: [...newEntradas, ...get().entradas] });
+   320→        return {
+   321→          ok: count > 0,
+   322→          msg: count > 0
+   323→            ? `${count} entrada(s) registrada(s)`
+   324→            : "Formato incorrecto. Usa: SKU*cantidad (ej: 1066990*100)",
+   325→          count,
+   326→        };
+   327→      },
+   328→
+   329→      deleteEntrada: (id) => {
+   330→        const ent = get().entradas.find((e) => e.id === id);
+   331→        if (!ent) return;
+   332→        const product = get().findProductBySku(ent.sku);
+   333→        if (product) {
+   334→          set({
+   335→            products: get().products.map((p) =>
+   336→              p.id === product.id
+   337→                ? { ...p, quantity: Math.max(0, p.quantity - ent.cantidad), updatedAt: Date.now() }
+   338→                : p
+   339→            ),
+   340→          });
+   341→        }
+   342→        set({ entradas: get().entradas.filter((e) => e.id !== id) });
+   343→      },
+   344→
+   345→      // ─── Despachos (valida SKU y stock, descuenta inventario) ───
+   346→      registrarDespacho: ({ sku, cantidad, tecnico, destino, observacion, fecha }) => {
+   347→        const skuTrim = sku.trim();
+   348→        const product = get().findProductBySku(skuTrim);
+   349→        if (!product) {
+   350→          return { ok: false, msg: `SKU "${skuTrim}" no encontrado en el catálogo.` };
+   351→        }
+   352→        if (!Number.isFinite(cantidad) || cantidad <= 0) {
+   353→          return { ok: false, msg: "La cantidad debe ser mayor a 0." };
+   354→        }
+   355→        if (product.quantity < cantidad) {
+   356→          return {
+   357→            ok: false,
+   358→            msg: `Stock insuficiente. Disponible: ${product.quantity}, solicitado: ${cantidad}.`,
+   359→          };
+   360→        }
+   361→        const d: Despacho = {
+   362→          id: uid(),
+   363→          fecha: fecha || Date.now(),
+   364→          sku: product.sku,
+   365→          producto: product.name,
+   366→          cantidad,
+   367→          tecnico: tecnico?.trim() || undefined,
+   368→          destino: destino?.trim() || undefined,
+   369→          observacion: observacion?.trim() || undefined,
+   370→        };
+   371→        set({
+   372→          despachos: [d, ...get().despachos],
+   373→          products: get().products.map((p) =>
+   374→            p.id === product.id
+   375→              ? { ...p, quantity: p.quantity - cantidad, updatedAt: Date.now() }
+   376→              : p
+   377→          ),
+   378→        });
+   379→        return {
+   380→          ok: true,
+   381→          msg: `Despacho registrado: ${cantidad} × ${product.name} → stock: ${product.quantity - cantidad}`,
+   382→        };
+   383→      },
+   384→
+   385→      // Registro masivo de despachos (para Excel importado)
+   386→      registrarDespachosBulk: (inputDespachos) => {
+   387→        let ok = 0;
+   388→        let fail = 0;
+   389→        let totalUnidades = 0;
+   390→        const fails: string[] = [];
+   391→        const nuevosDespachos: Despacho[] = [];
+   392→        const productosActualizados = new Map<string, number>();
+   393→
+   394→        for (const item of inputDespachos) {
+   395→          const skuTrim = item.sku.trim();
+   396→          const product = get().findProductBySku(skuTrim);
+   397→          if (!product) {
+   398→            fail++;
+   399→            fails.push(`SKU "${skuTrim}" no encontrado`);
+   400→            continue;
+   401→          }
+   402→          if (!Number.isFinite(item.cantidad) || item.cantidad <= 0) {
+   403→            fail++;
+   404→            fails.push(`Cantidad inválida para ${skuTrim}`);
+   405→            continue;
+   406→          }
+   407→          // Calcular stock disponible considerando despachos anteriores del mismo bulk
+   408→          const stockActual = productosActualizados.get(product.id) ?? product.quantity;
+   409→          if (stockActual < item.cantidad) {
+   410→            fail++;
+   411→            fails.push(`Stock insuficiente para ${product.name} (disp: ${stockActual}, solicitado: ${item.cantidad})`);
+   412→            continue;
+   413→          }
+   414→          productosActualizados.set(product.id, stockActual - item.cantidad);
+   415→          nuevosDespachos.push({
+   416→            id: uid(),
+   417→            fecha: item.fecha || Date.now(),
+   418→            sku: product.sku,
+   419→            producto: product.name,
+   420→            cantidad: item.cantidad,
+   421→            tecnico: item.tecnico?.trim() || undefined,
+   422→            destino: item.destino?.trim() || undefined,
+   423→            observacion: item.observacion?.trim() || undefined,
+   424→          });
+   425→          ok++;
+   426→          totalUnidades += item.cantidad;
+   427→        }
+   428→
+   429→        if (nuevosDespachos.length > 0) {
+   430→          // Ordenar por fecha (más reciente primero)
+   431→          nuevosDespachos.sort((a, b) => b.fecha - a.fecha);
+   432→          set({
+   433→            despachos: [...nuevosDespachos, ...get().despachos],
+   434→            products: get().products.map((p) => {
+   435→              const newQty = productosActualizados.get(p.id);
+   436→              return newQty !== undefined ? { ...p, quantity: newQty, updatedAt: Date.now() } : p;
+   437→            }),
+   438→          });
+   439→        }
+   440→        return { ok, fail, fails, totalUnidades };
+   441→      },
+   442→
+   443→      deleteDespacho: (id) => {
+   444→        const d = get().despachos.find((x) => x.id === id);
+   445→        if (!d) return;
+   446→        const product = get().findProductBySku(d.sku);
+   447→        if (product) {
+   448→          set({
+   449→            products: get().products.map((p) =>
+   450→              p.id === product.id
+   451→                ? { ...p, quantity: p.quantity + d.cantidad, updatedAt: Date.now() }
+   452→                : p
+   453→            ),
+   454→          });
+   455→        }
+   456→        set({ despachos: get().despachos.filter((x) => x.id !== id) });
+   457→      },
+   458→
+   459→      // ─── Equipos ───
+   460→      findEquipmentBySerie: (serie) => {
+   461→        const norm = serie.trim().toLowerCase();
+   462→        return get().equipos.find((e) => e.serie.trim().toLowerCase() === norm) ?? null;
+   463→      },
+   464→
+   465→      addEquipment: (e) => {
+   466→        const serieTrim = e.serie.trim();
+   467→        const modeloTrim = e.modelo.trim();
+   468→        if (!serieTrim || !modeloTrim) return null;
+   469→        if (get().findEquipmentBySerie(serieTrim)) return null;
+   470→        const eq: Equipment = {
+   471→          id: uid(),
+   472→          ...e,
+   473→          serie: serieTrim,
+   474→          modelo: modeloTrim,
+   475→          createdAt: Date.now(),
+   476→          updatedAt: Date.now(),
+   477→        };
+   478→        set({ equipos: [eq, ...get().equipos] });
+   479→        return eq.id;
+   480→      },
+   481→
+   482→      addEquipmentBulk: ({ series, modelo, estado, ubicacion, observacion }) => {
+   483→        const modeloTrim = modelo.trim();
+   484→        let ok = 0;
+   485→        let dup = 0;
+   486→        const nuevos: Equipment[] = [];
+   487→        const existentes = new Set(get().equipos.map((e) => e.serie.trim().toLowerCase()));
+   488→        const ts = Date.now();
+   489→        for (const raw of series) {
+   490→          const s = normalizaSerie(raw);
+   491→          if (!s) continue;
+   492→          if (existentes.has(s.toLowerCase())) { dup++; continue; }
+   493→          existentes.add(s.toLowerCase());
+   494→          nuevos.push({
+   495→            id: uid(),
+   496→            serie: s,
+   497→            modelo: modeloTrim,
+   498→            estado,
+   499→            ubicacion,
+   500→            observacion,
+   501→            createdAt: ts,
+   502→            updatedAt: ts,
+   503→          });
+   504→          ok++;
+   505→        }
+   506→        if (nuevos.length > 0) set({ equipos: [...nuevos, ...get().equipos] });
+   507→        return { ok, dup };
+   508→      },
+   509→
+   510→      updateEquipment: (id, data) =>
+   511→        set({
+   512→          equipos: get().equipos.map((e) =>
+   513→            e.id === id ? { ...e, ...data, updatedAt: Date.now() } : e
+   514→          ),
+   515→        }),
+   516→
+   517→      deleteEquipment: (id) =>
+   518→        set({ equipos: get().equipos.filter((e) => e.id !== id) }),
+   519→
+   520→      deleteEquipmentBulk: (ids) =>
+   521→        set({ equipos: get().equipos.filter((e) => !ids.includes(e.id)) }),
+   522→
+   523→      // ─── Bloc ───
+   524→      addNota: (texto) =>
+   525→        set({
+   526→          notas: [
+   527→            { id: uid(), texto: texto.trim(), fecha: Date.now(), pinned: false },
+   528→            ...get().notas,
+   529→          ],
+   530→        }),
+   531→      togglePinNota: (id) =>
+   532→        set({
+   533→          notas: get().notas.map((n) => (n.id === id ? { ...n, pinned: !n.pinned } : n)),
+   534→        }),
+   535→      deleteNota: (id) => set({ notas: get().notas.filter((n) => n.id !== id) }),
+   536→
+   537→      // ─── Recordatorios (controlados por la IA) ───
+   538→      addRecordatorio: (texto, cuando, origen = "ia") => {
+   539→        const id = uid();
+   540→        const nuevo: Recordatorio = {
+   541→          id,
+   542→          texto: texto.trim(),
+   543→          fecha: Date.now(),
+   544→          cuando,
+   545→          disparado: false,
+   546→          origen,
+   547→        };
+   548→        set({ recordatorios: [...get().recordatorios, nuevo] });
+   549→        return id;
+   550→      },
+   551→      deleteRecordatorio: (id) =>
+   552→        set({ recordatorios: get().recordatorios.filter((r) => r.id !== id) }),
+   553→      marcarRecordatorioDisparado: (id) =>
+   554→        set({
+   555→          recordatorios: get().recordatorios.map((r) =>
+   556→            r.id === id ? { ...r, disparado: true } : r
+   557→          ),
+   558→        }),
+   559→      checkRecordatorios: () => {
+   560→        const ahora = Date.now();
+   561→        const pendientes = get().recordatorios.filter(
+   562→          (r) => !r.disparado && r.cuando <= ahora
+   563→        );
+   564→        return pendientes;
+   565→      },
+   566→
+   567→      // ─── Notificaciones (estilo iPhone) ───
+   568→      addNotificacion: (titulo, cuerpo, tipo = "info") => {
+   569→        const id = uid();
+   570→        const nueva: Notificacion = {
+   571→          id,
+   572→          titulo,
+   573→          cuerpo,
+   574→          tipo,
+   575→          fecha: Date.now(),
+   576→          leida: false,
+   577→        };
+   578→        // Mantener máximo 20 notificaciones
+   579→        const todas = [nueva, ...get().notificaciones].slice(0, 20);
+   580→        set({ notificaciones: todas });
+   581→        return id;
+   582→      },
+   583→      markNotificacionLeida: (id) =>
+   584→        set({
+   585→          notificaciones: get().notificaciones.map((n) =>
+   586→            n.id === id ? { ...n, leida: true } : n
+   587→          ),
+   588→        }),
+   589→      clearNotificaciones: () => set({ notificaciones: [] }),
+   590→      clearNotificacionesLeidas: () =>
+   591→        set({ notificaciones: get().notificaciones.filter((n) => !n.leida) }),
+   592→
+   593→      // ─── Empresa / miembros ───
+   594→      updateEmpresa: (data) => set({ empresa: { ...get().empresa, ...data } }),
+   595→
+   596→      addMiembro: (nombre, rol, correo, telefono) =>
+   597→        set({
+   598→          miembros: [
+   599→            ...get().miembros,
+   600→            {
+   601→              id: uid(),
+   602→              nombre: nombre.trim(),
+   603→              rol,
+   604→              correo: correo?.trim() || undefined,
+   605→              telefono: telefono?.trim() || undefined,
+   606→              activo: true,
+   607→            },
+   608→          ],
+   609→        }),
+   610→      updateMiembro: (id, data) =>
+   611→        set({
+   612→          miembros: get().miembros.map((m) => (m.id === id ? { ...m, ...data } : m)),
+   613→        }),
+   614→      deleteMiembro: (id) =>
+   615→        set({ miembros: get().miembros.filter((m) => m.id !== id) }),
+   616→
+   617→      // ─── Export ───
+   618→      exportInventarioExcel: () => {
+   619→        import("xlsx").then((XLSX: any) => {
+   620→          const data: any[][] = [
+   621→            ["INVENTARIO Nuclon", "", "", "", ""],
+   622→            ["Exportado:", new Date().toLocaleString("es-PE"), "", "", ""],
+   623→            [],
+   624→            ["SKU", "PRODUCTO", "STOCK ACTUAL", "STOCK MÍNIMO", "UDM"],
+   625→            ...get().products.map((p) => [p.sku, p.name, p.quantity, p.minStock ?? "", p.udm ?? ""]),
+   626→          ];
+   627→          const ws = XLSX.utils.aoa_to_sheet(data);
+   628→          ws["!cols"] = [{ wch: 14 }, { wch: 40 }, { wch: 14 }, { wch: 14 }, { wch: 12 }];
+   629→          const wb = XLSX.utils.book_new();
+   630→          XLSX.utils.book_append_sheet(wb, ws, "Inventario");
+   631→          XLSX.writeFile(wb, `Inventario_Nuclon_${new Date().toISOString().slice(0, 10)}.xlsx`);
+   632→        });
+   633→      },
+   634→
+   635→      // ─── Config ───
+   636→      setSetting: (key, value) =>
+   637→        set({ settings: { ...get().settings, [key]: value } }),
+   638→
+   639→      clearAllData: () =>
+   640→        set({
+   641→          products: [],
+   642→          equipos: [],
+   643→          entradas: [],
+   644→          despachos: [],
+   645→          notas: [],
+   646→          recordatorios: [],
+   647→          notificaciones: [],
+   648→          miembros: [],
+   649→          empresa: { ...DEFAULT_EMPRESA },
+   650→          settings: { ...DEFAULT_SETTINGS },
+   651→          activeView: "dashboard",
+   652→          pistoleoFilas: [],
+   653→          pistoleoCampo: "serie",
+   654→          pistoleoModelo: "",
+   655→          pistoleoEstado: "disponible",
+   656→        }),
+   657→
+   658→      // ─── Demo data (siempre limpia y carga) ───
+   659→      seedDemo: () => {
+   660→        // Limpiar primero
+   661→        set({
+   662→          products: [],
+   663→          equipos: [],
+   664→          entradas: [],
+   665→          despachos: [],
+   666→          notas: [],
+   667→          recordatorios: [],
+   668→          notificaciones: [],
+   669→          miembros: [],
+   670→          pistoleoFilas: [],
+   671→        });
+   672→
+   673→        // 10 productos
+   674→        const demo: [string, string, number, number?, string?][] = [
+   675→          ["1066990", "CONECTOR FIBRA OPTICA FTTH PPC", 41, 10, "UNIDADES"],
+   676→          ["1002900", "CONECTOR PLUG RJ-45", 2768, 100, "UNIDADES"],
+   677→          ["1002950", "ATADOR DE IDENTIFICACION DE ABONADO", 1475, 50, "UNIDADES"],
+   678→          ["1003101", "CABLE COAXIAL RG-6 AUTOSOPORTADO", 6794, 200, "METROS"],
+   679→          ["1004705", "CABLE COAXIAL BLANCO RG-6 S/MENSAJERO", 3121, 100, "METROS"],
+   680→          ["1004692", "CABLE UTP CAT5E FTP 4PR/24AWG", 15921, 500, "METROS"],
+   681→          ["4076358", "ROUTER ONT HG8145X6-13 50088770 HUAWEI", 29, 5, "UNIDADES"],
+   682→          ["4048528", "MODEM ARRIS TG2482 24X8 3.0 S/BAT", 12, 3, "UNIDADES"],
+   683→          ["4073653", "ROUTER K562E-10 50087708 HUAWEI", 16, 3, "UNIDADES"],
+   684→          ["4072704", "DECODIFICADOR IPTV ZXVAB B866V2-H ZTE", 67, 5, "UNIDADES"],
+   685→        ];
+   686→        for (const [sku, name, qty, min, udm] of demo) get().addProduct(sku, name, qty, min, udm);
+   687→
+   688→        // 7 equipos
+   689→        const demoEq: [string, string, EstadoEquipo, string?][] = [
+   690→          ["48575443365E42B7", "ROUTER ONT HG8145X6-13 HUAWEI", "disponible", "Almacén HUB"],
+   691→          ["48575443365E42C8", "ROUTER ONT HG8145X6-13 HUAWEI", "disponible", "Almacén HUB"],
+   692→          ["48575443365E42D1", "ROUTER ONT HG8145X6-13 HUAWEI", "averiado", "Taller"],
+   693→          ["SN10002ABC", "DECODIFICADOR IPTV ZXVAB B866V2-H ZTE", "disponible", "Almacén HUB"],
+   694→          ["SN10003DEF", "DECODIFICADOR IPTV ZXVAB B866V2-H ZTE", "en_retiro", "Taller"],
+   695→          ["MACA0B1C2D3E", "REPETIDOR ZXHN H3601P ZTE", "disponible", "Almacén HUB"],
+   696→          ["MACA0B1C2D3F", "REPETIDOR ZXHN H3601P ZTE", "en_reparacion", "Taller"],
+   697→        ];
+   698→        for (const [serie, modelo, estado, ubi] of demoEq)
+   699→          get().addEquipment({ serie, modelo, estado, ubicacion: ubi });
+   700→
+   701→        // 3 notas
+   702→        get().addNota("Traer 50 conectores FTTH para mañana - pedido urgente del técnico Pérez");
+   703→        get().addNota("Router con serie 48575443365E42D1 no enciende - llevar a taller");
+   704→        get().addNota("Verificar stock de cable RG-6, parece bajo");
+   705→
+   706→        // 6 miembros
+   707→        get().addMiembro("Antonio", "jefe_operaciones", "antonio@nuclon.com", "999888777");
+   708→        get().addMiembro("Carlos Mendoza", "supervisor", "carlos@nuclon.com", "999111222");
+   709→        get().addMiembro("J. Pérez", "tecnico", "jperez@nuclon.com", "999333444");
+   710→        get().addMiembro("M. Luna", "tecnico", "mluna@nuclon.com", "999555666");
+   711→        get().addMiembro("R. García", "tecnico", undefined, "999777888");
+   712→        get().addMiembro("L. Medina", "almacenero", "lmedina@nuclon.com", undefined);
+   713→      },
+   714→    }),
+   715→    {
+   716→      name: "nuclon-v3",
+   717→      partialize: (s) => ({
+   718→        products: s.products,
+   719→        equipos: s.equipos,
+   720→        entradas: s.entradas,
+   721→        despachos: s.despachos,
+   722→        notas: s.notas,
+   723→        recordatorios: s.recordatorios,
+   724→        notificaciones: s.notificaciones,
+   725→        miembros: s.miembros,
+   726→        empresa: s.empresa,
+   727→        settings: s.settings,
+   728→        activeView: s.activeView,
+   729→        pistoleoCampo: s.pistoleoCampo,
+   730→        pistoleoModelo: s.pistoleoModelo,
+   731→        pistoleoEstado: s.pistoleoEstado,
+   732→        pistoleoFilas: s.pistoleoFilas,
+   733→      }),
+   734→      migrate: (p: any) => {
+   735→        if (!p) return p;
+   736→        if (!Array.isArray(p.products)) p.products = [];
+   737→        if (!Array.isArray(p.equipos)) p.equipos = [];
+   738→        if (!Array.isArray(p.entradas)) p.entradas = [];
+   739→        if (!Array.isArray(p.despachos)) p.despachos = [];
+   740→        if (!Array.isArray(p.notas)) p.notas = [];
+   741→        if (!Array.isArray(p.recordatorios)) p.recordatorios = [];
+   742→        if (!Array.isArray(p.notificaciones)) p.notificaciones = [];
+   743→        if (!Array.isArray(p.miembros)) p.miembros = [];
+   744→        if (!Array.isArray(p.pistoleoFilas)) p.pistoleoFilas = [];
+   745→        if (!p.empresa) p.empresa = { ...DEFAULT_EMPRESA };
+   746→        // Mergear settings con defaults (para añadir campos nuevos)
+   747→        const mergedSettings = { ...DEFAULT_SETTINGS, ...(p.settings || {}) };
+   748→        // Forzar tema oscuro en migración
+   749→        mergedSettings.tema = "oscuro";
+   750→        p.settings = mergedSettings;
+   751→        if (!p.pistoleoCampo) p.pistoleoCampo = "serie";
+   752→        if (!p.pistoleoModelo) p.pistoleoModelo = "";
+   753→        if (!p.pistoleoEstado) p.pistoleoEstado = "disponible";
+   754→        // Normalizar products.quantity
+   755→        p.products = p.products.map((x: any) => ({
+   756→          ...x,
+   757→          quantity: typeof x.quantity === "number" ? x.quantity : 0,
+   758→        }));
+   759→        return p;
+   760→      },
+   761→      version: 9,
+   762→    }
+   763→  )
+   764→);
+   765→

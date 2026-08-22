@@ -15,6 +15,7 @@ import { BlocView } from "@/components/lem/bloc-view";
 import { EmpresaView } from "@/components/lem/empresa-view";
 import { ConfigView } from "@/components/lem/config-view";
 import { NotificationStack } from "@/components/lem/notification-stack";
+import { SyncProvider } from "@/components/lem/sync-provider";
 
 export default function Home() {
   const activeView = useStore((s) => s.activeView);
@@ -23,28 +24,30 @@ export default function Home() {
   const isChatView = activeView === "ia";
 
   return (
-    <div className="flex h-screen flex-col bg-background text-foreground">
-      <Navbar />
-      {!isChatView && <SubHeader />}
-      <main className="relative flex-1 overflow-auto scroll-thin">
-        {isChatView ? (
-          <IAView />
-        ) : (
-          <div key={activeView} className="min-h-full pb-14 lg:pb-0 anim-fade-in">
-            {activeView === "dashboard" && <DashboardView />}
-            {activeView === "inventario" && <InventarioView />}
-            {activeView === "despachos" && <DespachosView />}
-            {activeView === "equipos" && <EquiposView />}
-            {activeView === "series" && <SeriesView />}
-            {activeView === "pistolear" && <PistolearView />}
-            {activeView === "bloc" && <BlocView />}
-            {activeView === "empresa" && <EmpresaView />}
-            {activeView === "config" && <ConfigView />}
-          </div>
-        )}
-      </main>
-      {!isChatView && <Footer />}
-      <NotificationStack />
-    </div>
+    <SyncProvider>
+      <div className="flex h-screen flex-col bg-background text-foreground">
+        <Navbar />
+        {!isChatView && <SubHeader />}
+        <main className="relative flex-1 overflow-auto scroll-thin">
+          {isChatView ? (
+            <IAView />
+          ) : (
+            <div key={activeView} className="min-h-full pb-14 lg:pb-0 anim-fade-in">
+              {activeView === "dashboard" && <DashboardView />}
+              {activeView === "inventario" && <InventarioView />}
+              {activeView === "despachos" && <DespachosView />}
+              {activeView === "equipos" && <EquiposView />}
+              {activeView === "series" && <SeriesView />}
+              {activeView === "pistolear" && <PistolearView />}
+              {activeView === "bloc" && <BlocView />}
+              {activeView === "empresa" && <EmpresaView />}
+              {activeView === "config" && <ConfigView />}
+            </div>
+          )}
+        </main>
+        {!isChatView && <Footer />}
+        <NotificationStack />
+      </div>
+    </SyncProvider>
   );
 }

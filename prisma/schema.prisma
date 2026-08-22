@@ -1,8 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// Prisma schema for Nuclon WMS — multi-device sync
+// Each device pushes its full snapshot keyed by a deviceId stored in localStorage.
+// SQLite is used as a simple, file-based sync target.
 
 generator client {
   provider = "prisma-client-js"
@@ -13,20 +11,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
+/// A device's full data snapshot. One row per device.
+model DeviceSnapshot {
   id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
+  /// Identifier stored in the device's localStorage (auto-generated uuid).
+  deviceId  String   @unique
+  /// Display name (browser / user agent info, optional, for debug only).
+  label     String?
+  /// ISO timestamp of the last sync from the device.
   updatedAt DateTime @updatedAt
+  /// Raw JSON blob of the entire store state (products, equipos, etc.)
+  payload   String
+
+  @@index([deviceId])
 }
 
-model Post {
+/// Optional: lightweight audit log of sync events for debugging.
+model SyncLog {
   id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
+  deviceId  String
+  action    String // "push" | "pull"
+  bytes     Int
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+
+  @@index([deviceId])
 }

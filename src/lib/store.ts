@@ -731,6 +731,12 @@ export const useStore = create<StoreState>()(
         pistoleoEstado: s.pistoleoEstado,
         pistoleoFilas: s.pistoleoFilas,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          // Mark as hydrated so the SyncProvider knows it can pull.
+          (state as any)._hasHydrated = true;
+        }
+      },
       migrate: (p: any) => {
         if (!p) return p;
         if (!Array.isArray(p.products)) p.products = [];
@@ -743,10 +749,18 @@ export const useStore = create<StoreState>()(
         if (!Array.isArray(p.miembros)) p.miembros = [];
         if (!Array.isArray(p.pistoleoFilas)) p.pistoleoFilas = [];
         if (!p.empresa) p.empresa = { ...DEFAULT_EMPRESA };
+        // Migrar empresa: si era "Nuclon" o vacío, cambiar a "Lemcorp"
+        if (!p.empresa.nombre || p.empresa.nombre === "Nuclon") {
+          p.empresa = { ...DEFAULT_EMPRESA, ...p.empresa, nombre: "Lemcorp" };
+        }
         // Mergear settings con defaults (para añadir campos nuevos)
         const mergedSettings = { ...DEFAULT_SETTINGS, ...(p.settings || {}) };
         // Forzar tema oscuro en migración
         mergedSettings.tema = "oscuro";
+        // Migrar usuario "Admin" → "Iker" (si era el default anterior)
+        if (mergedSettings.usuario === "Admin" || !mergedSettings.usuario) {
+          mergedSettings.usuario = "Iker";
+        }
         p.settings = mergedSettings;
         if (!p.pistoleoCampo) p.pistoleoCampo = "serie";
         if (!p.pistoleoModelo) p.pistoleoModelo = "";
@@ -758,7 +772,7 @@ export const useStore = create<StoreState>()(
         }));
         return p;
       },
-      version: 9,
+      version: 10,
     }
   )
 );

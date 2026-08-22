@@ -157,17 +157,17 @@ export const DEFAULT_SETTINGS: Settings = {
   pistoleoPrefijoEnabled: true,
   pistoleoPrefijo: "ZTEATV",
   tema: "oscuro",
-  usuario: "Admin",
+  usuario: "Iker",
 };
 
 export const DEFAULT_EMPRESA: InfoEmpresa = {
-  nombre: "Nuclon",
+  nombre: "Lemcorp",
   ruc: "",
   direccion: "",
   telefono: "",
   correo: "",
   descripcion:
-    "Nuclon — Almacén central\nContratista: LPS (Claro)\nTécnicos en campo: 30\nDespacho diario: ~17 técnicos\nCobertura: Lima Norte, Comas, Los Olivos",
+    "Nuclon — Almacén central\nPropietario: Lemcorp\nContratista: LPS (Claro)\nTécnicos en campo: 30\nDespacho diario: ~17 técnicos\nCobertura: Lima Norte, Comas, Los Olivos",
 };
 
 // ─────────── Helper ───────────

@@ -267,7 +267,7 @@ export function DespachosView() {
             variant="outline"
             onClick={() => fileInputRef.current?.click()}
             disabled={importingExcel}
-            className="press h-10 rounded-lg border-primary/30 bg-card text-primary hover:bg-bg-muted"
+            className="press h-10 rounded-lg border-primary/30 bg-card text-primary hover:bg-muted"
           >
             {importingExcel ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <FileUp className="mr-1.5 h-4 w-4" />}
             {importingExcel ? "Procesando…" : "Subir Excel"}

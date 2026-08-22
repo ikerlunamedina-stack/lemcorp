@@ -1319,3 +1319,141 @@ Work Log:
 - Verificación móvil (375x812): IA funciona, input visible, botón enviar accesible ✓
 - Verificación desktop (1920x1080): layout estable, sin desbordamientos ✓
 - Lint limpio ✓
+
+---
+Task ID: FULL-REVIEW-V32
+Agent: main
+Task: Revisión completa + sync entre dispositivos + personalización Iker/Lemcorp + IA más lista
+
+Work Log:
+
+### 1. Sync entre dispositivos (CRÍTICO)
+- **Prisma schema** (`prisma/schema.prisma`): reescrito con dos modelos:
+  - `DeviceSnapshot` (id, deviceId UNIQUE, label, updatedAt, payload JSON) — guarda el snapshot completo del store por dispositivo
+  - `SyncLog` (id, deviceId, action "push"|"pull", bytes, createdAt) — log de auditoría
+- Ejecutado `bun run db:push` — esquema sincronizado en SQLite (`db/custom.db`)
+- `src/lib/db.ts`: silenciado el log ruidoso (query logs) → ahora solo `error`/`warn`
+- **API `/api/sync`** (`src/app/api/sync/route.ts`):
+  - `GET /api/sync?deviceId=xxx` → devuelve `{ ok, payload, updatedAt }`
+  - `POST /api/sync { deviceId, payload, label? }` → upsert del snapshot con `db.deviceSnapshot.upsert()` y registro en `SyncLog`
+- **Helper de sync** (`src/lib/sync.ts`):
+  - `getDeviceId()` — lee `nuclon-device-id` de localStorage, o genera uno fijo (`nuclon-shared`) por defecto → TODOS los dispositivos comparten el mismo inventario (modelo "un almacén, muchos dispositivos")
+  - `pullFromServer(deviceId)` → GET con `cache: no-store`
+  - `pushToServer(deviceId, payload, label?)` → POST
+- **SyncProvider** (`src/components/lem/sync-provider.tsx`):
+  - En mount: hace un `pull` inicial (trayendo datos del server si `__syncedAt` del server > `nuclon-synced-at` de localStorage)
+  - Aplica el payload remoto con `useStore.setState(...)` (con flag `isApplyingRemote` para evitar push loop)
+  - Periodic pull cada 30s (para ver cambios hechos desde otro dispositivo)
+  - Subscribe a cambios del store → push con **debounce 900ms** (no spamea el server)
+  - Indicador visual (cloud icon) en esquina inferior izquierda: verde cuando sincronizado, gris cuando está subiendo, rojo si error
+- **Store**: agregado `onRehydrateStorage` para marcar `_hasHydrated=true` (los pulls esperan a la hidratación)
+- Envuelto el app en `<SyncProvider>` en `page.tsx`
+- **Verificado E2E con agent-browser**:
+  - Cargar datos demo → POST /api/sync 200 (con INSERT SQL)
+  - Limpiar localStorage + reload → GET /api/sync trae 10 productos, 7 equipos, 30,244 unidades del server
+  - Añadir producto "TEST001" → POST /api/sync 200 (sincroniza el cambio en 900ms)
+
+### 2. Personalización
+- `DEFAULT_SETTINGS.usuario` cambiado de `"Admin"` a `"Iker"`
+- `DEFAULT_EMPRESA.nombre` cambiado de `"Nuclon"` a `"Lemcorp"`
+- `DEFAULT_EMPRESA.descripcion` actualizada para mencionar "Propietario: Lemcorp"
+- Avatar en navbar muestra "IK" (iniciales de Iker por `iniciales()` function)
+- Greeting "Buenos días/tardes/noches Iker" funciona en sub-header
+- **Migración v10**: si el usuario tenía `"Admin"` o `"Nuclon"` en localStorage, se migra a `"Iker"` y `"Lemcorp"` automáticamente
+- Placeholder del input de usuario en config cambiado a "Ej: Iker, Carlos, Antonio…"
+- Version actualizada a "3.2.0 · SYNC-1" en config
+
+### 3. Bugs corregidos
+- `bg-text-primary` → `bg-primary` (navbar active indicator)
+- `bg-bg-primary` → `bg-primary` (footer Cpu icon)
+- Avatar del navbar: clase vacía (faltaba `bg-primary text-primary-foreground`) → ahora visible con gradiente gris corporativo
+- SubHeader icon container: clase vacía → `bg-primary/10 text-primary`
+- IAView: avatar del asistente sin bg → `bg-primary text-primary-foreground`
+- IAView: avatar del usuario en chat sin bg → `bg-muted text-muted-foreground`
+- IAView: burbuja del usuario sin color → `bg-primary text-primary-foreground`
+- IAView: `bg-bg-muted` → `bg-muted` (badge recordatorio y hover sugerencias)
+- IAView: focus shadow con color violeta `oklch(0.58_0.22_295/0.15)` → `focus:ring-2 focus:ring-primary/20`
+- DespachosView: `hover:bg-bg-muted` → `hover:bg-muted`
+- PistolearView: focus shadow violeta → `focus:ring-4 focus:ring-primary/15`
+- PistolearView: ResumenCard `tone="violet"|"cyan"|"amber"|"emerald"` → `tone="neutral"|"info"|"warn"|"ok"` (sin violeta)
+- Sidebar: `bg-bg-muted` blur decorativo → `bg-muted`
+- NotificationStack: gradientes `from-amber-500 to-orange-600` etc → colores sólidos (`bg-amber-500`, `bg-rose-500`, `bg-cyan-600`, `bg-primary`)
+- NotificationStack: typo `from-primary ` (trailing space) → `bg-primary text-primary-foreground`
+- NotificationStack: border `border-white/10` → `border-border`
+- DashboardView: imports rotos de `@/lib/lima-time` (módulo inexistente) eliminados; imports sin uso (TrendingUp, Clock, ArrowRight) eliminados
+- Config view: placeholder "Ej: Admin, ..." → "Ej: Iker, ..."
+
+### 4. IA más lista (system prompt mejorado)
+- API `/api/ia/route.ts` reescrito con:
+  - **Tipado fuerte** (interfaces ProductDTO, DespachoDTO, EquipmentDTO, MiembroDTO)
+  - **Análisis de consumo histórico**: función `computeConsumo(desps, dias)` que agrupa despachos por SKU en los últimos 7 y 30 días
+  - **Proyección de necesidades** `proyectarNecesidades()`: calcula consumoDiario, proyectado a 14 días, y déficit por SKU
+  - **8 capacidades** (antes 7): agregada "📅 PLANIFICACIÓN" con fórmula `consumoDiario × días + stockMínimo - stockActual`
+  - Contexto enriquecido con secciones de consumo (7d y 30d) y proyección 14d
+  - Instrucciones mejoradas: cómo calcular "¿cuánto pedir para X días?", cómo estructurar reportes ejecutivos en 4 secciones (📊📈🚨✅)
+  - Referencia a "Lemcorp" como propietario del almacén Nuclon
+  - Hora de Lima (timezone America/Lima) en lugar de UTC
+- **Verificado**: al preguntar "¿Cuántos conectores FTTH para 30 días?" la IA respondió con cálculo paso a paso:
+  - `(3.33 × 30) + 10 - 41 = 99.9 + 10 - 41 = 68.9` → "Pedir 69 unidades"
+- **Verificado**: el recordatorio "Recuérdame pedir conectores mañana a las 9am" genera `[[RECORDATORIO]]` con `cuando: 2026-08-23T09:00:00` correctamente
+
+### 5. Configuración
+- Sección "Datos del sistema" actualizada: explica sincronización entre dispositivos activada, banner verde con ícono
+- Sección "Acerca de" actualizada: versión "3.2.0 · SYNC-1", propietario "Lemcorp", sincronización "Activada"
+
+### 6. Verificación
+- `bun run lint` → limpio, 0 errores, 0 warnings
+- Dev server corriendo en puerto 3000
+- API probada con curl: GET y POST /api/sync devuelven 200
+- API IA probada: responde con cálculos reales y recordatorios
+- agent-browser: ninguna página muestra errores en consola
+- Sincronización E2E probada: 
+  1. Device A: añade producto → POST /api/sync (INSERT SQL)
+  2. Limpiar localStorage + reload → GET /api/sync trae los datos del server
+  3. Los KPIs del dashboard muestran los datos correctos (10 productos, 7 equipos, 30,244 unidades)
+- Personalización confirmada en el DOM:
+  - Navbar muestra "Lemcorp" como empresa
+  - Avatar muestra "IK"
+  - SubHeader: "Dashboard · Buenas tardes, Iker"
+
+Stage Summary:
+- ✅ Sync entre dispositivos funcionando: datos persisten en SQLite vía Prisma, todos los dispositivos con el mismo deviceId comparten el mismo inventario
+- ✅ Personalización: usuario "Iker", empresa "Lemcorp", avatar "IK", greeting "Buenos días Iker"
+- ✅ Cero clases CSS rotas (bg-bg-primary, bg-text-primary, bg-bg-muted eliminados)
+- ✅ Cero colores violeta (295 chroma) — solo gris corporativo + colores funcionales (rojo/ámbar/esmeralda/cian para estados)
+- ✅ IA significativamente más lista: usa datos reales de consumo, proyecta necesidades, calcula cantidades exactas a pedir
+- ✅ Sin errores de compilación ni de runtime
+- ✅ Lint limpio
+
+---
+Task ID: FULL-REVIEW-V32-FINAL
+Agent: main
+Task: Verificación final - personalización + sync entre dispositivos
+
+Work Log:
+- Personalización:
+  - DEFAULT_SETTINGS.usuario = "Iker" ✓
+  - DEFAULT_EMPRESA.nombre = "Lemcorp" ✓
+  - Avatar muestra "IK" (iniciales de Iker) ✓
+  - Saludo: "Buenas tardes Iker" (según hora) ✓
+  - Empresa: "Lemcorp" visible en navbar ✓
+- Sync entre dispositivos:
+  - Prisma DeviceSnapshot model creado y funcionando ✓
+  - API /api/sync: GET (pull) + POST (push) ✓
+  - SyncProvider: hace pull inicial + cada 30s ✓
+  - Push debounced (900ms) en cada cambio del store ✓
+  - Probado: POST con datos → GET los recupera correctamente ✓
+  - Usuario "Iker" y empresa "Lemcorp" persisten en servidor ✓
+  - Tras recargar: localStorage se llena con datos del servidor ✓
+- Sistema revisado:
+  - Lint limpio ✓
+  - Sin errores en consola ✓
+  - Dashboard, Inventario, Despachos, Equipos, Series, Pistolear, IA, Bloc, Empresa, Config: todos cargan ✓
+  - Móvil (375x812): funciona ✓
+  - Desktop (1920x1080): funciona ✓
+  - IA: "Pensando…" con puntos animados ✓
+  - IA: memoria permanente (200 mensajes) ✓
+  - IA: recordatorios + notificaciones ✓
+  - Colores: gris mate corporativo (cero morado) ✓
+  - Logo: cubo SVG (no letras) ✓
+  - Nombre: "Nuclon" ✓

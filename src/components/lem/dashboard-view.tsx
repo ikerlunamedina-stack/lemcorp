@@ -2,17 +2,13 @@
 
 import { useStore } from "@/lib/store";
 import {
-  Package, Boxes, AlertTriangle, Cpu, Download, TrendingUp, Clock,
-  Sparkles, Hash, StickyNote, Users, ArrowRight, Check, X, Undo2, Wrench,
+  Package, Boxes, AlertTriangle, Cpu, Download,
+  Sparkles, Hash, StickyNote, Users, Check, X, Undo2, Wrench,
 } from "lucide-react";
 import { fmtNum } from "@/lib/num";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ESTADO_META, type ActiveView, type EstadoEquipo } from "@/lib/types";
-import {
-  fmtFechaCortaLima, fmtHoraLima, fmtDiaSemanaLima,
-  esMismoDiaLima, tiempoRelativoLima,
-} from "@/lib/lima-time";
 
 const ESTADO_ICONS = { check: Check, x: X, undo: Undo2, wrench: Wrench } as const;
 

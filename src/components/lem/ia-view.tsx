@@ -17,14 +17,14 @@ interface ChatMsg {
 }
 
 const SUGERENCIAS: { text: string; icon: typeof TrendingDown; color: string }[] = [
-  { text: "¿Qué productos necesito pedir urgentemente?", icon: AlertTriangle, color: "text-red-400" },
-  { text: "Calcula el consumo mensual de routers ONT con 3 técnicos", icon: TrendingDown, color: "text-cyan-400" },
-  { text: "¿Cuántos conectores FTTH debo pedir para 30 días?", icon: ShoppingCart, color: "text-emerald-400" },
-  { text: "Dame un reporte ejecutivo del estado del almacén", icon: BarChart3, color: "text-primary" },
+  { text: "¿Qué productos necesito pedir urgentemente?", icon: AlertTriangle, color: "text-rose-400" },
+  { text: "Calcula el consumo mensual de routers ONT con 3 técnicos", icon: TrendingDown, color: "text-foreground" },
+  { text: "¿Cuántos conectores FTTH debo pedir para 30 días?", icon: ShoppingCart, color: "text-foreground" },
+  { text: "Dame un reporte ejecutivo del estado del almacén", icon: BarChart3, color: "text-foreground" },
   { text: "¿Qué equipos están averiados o en reparación?", icon: Cpu, color: "text-amber-400" },
-  { text: "Recomienda cantidades a comprar para cable RG-6", icon: Package, color: "text-blue-400" },
-  { text: "Recuérdame pedir conectores en 1 minuto", icon: BellRing, color: "text-pink-400" },
-  { text: "¿Cómo está el equipo de técnicos hoy?", icon: Users, color: "text-orange-400" },
+  { text: "Recomienda cantidades a comprar para cable RG-6", icon: Package, color: "text-foreground" },
+  { text: "Recuérdame pedir conectores en 1 minuto", icon: BellRing, color: "text-primary" },
+  { text: "¿Cómo está el equipo de técnicos hoy?", icon: Users, color: "text-foreground" },
 ];
 
 const STORAGE_KEY = "nuclon-ia-chat-v1";
@@ -187,8 +187,8 @@ export function IAView() {
       {/* Header compacto */}
       <div className="flex items-center justify-between border-b border-border px-4 py-2.5 lg:px-6">
         <div className="flex items-center gap-2.5">
-          <div className="relative flex h-9 w-9 items-center justify-center rounded-xl   shadow-md ">
-            <Sparkles className="h-4 w-4 text-white" />
+          <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md">
+            <Sparkles className="h-4 w-4" />
           </div>
           <div>
             <h1 className="flex items-center gap-2 text-[15px] font-bold tracking-tight">
@@ -246,7 +246,7 @@ export function IAView() {
                   className={cn(
                     "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[12px] font-bold shadow-sm",
                     m.role === "assistant"
-                      ? "  text-white"
+                      ? "bg-primary text-primary-foreground"
                       : "bg-muted text-muted-foreground"
                   )}
                 >
@@ -258,14 +258,14 @@ export function IAView() {
                       "rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap break-words shadow-sm",
                       m.role === "assistant"
                         ? "rounded-tl-sm bg-card border border-border text-foreground"
-                        : "rounded-tr-sm   text-white"
+                        : "rounded-tr-sm bg-primary text-primary-foreground"
                     )}
                   >
                     {m.content}
                   </div>
                   {/* Badge de recordatorio creado */}
                   {m.recordatorio && (
-                    <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-primary/30 bg-bg-muted px-2.5 py-1.5 text-[10px]">
+                    <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-primary/30 bg-muted px-2.5 py-1.5 text-[10px]">
                       <BellRing className="h-3 w-3 text-primary" />
                       <span className="font-semibold text-primary">Recordatorio creado:</span>
                       <span className="text-muted-foreground">{m.recordatorio.texto}</span>
@@ -342,7 +342,7 @@ export function IAView() {
                 key={s.text}
                 onClick={() => enviar(s.text)}
                 disabled={loading}
-                className="press flex items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1 text-[10px] font-medium text-muted-foreground transition-all hover:border-primary/40 hover:bg-bg-muted hover:text-foreground disabled:opacity-50"
+                className="press flex items-center gap-1 rounded-full border border-border bg-card px-2.5 py-1 text-[10px] font-medium text-muted-foreground transition-all hover:border-primary/40 hover:bg-muted hover:text-foreground disabled:opacity-50"
               >
                 <Icon className={cn("h-3 w-3", s.color)} />
                 <span className="max-w-[160px] truncate">{s.text}</span>
@@ -365,7 +365,7 @@ export function IAView() {
               }
             }}
             placeholder="Pregúntame sobre el inventario, pídeme un recordatorio…"
-            className="h-11 flex-1 rounded-xl border border-border bg-background px-4 text-[14px] outline-none transition-colors focus:border-primary focus:shadow-[0_0_0_4px_oklch(0.58_0.22_295/0.15)]"
+            className="h-11 flex-1 rounded-xl border border-border bg-background px-4 text-[14px] outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
             disabled={loading}
           />
           <button

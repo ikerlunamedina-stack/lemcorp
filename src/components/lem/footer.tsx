@@ -28,7 +28,7 @@ export function Footer() {
         <span className="font-medium text-foreground">{totalUnidades.toLocaleString("es-PE")}</span> und
       </span>
       <span className="flex items-center gap-1.5">
-        <Cpu className="h-3 w-3 text-bg-primary" />
+        <Cpu className="h-3 w-3 text-primary" />
         <span className="font-medium text-foreground">{equipos.length}</span> equipos
       </span>
       <span className="flex items-center gap-1.5">

@@ -92,7 +92,7 @@ export function ConfigView() {
             id="cfg-usuario"
             value={settings.usuario}
             onChange={(e) => setSetting("usuario", e.target.value)}
-            placeholder="Ej: Admin, Carlos, Antonio…"
+            placeholder="Ej: Iker, Carlos, Antonio…"
             className="max-w-sm rounded-xl"
           />
         </div>
@@ -191,9 +191,14 @@ export function ConfigView() {
         <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold">
           <Database className="h-4 w-4 text-primary" /> Datos del sistema
         </h2>
-        <p className="mb-4 text-[11px] text-muted-foreground">
-          Guardados en este equipo (localStorage). No se envían a ningún servidor.
+        <p className="mb-3 text-[11px] text-muted-foreground">
+          Tus datos se guardan localmente y se sincronizan automáticamente en la nube para que estén disponibles desde cualquier dispositivo.
         </p>
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-[11px]">
+          <DatabaseZap className="h-3.5 w-3.5 text-emerald-500" />
+          <span className="font-medium text-emerald-500">Sincronización entre dispositivos activada</span>
+          <span className="text-muted-foreground">— los cambios se suben solos (~1s)</span>
+        </div>
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
           <Stat label="Productos" value={products.length} />
           <Stat label="Equipos" value={equipos.length} />
@@ -241,7 +246,11 @@ export function ConfigView() {
           </div>
           <div className="flex items-center justify-between">
             <span>Versión</span>
-            <span className="font-mono">3.1.0 · REBUILD-1</span>
+            <span className="font-mono">3.2.0 · SYNC-1</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span>Propietario</span>
+            <span className="font-medium text-foreground">Lemcorp</span>
           </div>
           <div className="flex items-center justify-between">
             <span>Entradas</span>
@@ -249,11 +258,15 @@ export function ConfigView() {
           </div>
           <div className="flex items-center justify-between">
             <span>Usuario activo</span>
-            <span className="font-medium text-foreground">{settings.usuario || "Admin"}</span>
+            <span className="font-medium text-foreground">{settings.usuario || "Iker"}</span>
           </div>
           <div className="flex items-center justify-between">
             <span>Tema</span>
             <span className="font-medium capitalize">{settings.tema}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span>Sincronización</span>
+            <span className="font-medium text-emerald-500">Activada</span>
           </div>
         </div>
       </section>

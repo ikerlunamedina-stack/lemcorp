@@ -40,10 +40,10 @@ export function NotificationStack() {
   const visibles = notificaciones.filter((n) => !n.leida).slice(0, 3);
 
   const tipoConfig = {
-    recordatorio: { icon: BellRing, color: "from-primary ", badge: "Recordatorio" },
-    stock: { icon: AlertTriangle, color: "from-amber-500 to-orange-600", badge: "Stock" },
-    alerta: { icon: AlertTriangle, color: "from-rose-500 to-red-600", badge: "Alerta" },
-    info: { icon: Info, color: "from-cyan-500 to-blue-600", badge: "Info" },
+    recordatorio: { icon: BellRing, color: "bg-primary text-primary-foreground", badge: "Recordatorio" },
+    stock: { icon: AlertTriangle, color: "bg-amber-500 text-white", badge: "Stock" },
+    alerta: { icon: AlertTriangle, color: "bg-rose-500 text-white", badge: "Alerta" },
+    info: { icon: Info, color: "bg-cyan-600 text-white", badge: "Info" },
   };
 
   return (
@@ -58,9 +58,9 @@ export function NotificationStack() {
             className="pointer-events-auto anim-iphone-notification"
             style={{ animationDelay: `${delay}ms` }}
           >
-            <div className="flex w-[320px] max-w-[calc(100vw-2rem)] items-start gap-3 rounded-2xl border border-white/10 bg-card/95 p-3 shadow-2xl backdrop-blur-xl">
-              <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br shadow-lg", cfg.color)}>
-                <Icon className="h-5 w-5 text-white" />
+            <div className="flex w-[320px] max-w-[calc(100vw-2rem)] items-start gap-3 rounded-2xl border border-border bg-card/95 p-3 shadow-2xl backdrop-blur-xl">
+              <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-lg", cfg.color)}>
+                <Icon className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">

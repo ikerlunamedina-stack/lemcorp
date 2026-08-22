@@ -34,7 +34,7 @@ export function Sidebar() {
     <aside className="glass-sidebar relative flex h-full w-[260px] shrink-0 flex-col border-r border-white/10">
       {/* Glow decorativo arriba */}
       <div className="pointer-events-none absolute -top-20 -left-10 h-40 w-40 rounded-full bg-primary/20 blur-3xl" />
-      <div className="pointer-events-none absolute top-1/2 -right-10 h-32 w-32 rounded-full bg-bg-muted blur-3xl" />
+      <div className="pointer-events-none absolute top-1/2 -right-10 h-32 w-32 rounded-full bg-muted blur-3xl" />
 
       {/* Logo */}
       <button onClick={go("dashboard")} className="group relative flex items-center gap-3 px-5 py-5 transition-all hover:opacity-90">

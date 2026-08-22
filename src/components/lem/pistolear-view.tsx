@@ -333,7 +333,7 @@ export function PistolearView() {
                 ? `Escanear ${campoMeta.campos[parcial.length]}… (Enter para confirmar)`
                 : `Escanear serie con el lector… (Enter para confirmar)`
             }
-            className="h-14 w-full rounded-2xl border-2 border-primary/30 bg-card pl-14 pr-4 font-mono text-[16px] font-semibold tracking-wide outline-none transition-all focus:border-primary focus:shadow-[0_0_0_4px_oklch(0.58_0.22_295/0.15)]"
+            className="h-14 w-full rounded-2xl border-2 border-primary/30 bg-card pl-14 pr-4 font-mono text-[16px] font-semibold tracking-wide outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/15"
             autoComplete="off"
             spellCheck={false}
           />
@@ -465,15 +465,15 @@ export function PistolearView() {
 
       {/* Resumen */}
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <ResumenCard label="Capturadas" value={String(pistoleoFilas.length)} tone="violet" />
+        <ResumenCard label="Capturadas" value={String(pistoleoFilas.length)} tone="neutral" />
         <ResumenCard
           label="Última serie"
           value={pistoleoFilas[0]?.valores[0] ?? "—"}
           mono
-          tone="cyan"
+          tone="info"
         />
-        <ResumenCard label="Modo" value={campoMeta.short} tone="amber" />
-        <ResumenCard label="Estado destino" value={ESTADO_META[pistoleoEstado].short} tone="emerald" />
+        <ResumenCard label="Modo" value={campoMeta.short} tone="warn" />
+        <ResumenCard label="Estado destino" value={ESTADO_META[pistoleoEstado].short} tone="ok" />
       </div>
     </div>
   );
@@ -487,13 +487,14 @@ function ResumenCard({
 }: {
   label: string;
   value: string;
-  tone: "violet" | "cyan" | "amber" | "emerald";
+  tone: "neutral" | "info" | "warn" | "ok";
   mono?: boolean;
 }) {
   const toneCls = {
-    violet: "bg-muted text-primary",
-    cyan: "bg-muted text-cyan-300",
-    emerald: "bg-muted text-emerald-300",
+    neutral: "bg-muted text-primary",
+    info: "bg-muted text-foreground",
+    warn: "bg-muted text-foreground",
+    ok: "bg-muted text-foreground",
   }[tone];
   return (
     <div className={cn("rounded-2xl border border-border/60 bg-card p-3", toneCls)}>
