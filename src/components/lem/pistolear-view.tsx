@@ -493,7 +493,6 @@ function ResumenCard({
   const toneCls = {
     violet: "bg-muted text-primary",
     cyan: "bg-muted text-cyan-300",
-    amber: "kpi-gradient-amber text-amber-300",
     emerald: "bg-muted text-emerald-300",
   }[tone];
   return (

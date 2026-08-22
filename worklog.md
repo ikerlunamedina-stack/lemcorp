@@ -1236,3 +1236,27 @@ Work Log:
 Verificación:
 - "Todo gris/negro mate. Cero morado/violeta. Corporativo (no gaming)." ✓
 - Lint limpio ✓
+
+---
+Task ID: CLEAN-CORPORATE-V29
+Agent: main
+Task: Arreglar CSS roto + eliminar TODO morado + dashboard limpio
+
+Work Log:
+- CSS: eliminado gradiente radial del body background (era cyan/violeta residual)
+- CSS: eliminadas clases kpi-gradient-* colgadas sin selector (causaban CssSyntaxError)
+- CSS: eliminados bloques CSS huérfanos (background: linear-gradient sin .selector)
+- Dashboard: rediseñado completo desde cero, limpio:
+  - KPIs: iconos en bg-muted (no gradientes coloridos)
+  - Texto: text-foreground (no text-primary que era violeta)
+  - Barras de progreso: bg-primary sólido (gris)
+  - Sin bg-gradient-to-r, sin glow, sin glow-border
+  - Sin animaciones de rotación/scale en iconos
+  - QuickLinks: bg-muted simple
+  - Sin kpi-gradient-*
+- Eliminados todos los gradientes y colores residuales del dashboard
+
+Verificación:
+- "Página carga sin error. Todo gris mate. Cero morado. Logo de cubo se ve bien." ✓
+- Lint limpio ✓
+- Sin errores en consola ✓
