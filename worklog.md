@@ -1676,3 +1676,35 @@ Work Log:
 - Sync: horario incluido en sync payload ✓
 - Lint limpio ✓
 - Sin errores en consola ✓
+
+---
+Task ID: CLEAN-FIX-V34
+Agent: main
+Task: Arreglar notificaciones + limpiar diseño + animaciones de transición
+
+Work Log:
+- Notificaciones: click en campana ya NO lleva a inventario
+  - Ahora lleva a Configuración (donde están las notificaciones y alertas)
+  - Removido anim-pulse-ring del badge (era distractor)
+- Sub-header simplificado:
+  - Antes: icono + título de vista + "· Buenas tardes, Iker" + subtítulo descriptivo + hora
+  - Ahora: SOLO "Buenas tardes, Iker" + hora (limpio, una sola línea)
+  - Eliminados: icono, título de vista, subtítulo, META completo
+- Item activo del navbar:
+  - Cambiado de bg-primary/10 text-primary a bg-accent text-foreground
+  - Más claro y visible (usa accent = gris más claro que el fondo)
+  - Hover: bg-accent/50 (más sutil que hover:bg-accent)
+- Transición animada al cambiar de vista:
+  - ViewTransition component: fade + translate-y al cambiar de vista
+  - opacity 0→1 + translateY(2)→0 con transition 300ms
+  - Delay de 150ms para que se vea el fade
+  - Aplicado a todas las vistas excepto IA (que tiene su propio layout)
+- HTML semántico: page.tsx mantiene <main>, <nav>, <header>, <footer>
+
+Verificación:
+- Sub-header: "solo 'Buenas tardes Iker' (sin título de vista ni subtítulo)" ✓
+- Item activo: "fondo más claro/distinto a los demás" ✓
+- Notificaciones: ya no lleva a inventario ✓
+- Transición: fade suave al cambiar de vista ✓
+- Lint limpio ✓
+- Sin errores en consola ✓

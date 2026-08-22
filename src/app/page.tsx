@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
 import { Navbar } from "@/components/lem/navbar";
 import { SubHeader } from "@/components/lem/sub-header";
@@ -18,10 +19,33 @@ import { ConfigView } from "@/components/lem/config-view";
 import { NotificationStack } from "@/components/lem/notification-stack";
 import { SyncProvider } from "@/components/lem/sync-provider";
 
+function ViewTransition({ viewKey, children }: { viewKey: string; children: React.ReactNode }) {
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setShow(false);
+    const t = setTimeout(() => setShow(true), 150);
+    return () => clearTimeout(t);
+  }, [viewKey]);
+
+  return (
+    <div
+      key={viewKey}
+      className={cn("min-h-full pb-14 lg:pb-0 transition-all duration-300", show ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2")}
+    >
+      {children}
+    </div>
+  );
+}
+
+// Inline cn to avoid extra import
+function cn(...classes: (string | false | undefined)[]) {
+  return classes.filter(Boolean).join(" ");
+}
+
 export default function Home() {
   const activeView = useStore((s) => s.activeView);
-
-  // La vista de IA tiene su propio layout (tipo ChatGPT), sin scroll de página
   const isChatView = activeView === "ia";
 
   return (
@@ -33,7 +57,7 @@ export default function Home() {
           {isChatView ? (
             <IAView />
           ) : (
-            <div key={activeView} className="min-h-full pb-14 lg:pb-0 anim-fade-in">
+            <ViewTransition viewKey={activeView}>
               {activeView === "dashboard" && <DashboardView />}
               {activeView === "inventario" && <InventarioView />}
               {activeView === "despachos" && <DespachosView />}
@@ -44,7 +68,7 @@ export default function Home() {
               {activeView === "bloc" && <BlocView />}
               {activeView === "empresa" && <EmpresaView />}
               {activeView === "config" && <ConfigView />}
-            </div>
+            </ViewTransition>
           )}
         </main>
         {!isChatView && <Footer />}

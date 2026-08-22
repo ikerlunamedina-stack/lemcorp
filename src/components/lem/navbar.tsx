@@ -113,8 +113,8 @@ export function Navbar() {
               className={cn(
                 "press group relative flex h-10 items-center gap-1.5 rounded-xl px-3 text-[13px] font-medium transition-all duration-200",
                 active
-                  ? "bg-primary/10 text-primary shadow-sm"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  ? "bg-accent text-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
               )}
               title={item.label}
             >
@@ -145,8 +145,8 @@ export function Navbar() {
               className={cn(
                 "press flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all",
                 active
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-accent"
+                  ? "bg-accent text-foreground"
+                  : "text-muted-foreground hover:bg-accent/50"
               )}
               title={item.label}
             >
@@ -187,15 +187,15 @@ export function Navbar() {
           <TemaIcon className="h-4 w-4" />
         </button>
 
-        {/* Notifications bell */}
+        {/* Notifications bell → abre panel de notificaciones, no inventario */}
         <button
-          onClick={() => setActiveView("inventario")}
+          onClick={() => setActiveView("config")}
           className="press relative flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground"
-          title="Alertas de bajo stock"
+          title="Notificaciones"
         >
           <Bell className="h-4 w-4" />
           {settings.lowStockAlerts && bajoStock > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex min-w-[16px] h-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white anim-pulse-ring">
+            <span className="absolute -right-0.5 -top-0.5 flex min-w-[16px] h-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
               {bajoStock > 99 ? "99+" : bajoStock}
             </span>
           )}
