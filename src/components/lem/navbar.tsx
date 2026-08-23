@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Boxes,
@@ -22,26 +24,28 @@ import {
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import type { ActiveView, Tema } from "@/lib/types";
+import type { Tema } from "@/lib/types";
 
 interface NavItem {
-  view: ActiveView;
+  href: string;
   icon: typeof LayoutDashboard;
   label: string;
+  /** ruta exacta para marcar activo (true) o prefijo (false, default) */
+  exact?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { view: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { view: "inventario", icon: Boxes, label: "Inventario" },
-  { view: "despachos", icon: TrendingDown, label: "Despachos" },
-  { view: "equipos", icon: Cpu, label: "Equipos" },
-  { view: "series", icon: Hash, label: "Series" },
-  { view: "pistolear", icon: ScanLine, label: "Pistolear" },
-  { view: "horario", icon: Calendar, label: "Horario" },
-  { view: "ia", icon: Sparkles, label: "Alana" },
-  { view: "bloc", icon: StickyNote, label: "Bloc" },
-  { view: "empresa", icon: Building2, label: "Empresas" },
-  { view: "notificaciones", icon: Bell, label: "Avisos" },
+  { href: "/", icon: LayoutDashboard, label: "Dashboard", exact: true },
+  { href: "/inventario", icon: Boxes, label: "Inventario" },
+  { href: "/despachos", icon: TrendingDown, label: "Despachos" },
+  { href: "/equipos", icon: Cpu, label: "Equipos" },
+  { href: "/series", icon: Hash, label: "Series" },
+  { href: "/pistolear", icon: ScanLine, label: "Pistolear" },
+  { href: "/horario", icon: Calendar, label: "Horario" },
+  { href: "/ia", icon: Sparkles, label: "Alana" },
+  { href: "/bloc", icon: StickyNote, label: "Bloc" },
+  { href: "/empresa", icon: Building2, label: "Empresas" },
+  { href: "/notificaciones", icon: Bell, label: "Avisos" },
 ];
 
 function iniciales(usuario: string): string {
@@ -51,14 +55,16 @@ function iniciales(usuario: string): string {
 }
 
 export function Navbar() {
-  const activeView = useStore((s) => s.activeView);
-  const setActiveView = useStore((s) => s.setActiveView);
+  const pathname = usePathname();
   const products = useStore((s) => s.products);
   const empresa = useStore((s) => s.empresa);
   const settings = useStore((s) => s.settings);
   const setSetting = useStore((s) => s.setSetting);
 
   const [searchOpen, setSearchOpen] = useState(false);
+
+  const isActive = (item: NavItem) =>
+    item.exact ? pathname === item.href : pathname?.startsWith(item.href);
 
   const bajoStock = products.filter(
     (p) => p.minStock && p.minStock > 0 && p.quantity <= p.minStock
@@ -74,30 +80,28 @@ export function Navbar() {
   const TemaIcon =
     settings.tema === "claro" ? Sun : settings.tema === "oscuro" ? Moon : Monitor;
 
-  const go = (v: ActiveView) => () => setActiveView(v);
-
   return (
     <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-card px-3 lg:px-6">
       {/* Logo */}
-      <button onClick={go("dashboard")} className="press flex shrink-0 items-center gap-2">
+      <Link href="/" className="press flex shrink-0 items-center gap-2">
         <img src="/lemcorp-logo.png" alt="LEMCORP" className="h-9 w-9 rounded-lg object-contain" />
         <div className="flex flex-col leading-none">
           <span className="text-[15px] font-bold tracking-tight text-foreground">LEMCORP</span>
           <span className="mt-0.5 hidden text-[9px] font-semibold tracking-[0.15em] text-muted-foreground uppercase sm:block">WMS</span>
         </div>
-      </button>
+      </Link>
 
       <div className="mx-1 h-7 w-px bg-border" />
 
       {/* Nav desktop */}
       <nav className="mx-auto hidden items-center gap-0.5 lg:flex">
         {NAV_ITEMS.map((item) => {
-          const active = activeView === item.view;
+          const active = isActive(item);
           const Icon = item.icon;
           return (
-            <button
-              key={item.view}
-              onClick={go(item.view)}
+            <Link
+              key={item.href}
+              href={item.href}
               className={cn(
                 "press flex h-9 items-center gap-1.5 rounded-lg px-3 text-[13px] font-medium transition-colors",
                 active
@@ -107,7 +111,7 @@ export function Navbar() {
             >
               <Icon className="h-4 w-4" />
               <span>{item.label}</span>
-            </button>
+            </Link>
           );
         })}
       </nav>
@@ -115,12 +119,12 @@ export function Navbar() {
       {/* Nav móvil (iconos) */}
       <nav className="flex flex-1 items-center gap-0.5 overflow-x-auto scroll-thin lg:hidden">
         {NAV_ITEMS.map((item) => {
-          const active = activeView === item.view;
+          const active = isActive(item);
           const Icon = item.icon;
           return (
-            <button
-              key={item.view}
-              onClick={go(item.view)}
+            <Link
+              key={item.href}
+              href={item.href}
               className={cn(
                 "press flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors",
                 active
@@ -130,7 +134,7 @@ export function Navbar() {
               title={item.label}
             >
               <Icon className="h-4 w-4" />
-            </button>
+            </Link>
           );
         })}
       </nav>
@@ -138,11 +142,11 @@ export function Navbar() {
       {/* Zona derecha */}
       <div className="flex items-center gap-1.5">
         {/* Empresa */}
-        <button onClick={go("empresa")} className="press hidden items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-[12px] font-medium hover:bg-accent xl:flex">
+        <Link href="/empresa" className="press hidden items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-[12px] font-medium hover:bg-accent xl:flex">
           <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
           <span className="max-w-[100px] truncate">{empresa.nombre}</span>
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
-        </button>
+        </Link>
 
         {/* Tema */}
         <button onClick={cycleTema} title={`Tema: ${settings.tema}`} className="press flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground">
@@ -150,34 +154,34 @@ export function Navbar() {
         </button>
 
         {/* Notificaciones */}
-        <button onClick={go("notificaciones")} className="press relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground">
+        <Link href="/notificaciones" className="press relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground">
           <Bell className="h-4 w-4" />
           {settings.lowStockAlerts && bajoStock > 0 && (
             <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
               {bajoStock > 99 ? "99+" : bajoStock}
             </span>
           )}
-        </button>
+        </Link>
 
         {/* Config */}
-        <button
-          onClick={go("config")}
+        <Link
+          href="/config"
           className={cn(
             "press flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
-            activeView === "config" ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"
+            pathname?.startsWith("/config") ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"
           )}
         >
           <SettingsIcon className="h-4 w-4" />
-        </button>
+        </Link>
 
         {/* Avatar */}
-        <button
-          onClick={go("config")}
+        <Link
+          href="/config"
           className="press relative ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground shadow-sm"
           title={settings.usuario || "Iker"}
         >
           {iniciales(settings.usuario)}
-        </button>
+        </Link>
       </div>
     </header>
   );

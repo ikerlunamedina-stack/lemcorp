@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Cpu, Plus, Search, Pencil, Trash2, ChevronDown, Hash, ArrowRight } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { ESTADO_META, type EstadoEquipo, type Equipment, type ActiveView } from "@/lib/types";
+import { ESTADO_META, type EstadoEquipo, type Equipment } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,9 +26,9 @@ export function EquiposView() {
   const updateEquipment = useStore((s) => s.updateEquipment);
   const deleteEquipment = useStore((s) => s.deleteEquipment);
   const findEquipmentBySerie = useStore((s) => s.findEquipmentBySerie);
-  const setActiveView = useStore((s) => s.setActiveView);
+  const router = useRouter();
 
-  const go = (v: ActiveView) => () => setActiveView(v);
+  const goSeries = () => router.push("/series");
 
   const [query, setQuery] = useState("");
   const [estadoFilter, setEstadoFilter] = useState("todos");
@@ -125,7 +126,7 @@ export function EquiposView() {
                   })}
                 </div>
                 <span className="rounded-full bg-foreground px-2.5 py-1 text-[11px] font-semibold text-background">{items.length}</span>
-                <button onClick={go("series")} className="press flex items-center gap-1 rounded-xl   px-3 py-2 text-[12px] font-medium text-white shadow-md  transition-all hover:-translate-y-0.5 hover:shadow-lg hover:">
+                <button onClick={goSeries} className="press flex items-center gap-1 rounded-xl   px-3 py-2 text-[12px] font-medium text-white shadow-md  transition-all hover:-translate-y-0.5 hover:shadow-lg hover:">
                   Ver series <ArrowRight className="h-3 w-3" />
                 </button>
               </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Hash, Search, Cpu, FileText, ArrowRight } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { ESTADO_META, type EstadoEquipo } from "@/lib/types";
@@ -13,7 +14,7 @@ const ESTADOS: EstadoEquipo[] = ["disponible", "averiado", "en_retiro", "en_repa
 
 export function SeriesView() {
   const equipos = useStore((s) => s.equipos);
-  const setActiveView = useStore((s) => s.setActiveView);
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [estadoFilter, setEstadoFilter] = useState("todos");
 
@@ -114,7 +115,7 @@ export function SeriesView() {
 
       {/* Ir a Equipos */}
       <div className="mt-4 text-center">
-        <Button variant="ghost" onClick={() => setActiveView("equipos")} className="press rounded-xl">
+        <Button variant="ghost" onClick={() => router.push("/equipos")} className="press rounded-xl">
           <FileText className="mr-1.5 h-4 w-4 text-primary" /> Gestionar equipos <ArrowRight className="ml-1 h-3 w-3" />
         </Button>
       </div>

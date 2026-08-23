@@ -44,7 +44,6 @@ function buildPayload(state: any): SyncPayload {
     pistoleoEstado: state.pistoleoEstado,
     horario: state.horario ?? [],
     memoriaIA: state.memoriaIA ?? [],
-    activeView: state.activeView,
     __syncedAt: Date.now(),
   };
 }

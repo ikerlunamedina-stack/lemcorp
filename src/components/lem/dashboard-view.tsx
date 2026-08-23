@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import {
   Package, Boxes, AlertTriangle, Cpu, Download,
@@ -12,6 +13,21 @@ import { ESTADO_META, type ActiveView, type EstadoEquipo } from "@/lib/types";
 
 const ESTADO_ICONS = { check: Check, x: X, undo: Undo2, wrench: Wrench } as const;
 
+const VIEW_PATH: Record<ActiveView, string> = {
+  dashboard: "/",
+  inventario: "/inventario",
+  despachos: "/despachos",
+  equipos: "/equipos",
+  series: "/series",
+  pistolear: "/pistolear",
+  horario: "/horario",
+  bloc: "/bloc",
+  ia: "/ia",
+  empresa: "/empresa",
+  notificaciones: "/notificaciones",
+  config: "/config",
+};
+
 export function DashboardView() {
   const products = useStore((s) => s.products) ?? [];
   const equipos = useStore((s) => s.equipos) ?? [];
@@ -19,10 +35,10 @@ export function DashboardView() {
   const notas = useStore((s) => s.notas) ?? [];
   const miembros = useStore((s) => s.miembros) ?? [];
   const exportInventarioExcel = useStore((s) => s.exportInventarioExcel);
-  const setActiveView = useStore((s) => s.setActiveView);
+  const router = useRouter();
   const despachos = useStore((s) => s.despachos) ?? [];
 
-  const go = (v: ActiveView) => () => setActiveView(v);
+  const go = (v: ActiveView) => () => router.push(VIEW_PATH[v]);
 
   const totalUnidades = products.reduce((s, p) => s + p.quantity, 0);
   const bajoStock = products.filter((p) => p.minStock && p.minStock > 0 && p.quantity <= p.minStock);

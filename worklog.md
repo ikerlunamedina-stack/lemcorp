@@ -1785,3 +1785,44 @@ Verificación:
 - Sesión limpia: sin errores en consola ✓
 - Página carga correctamente ✓
 - Lint limpio ✓
+
+---
+Task ID: REFACTOR-PAGES
+Agent: main
+Task: Convertir la app de SPA con state-based view a rutas HTML reales (cada sección con su propia URL)
+
+Work Log:
+- Creado componente AppShell reutilizable en src/components/lem/app-shell.tsx
+  - Encapsula SyncProvider + Navbar + SubHeader + main + Footer + NotificationStack
+  - Acepta prop isChat para ocultar SubHeader y Footer (usado en /ia)
+- Reescrito src/components/lem/navbar.tsx:
+  - Cambiados todos los <button onClick={go(view)}> a <Link href="/ruta">
+  - Usa usePathname() para resaltar el item activo
+  - Mantiene comportamiento idéntico en desktop y móvil
+- Quitado activeView del buildPayload en src/components/lem/sync-provider.tsx
+  (ya no se necesita sincronizar la vista porque cada dispositivo tiene su propia URL)
+- Reescrito src/app/page.tsx:
+  - Renderiza DashboardView directamente (sin redirect() ni router.replace)
+  - Eliminada toda la lógica de redirección que causaba ERR_TOO_MANY_REDIRECTS
+- Creadas 11 páginas separadas con HTML independiente:
+  - /inventario, /despachos, /equipos, /series, /pistolear, /horario
+  - /ia (con isChat=true), /bloc, /empresa, /notificaciones, /config
+- Actualizados componentes que usaban setActiveView para usar router.push():
+  - dashboard-view.tsx: KPIs y accesos rápidos
+  - equipos-view.tsx: botón "Ver series"
+  - series-view.tsx: botón "Gestionar equipos"
+  - notification-stack.tsx: botón "Ver" en notificaciones full-screen
+- Componentes legacy (welcome, sidebar, summary-view, spreadsheet, notification-bell)
+  NO se modifican porque no se importan en ningún componente activo
+
+Stage Summary:
+- Cada sección tiene su propia URL real (HTML diferente por página) ✓
+- Sin bucle de redirecciones en / (renderiza directo el Dashboard) ✓
+- Navegación con <Link> real de next/link (no state change) ✓
+- Refresh del navegador mantiene la URL y el contenido ✓
+- Sync entre dispositivos sigue funcionando (sin sincronizar activeView) ✓
+- Auto-verificación con Agent Browser OK:
+  - /, /inventario, /ia, /pistolear, /notificaciones, /config responden 200
+  - Sin errores en consola ni en dev.log
+  - Navbar resalta item activo según pathname
+  - Responsive mobile (390x844) y desktop (1440x900) OK

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import {
@@ -36,7 +37,7 @@ export function NotificationStack() {
   const checkHorario = useStore((s) => s.checkHorario);
   const marcarHorarioDisparado = useStore((s) => s.marcarHorarioDisparado);
   const vozEnabled = useStore((s) => s.settings.voz);
-  const setActiveView = useStore((s) => s.setActiveView);
+  const router = useRouter();
 
   // Notificación a pantalla completa (estilo iOS)
   const [fullNotif, setFullNotif] = useState<FullScreenNotif | null>(null);
@@ -61,10 +62,10 @@ export function NotificationStack() {
   // Botón "Ver": navega al destino y cierra
   const verFull = useCallback(() => {
     if (fullNotif?.viewDestino) {
-      setActiveView(fullNotif.viewDestino);
+      router.push(fullNotif.viewDestino === "ia" ? "/ia" : "/horario");
     }
     setFullNotif(null);
-  }, [fullNotif, setActiveView]);
+  }, [fullNotif, router]);
 
   // Check recordatorios cada 10 segundos (mantener patrón previo)
   useEffect(() => {
