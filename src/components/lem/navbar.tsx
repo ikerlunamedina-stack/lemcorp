@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Boxes,
@@ -21,7 +19,6 @@ import {
   Sun,
   Moon,
   Monitor,
-  Check,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -54,7 +51,7 @@ function iniciales(usuario: string): string {
 }
 
 export function Navbar() {
-  const pathname = usePathname();
+  const activeView = useStore((s) => s.activeView);
   const setActiveView = useStore((s) => s.setActiveView);
   const products = useStore((s) => s.products);
   const empresa = useStore((s) => s.empresa);
@@ -77,67 +74,55 @@ export function Navbar() {
   const TemaIcon =
     settings.tema === "claro" ? Sun : settings.tema === "oscuro" ? Moon : Monitor;
 
+  const go = (v: ActiveView) => () => setActiveView(v);
+
   return (
-    <header className="glass-topbar sticky top-0 z-40 flex h-16 shrink-0 items-center gap-3 border-b border-border/60 px-4 lg:px-6">
-      {/* ─── LEFT: Logo ─── */}
-      <button
-        onClick={() => setActiveView("dashboard")}
-        className="group flex shrink-0 items-center gap-2.5 pr-2"
-      >
-        <div className="relative">
-          <img src="/lemcorp-logo.png" alt="LEMCORP" className="h-10 w-10 rounded-xl object-contain press" />
-        </div>
+    <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-card px-3 lg:px-6">
+      {/* Logo */}
+      <button onClick={go("dashboard")} className="press flex shrink-0 items-center gap-2">
+        <img src="/lemcorp-logo.png" alt="LEMCORP" className="h-9 w-9 rounded-lg object-contain" />
         <div className="flex flex-col leading-none">
           <span className="text-[15px] font-bold tracking-tight text-foreground">LEMCORP</span>
-          <span className="mt-0.5 hidden text-[9px] font-semibold tracking-[0.15em] text-muted-foreground uppercase sm:block">WMS · Almacén</span>
+          <span className="mt-0.5 hidden text-[9px] font-semibold tracking-[0.15em] text-muted-foreground uppercase sm:block">WMS</span>
         </div>
       </button>
 
-      {/* ─── CENTER: Nav ─── */}
+      <div className="mx-1 h-7 w-px bg-border" />
+
+      {/* Nav desktop */}
       <nav className="mx-auto hidden items-center gap-0.5 lg:flex">
         {NAV_ITEMS.map((item) => {
+          const active = activeView === item.view;
           const Icon = item.icon;
-          const active = pathname === `/${item.view}`;
           return (
-            <Link
+            <button
               key={item.view}
-              href={`/${item.view}`}
-              onClick={() => setActiveView(item.view)}
+              onClick={go(item.view)}
               className={cn(
-                "press group relative flex h-10 items-center gap-1.5 rounded-xl px-3 text-[13px] font-medium transition-all duration-200",
+                "press flex h-9 items-center gap-1.5 rounded-lg px-3 text-[13px] font-medium transition-colors",
                 active
                   ? "bg-accent text-foreground shadow-sm"
                   : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
               )}
-              title={item.label}
             >
-              <Icon
-                className={cn(
-                  "h-4 w-4 transition-transform duration-200",
-                  active ? "scale-110 text-primary" : "group-hover:scale-105"
-                )}
-              />
+              <Icon className="h-4 w-4" />
               <span>{item.label}</span>
-              {active && (
-                <span className="absolute -bottom-[1px] left-1/2 h-[2px] w-6 -translate-x-1/2 rounded-full bg-primary anim-scale-in" />
-              )}
-            </Link>
+            </button>
           );
         })}
       </nav>
 
-      {/* Mobile nav scroll (compact, only icons) */}
+      {/* Nav móvil (iconos) */}
       <nav className="flex flex-1 items-center gap-0.5 overflow-x-auto scroll-thin lg:hidden">
         {NAV_ITEMS.map((item) => {
+          const active = activeView === item.view;
           const Icon = item.icon;
-          const active = pathname === `/${item.view}`;
           return (
-            <Link
+            <button
               key={item.view}
-              href={`/${item.view}`}
-              onClick={() => setActiveView(item.view)}
+              onClick={go(item.view)}
               className={cn(
-                "press flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all",
+                "press flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors",
                 active
                   ? "bg-accent text-foreground"
                   : "text-muted-foreground hover:bg-accent/50"
@@ -145,104 +130,55 @@ export function Navbar() {
               title={item.label}
             >
               <Icon className="h-4 w-4" />
-            </Link>
+            </button>
           );
         })}
       </nav>
 
-      {/* ─── RIGHT: actions ─── */}
-      <div className="flex shrink-0 items-center gap-1">
-        {/* Search (desktop) */}
-        <button
-          onClick={() => setSearchOpen((v) => !v)}
-          className="press hidden h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground sm:flex"
-          title="Buscar"
-        >
-          <Search className="h-4 w-4" />
-        </button>
-
-        {/* Empresa (desktop) */}
-        <button
-          onClick={() => setActiveView("empresa")}
-          className="press hidden h-9 items-center gap-2 rounded-xl border border-border/60 bg-card/60 px-3 text-[12px] font-medium hover:border-primary/40 hover:bg-accent/40 md:flex"
-          title="Empresa contratista"
-        >
-          <Building2 className="h-3.5 w-3.5 text-primary" />
-          <span className="max-w-[120px] truncate">{empresa.nombre || "Sin empresa"}</span>
+      {/* Zona derecha */}
+      <div className="flex items-center gap-1.5">
+        {/* Empresa */}
+        <button onClick={go("empresa")} className="press hidden items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-[12px] font-medium hover:bg-accent xl:flex">
+          <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="max-w-[100px] truncate">{empresa.nombre}</span>
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
         </button>
 
-        {/* Theme toggle */}
-        <button
-          onClick={cycleTema}
-          className="press flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground"
-          title={`Tema: ${settings.tema}`}
-        >
+        {/* Tema */}
+        <button onClick={cycleTema} title={`Tema: ${settings.tema}`} className="press flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground">
           <TemaIcon className="h-4 w-4" />
         </button>
 
-        {/* Notifications bell → vista de Notificaciones */}
-        <button
-          onClick={() => setActiveView("notificaciones")}
-          className="press relative flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground"
-          title="Notificaciones"
-        >
+        {/* Notificaciones */}
+        <button onClick={go("notificaciones")} className="press relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground">
           <Bell className="h-4 w-4" />
           {settings.lowStockAlerts && bajoStock > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex min-w-[16px] h-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
               {bajoStock > 99 ? "99+" : bajoStock}
             </span>
           )}
         </button>
 
-        {/* Settings */}
+        {/* Config */}
         <button
-          onClick={() => setActiveView("config")}
+          onClick={go("config")}
           className={cn(
-            "press flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground",
-            pathname === "/config" && "bg-accent text-foreground"
+            "press flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
+            activeView === "config" ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"
           )}
-          title="Configuración"
         >
           <SettingsIcon className="h-4 w-4" />
         </button>
 
         {/* Avatar */}
         <button
-          onClick={() => setActiveView("config")}
-          className="press relative ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground shadow-md"
+          onClick={go("config")}
+          className="press relative ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground shadow-sm"
           title={settings.usuario || "Iker"}
         >
           {iniciales(settings.usuario)}
         </button>
       </div>
-
-      {/* Search overlay (basic) */}
-      {searchOpen && (
-        <div className="absolute left-1/2 top-14 z-50 hidden -translate-x-1/2 sm:block">
-          <div className="glass anim-fade-up flex items-center gap-2 rounded-2xl border border-border bg-card p-2 shadow-xl">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <input
-              autoFocus
-              placeholder="Buscar producto por SKU o nombre…"
-              className="w-72 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground"
-              onKeyDown={(e) => {
-                if (e.key === "Escape") setSearchOpen(false);
-                if (e.key === "Enter") {
-                  setActiveView("inventario");
-                  setSearchOpen(false);
-                }
-              }}
-            />
-            <button
-              onClick={() => setSearchOpen(false)}
-              className="press flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent"
-            >
-              <Check className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-      )}
     </header>
   );
 }
