@@ -1,4 +1,4 @@
-// API route /api/sync — multi-device data sync for Nuclon WMS
+// API route /api/sync — multi-device data sync for LEMCORP WMS
 // Stores the entire Zustand store state as a JSON blob keyed by deviceId.
 //
 // - GET  /api/sync?deviceId=xxx       → returns the latest snapshot for that device

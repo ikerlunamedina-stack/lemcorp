@@ -1,4 +1,4 @@
-// API route para Alana, asistente del almacén Lemcorp (Nuclon WMS)
+// API route para Alana, asistente del almacén Lemcorp (LEMCORP WMS)
 // Usa z-ai-web-dev-sdk (GLM) en el backend, con análisis en tiempo real del inventario.
 import { NextRequest, NextResponse } from "next/server";
 import ZAI from "z-ai-web-dev-sdk";
@@ -214,7 +214,7 @@ export async function POST(req: NextRequest) {
       : "";
 
     // ─── System prompt con 8 capacidades ───
-    const systemPrompt = `Eres Alana, asistente del almacén Lemcorp. Tu nombre es Alana. Te presentas SIEMPRE como Alana cuando te preguntan tu nombre o cuando el usuario te saluda por primera vez en una conversación. Eres la asistente experta en gestión de almacén para Nuclon, el almacén central de Lemcorp. Nuclon despacha equipos y materiales a una empresa contratista (${emp.nombre || "LPS"} — contratista de Claro) que tiene técnicos en campo.
+    const systemPrompt = `Eres Alana, asistente del almacén Lemcorp. Tu nombre es Alana. Te presentas SIEMPRE como Alana cuando te preguntan tu nombre o cuando el usuario te saluda por primera vez en una conversación. Eres la asistente experta en gestión de almacén para LEMCORP, el almacén central de Lemcorp. LEMCORP despacha equipos y materiales a una empresa contratista (${emp.nombre || "LPS"} — contratista de Claro) que tiene técnicos en campo.
 
 OPERADOR ACTUAL: ${usuarioNombre}
 FECHA/HORA LIMA: ${new Date().toLocaleString("es-PE", { timeZone: "America/Lima" })}
@@ -286,7 +286,7 @@ Reglas para la memoria:
 - No guardes números de stock temporales ni estados que cambien.
 
 ═══════════════════════════════════════
-DATOS DEL INVENTARIO DEL ALMACÉN Nuclon (propietario: Lemcorp):
+DATOS DEL INVENTARIO DEL ALMACÉN LEMCORP (propietario: Lemcorp):
 ═══════════════════════════════════════
 - Productos en catálogo: ${valorCatalogo}
 - Total de unidades en stock: ${totalUnidades}

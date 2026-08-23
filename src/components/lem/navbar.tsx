@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Boxes,
@@ -52,7 +54,7 @@ function iniciales(usuario: string): string {
 }
 
 export function Navbar() {
-  const activeView = useStore((s) => s.activeView);
+  const pathname = usePathname();
   const setActiveView = useStore((s) => s.setActiveView);
   const products = useStore((s) => s.products);
   const empresa = useStore((s) => s.empresa);
@@ -79,25 +81,14 @@ export function Navbar() {
     <header className="glass-topbar sticky top-0 z-40 flex h-16 shrink-0 items-center gap-3 border-b border-border/60 px-4 lg:px-6">
       {/* ─── LEFT: Logo ─── */}
       <button
-        onClick={() => setActiveView("dashboard")}
+        onClick={() => { setActiveView("dashboard"); window.location.href = "/dashboard"; }}
         className="group flex shrink-0 items-center gap-2.5 pr-2"
       >
         <div className="relative">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-sm press">
-            <svg viewBox="0 0 24 24" className="h-5 w-5 text-primary-foreground" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2 L22 8.5 L22 15.5 L12 22 L2 15.5 L2 8.5 Z" />
-              <path d="M12 2 L12 9" />
-              <path d="M22 8.5 L12 9 L2 8.5" />
-              <path d="M12 9 L12 22" />
-              <path d="M12 9 L17 12 L22 8.5" />
-              <path d="M12 9 L7 12 L2 8.5" />
-              <path d="M17 12 L17 18 L12 22" />
-              <path d="M7 12 L7 18 L12 22" />
-            </svg>
-          </div>
+          <img src="/lemcorp-logo.png" alt="LEMCORP" className="h-10 w-10 rounded-xl object-contain press" />
         </div>
         <div className="flex flex-col leading-none">
-          <span className="text-[15px] font-bold tracking-tight text-foreground">Nuclon</span>
+          <span className="text-[15px] font-bold tracking-tight text-foreground">LEMCORP</span>
           <span className="mt-0.5 hidden text-[9px] font-semibold tracking-[0.15em] text-muted-foreground uppercase sm:block">WMS · Almacén</span>
         </div>
       </button>
@@ -105,11 +96,12 @@ export function Navbar() {
       {/* ─── CENTER: Nav ─── */}
       <nav className="mx-auto hidden items-center gap-0.5 lg:flex">
         {NAV_ITEMS.map((item) => {
-          const active = activeView === item.view;
           const Icon = item.icon;
+          const active = pathname === `/${item.view}`;
           return (
-            <button
+            <Link
               key={item.view}
+              href={`/${item.view}`}
               onClick={() => setActiveView(item.view)}
               className={cn(
                 "press group relative flex h-10 items-center gap-1.5 rounded-xl px-3 text-[13px] font-medium transition-all duration-200",
@@ -129,7 +121,7 @@ export function Navbar() {
               {active && (
                 <span className="absolute -bottom-[1px] left-1/2 h-[2px] w-6 -translate-x-1/2 rounded-full bg-primary anim-scale-in" />
               )}
-            </button>
+            </Link>
           );
         })}
       </nav>
@@ -137,11 +129,12 @@ export function Navbar() {
       {/* Mobile nav scroll (compact, only icons) */}
       <nav className="flex flex-1 items-center gap-0.5 overflow-x-auto scroll-thin lg:hidden">
         {NAV_ITEMS.map((item) => {
-          const active = activeView === item.view;
           const Icon = item.icon;
+          const active = pathname === `/${item.view}`;
           return (
-            <button
+            <Link
               key={item.view}
+              href={`/${item.view}`}
               onClick={() => setActiveView(item.view)}
               className={cn(
                 "press flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-all",
@@ -152,7 +145,7 @@ export function Navbar() {
               title={item.label}
             >
               <Icon className="h-4 w-4" />
-            </button>
+            </Link>
           );
         })}
       </nav>
@@ -190,7 +183,7 @@ export function Navbar() {
 
         {/* Notifications bell → vista de Notificaciones */}
         <button
-          onClick={() => setActiveView("notificaciones")}
+          onClick={() => { setActiveView("notificaciones"); window.location.href = "/notificaciones"; }}
           className="press relative flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground"
           title="Notificaciones"
         >
@@ -204,10 +197,10 @@ export function Navbar() {
 
         {/* Settings */}
         <button
-          onClick={() => setActiveView("config")}
+          onClick={() => { setActiveView("config"); window.location.href = "/config"; }}
           className={cn(
             "press flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground",
-            activeView === "config" && "bg-primary/10 text-primary"
+            pathname === "/config" && "bg-accent text-foreground"
           )}
           title="Configuración"
         >
@@ -216,7 +209,7 @@ export function Navbar() {
 
         {/* Avatar */}
         <button
-          onClick={() => setActiveView("config")}
+          onClick={() => { setActiveView("config"); window.location.href = "/config"; }}
           className="press relative ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground shadow-md"
           title={settings.usuario || "Iker"}
         >

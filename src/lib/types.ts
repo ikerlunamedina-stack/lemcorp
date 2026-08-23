@@ -1,4 +1,4 @@
-// Tipos del sistema de gestión de almacén Nuclon WMS
+// Tipos del sistema de gestión de almacén LEMCORP WMS
 // Premium build — REBUILD-1
 
 export type ActiveView =
@@ -213,7 +213,7 @@ export const DEFAULT_EMPRESA: InfoEmpresa = {
   telefono: "",
   correo: "",
   descripcion:
-    "Nuclon — Almacén central\nPropietario: Lemcorp\nContratista: LPS (Claro)\nTécnicos en campo: 30\nDespacho diario: ~17 técnicos\nCobertura: Lima Norte, Comas, Los Olivos",
+    "LEMCORP — Almacén central\nPropietario: Lemcorp\nContratista: LPS (Claro)\nTécnicos en campo: 30\nDespacho diario: ~17 técnicos\nCobertura: Lima Norte, Comas, Los Olivos",
 };
 
 // ─────────── Helper ───────────

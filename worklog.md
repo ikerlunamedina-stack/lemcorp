@@ -1739,3 +1739,28 @@ Verificación:
 - Página carga con título "Notificaciones" ✓
 - Botones "Limpiar leídas" y "Borrar todo" visibles ✓
 - Lint limpio ✓
+
+---
+Task ID: LEMCORP-ROUTES-V36
+Agent: main
+Task: Cambiar a LEMCORP + logo real + rutas separadas (HTML en cada parte)
+
+Work Log:
+- Renombrado Nuclon → LEMCORP en TODOS los archivos
+- Logo real: /public/lemcorp-logo.png (subido por el usuario)
+  - Reemplazado SVG del cubo por <img> en navbar, sidebar y loading
+- Rutas separadas (App Router):
+  - /dashboard, /inventario, /despachos, /equipos, /series
+  - /pistolear, /horario, /ia, /bloc, /empresa, /notificaciones, /config
+  - Cada ruta tiene su propio page.tsx con layout completo
+  - / redirige a /dashboard
+- Navbar: cambiado de <button onClick> a <Link href="/ruta">
+  - usePathname() para detectar página activa
+  - Links reales de Next.js (navegación entre páginas HTML separadas)
+  - Mobile nav también con Links
+- Verificación:
+  - / → redirige a /dashboard ✓
+  - /ia → página de Alana separada ✓
+  - /notificaciones → página de Notificaciones separada ✓
+  - Logo LEMCORP visible en navbar ✓
+  - Lint limpio ✓

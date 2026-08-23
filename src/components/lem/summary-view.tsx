@@ -170,7 +170,7 @@ export function SummaryView() {
     return (
       <div className="mx-auto max-w-2xl px-6 py-16">
         <EmptyHero
-          title="Bienvenido a Nuclon"
+          title="Bienvenido a LEMCORP"
           desc="Centraliza tus planillas de inventario, despachos y equipos en una sola aplicación. Crea o importa tu primer archivo para empezar."
           cta={
             <div className="flex gap-2">
@@ -200,7 +200,7 @@ export function SummaryView() {
       <div className="anim-fade-up mb-6">
         <h1 className="text-xl font-semibold tracking-tight">Resumen general</h1>
         <p className="text-sm text-muted-foreground">
-          Vista consolidada de todo el inventario y operaciones de Nuclon.
+          Vista consolidada de todo el inventario y operaciones de LEMCORP.
         </p>
       </div>
 

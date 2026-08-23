@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useStore } from "@/lib/store";
 
-const WELCOME_KEY = "nuclon-welcome-seen-v1";
+const WELCOME_KEY = "lemcorp-welcome-seen-v1";
 
 export function WelcomeOverlay() {
   const [open, setOpen] = useState(false);
@@ -89,7 +89,7 @@ export function WelcomeOverlay() {
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold tracking-tight">
-                    Bienvenido a Nuclon
+                    Bienvenido a LEMCORP
                   </h2>
                   <p className="text-xs text-muted-foreground">
                     Gestor centralizado de planillas

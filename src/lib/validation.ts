@@ -1,5 +1,5 @@
 // Validación cruzada: detecta el SKU en los archivos y verifica que el
-// nombre coincida con el catálogo maestro de Nuclon.
+// nombre coincida con el catálogo maestro de LEMCORP.
 //
 // El SKU es el "DNI" del producto. Si dos archivos usan el mismo SKU
 // pero con nombres distintos, lanzamos una advertencia para que el

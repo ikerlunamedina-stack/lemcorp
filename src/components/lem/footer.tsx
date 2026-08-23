@@ -39,7 +39,7 @@ export function Footer() {
         <Clock className="h-3 w-3 text-emerald-500" />
         <span className="font-medium text-foreground tabular-nums">{now}</span>
       </span>
-      <span className="font-bold tracking-wide text-primary">Nuclon © 2026</span>
+      <span className="font-bold tracking-wide text-primary">LEMCORP © 2026</span>
     </footer>
   );
 }

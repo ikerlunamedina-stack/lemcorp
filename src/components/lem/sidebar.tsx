@@ -39,21 +39,10 @@ export function Sidebar() {
       {/* Logo */}
       <button onClick={go("dashboard")} className="group relative flex items-center gap-3 px-5 py-5 transition-all hover:opacity-90">
         <div className="relative">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary shadow-sm press">
-            <svg viewBox="0 0 24 24" className="h-6 w-6 text-primary-foreground" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2 L22 8.5 L22 15.5 L12 22 L2 15.5 L2 8.5 Z" />
-              <path d="M12 2 L12 9" />
-              <path d="M22 8.5 L12 9 L2 8.5" />
-              <path d="M12 9 L12 22" />
-              <path d="M12 9 L17 12 L22 8.5" />
-              <path d="M12 9 L7 12 L2 8.5" />
-              <path d="M17 12 L17 18 L12 22" />
-              <path d="M7 12 L7 18 L12 22" />
-            </svg>
-          </div>
+          <img src="/lemcorp-logo.png" alt="LEMCORP" className="h-11 w-11 rounded-xl object-contain press" />
         </div>
         <div className="flex flex-col leading-none text-left">
-          <span className="text-[16px] font-bold tracking-tight text-foreground">Nuclon</span>
+          <span className="text-[16px] font-bold tracking-tight text-foreground">LEMCORP</span>
           <span className="mt-1 text-[9px] font-semibold tracking-[0.15em] text-muted-foreground uppercase">WMS · Almacén</span>
         </div>
       </button>
@@ -123,7 +112,7 @@ export function Sidebar() {
           <span className="flex-1 text-left">Configuración</span>
         </button>
         <p className="mt-3 px-3 text-[10px] leading-relaxed text-white/25">
-          Nuclon WMS · v3.0<br />© 2026
+          LEMCORP WMS · v3.0<br />© 2026
         </p>
       </div>
     </aside>

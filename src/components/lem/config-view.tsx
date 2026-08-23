@@ -385,7 +385,7 @@ export function ConfigView() {
         <div className="flex flex-col gap-1.5 text-[12px] text-muted-foreground">
           <div className="flex items-center justify-between">
             <span>Sistema</span>
-            <span className="font-medium text-foreground">Nuclon WMS</span>
+            <span className="font-medium text-foreground">LEMCORP WMS</span>
           </div>
           <div className="flex items-center justify-between">
             <span>Asistente IA</span>

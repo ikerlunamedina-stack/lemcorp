@@ -1,18 +1,18 @@
-// Multi-device sync helper for Nuclon WMS.
+// Multi-device sync helper for LEMCORP WMS.
 // Stores data in localStorage (Zustand persist) and mirrors it to the server
 // (Prisma + SQLite) so the same device-id shows the same data everywhere.
 //
 // The device id is generated once and stored in localStorage. The same id is
 // used on every device the user logs in from — they share data across devices.
-// To keep things simple, we use ONE shared device id ("nuclon-shared") by
+// To keep things simple, we use ONE shared device id ("lemcorp-shared") by
 // default so the same inventory shows on every browser. The user can still
 // override this by setting their own deviceId in localStorage.
 
-const DEVICE_ID_KEY = "nuclon-device-id";
+const DEVICE_ID_KEY = "lemcorp-device-id";
 // Fixed shared device id — every browser reads & writes to the same row,
 // so all devices see the same data (matches the user's mental model:
 // "one warehouse, many devices").
-const SHARED_DEVICE_ID = "nuclon-shared";
+const SHARED_DEVICE_ID = "lemcorp-shared";
 
 export function getDeviceId(): string {
   if (typeof window === "undefined") return SHARED_DEVICE_ID;

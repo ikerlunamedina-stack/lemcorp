@@ -60,7 +60,7 @@ const TYPE_COLS = [
   "in/out/int",
 ];
 const QTY_COLS_DESPACHO = ["cantidad", "cant", "qty", "salida", "despachado", "total", "total contabilizado", "cantidad despachada"];
-// Para inventario priorizamos "Stock Actual" (el Excel oficial de Nuclon usa
+// Para inventario priorizamos "Stock Actual" (el Excel oficial de LEMCORP usa
 // ese nombre), luego "Físico" (reportes de almacén HUB), luego Disponible.
 const QTY_COLS_INVENTARIO = [
   "stock inicial",

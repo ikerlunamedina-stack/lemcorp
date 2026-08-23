@@ -72,7 +72,7 @@ export function EmpresaView() {
           <Building2 className="h-5 w-5" /> Empresas y Contactos
         </h1>
         <p className="text-sm text-muted-foreground">
-          Empresas contratistas (ej: LPS) y técnicos a los que despachas. El almacén es Nuclon.
+          Empresas contratistas (ej: LPS) y técnicos a los que despachas. El almacén es LEMCORP.
         </p>
       </div>
 
@@ -124,7 +124,7 @@ export function EmpresaView() {
                 className="rounded-xl min-h-[140px] text-[13px] leading-relaxed"
               />
               <p className="text-[10px] text-muted-foreground">
-                El almacén es de Nuclon. Aquí registras la empresa contratista a la que despachas (ej: LPS que trabaja para Claro).
+                El almacén es de LEMCORP. Aquí registras la empresa contratista a la que despachas (ej: LPS que trabaja para Claro).
               </p>
             </div>
           </div>

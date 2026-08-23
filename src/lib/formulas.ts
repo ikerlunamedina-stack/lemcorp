@@ -1,4 +1,4 @@
-// Motor de fórmulas tipo Excel para Nuclon
+// Motor de fórmulas tipo Excel para LEMCORP
 // Soporta: referencias A1, rangos A1:B10, SUMA, SI, PROMEDIO, MAX, MIN,
 // CONTAR, CONTARA, REDONDEAR, ABS, HOY, CONCATENAR, SI.ERROR,
 // aritmética + - * / ^ %, comparaciones, paréntesis, texto "..." y números.
