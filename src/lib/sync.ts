@@ -44,6 +44,7 @@ export interface SyncPayload {
   pistoleoEstado?: unknown;
   horario?: unknown[];
   memoriaIA?: unknown[];
+  bajoStockVisto?: number;
   activeView?: unknown;
   __syncedAt?: number;
 }

@@ -4,17 +4,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/lem/theme-provider";
 
 export const metadata: Metadata = {
-  title: "LEMCORP — Sistema de Gestión de Almacén | WMS",
+  title: "LEMCORP — Sistema de Gestión de Almacén",
   description:
-    "Plataforma WMS para gestión de inventarios, trazabilidad de equipos por serie, control de entradas y análisis con IA. Diseñado para telecomunicaciones.",
+    "Plataforma para gestión de inventarios, trazabilidad de equipos por serie, control de entradas y análisis con IA. Diseñado para telecomunicaciones.",
   keywords: [
     "LEMCORP",
-    "WMS",
     "sistema de almacén",
-    "gestión de inventarios",
-    "trazabilidad de equipos",
-    "control de stock",
-    "inventario telecomunicaciones",
     "software logística",
     "asistente IA almacén",
   ],
@@ -25,13 +20,13 @@ export const metadata: Metadata = {
   openGraph: {
     title: "LEMCORP — Sistema de Gestión de Almacén",
     description: "Control total de tu inventario, equipos y operaciones.",
-    siteName: "LEMCORP WMS",
+    siteName: "LEMCORP",
     type: "website",
     locale: "es_PE",
   },
   twitter: {
     card: "summary_large_image",
-    title: "LEMCORP WMS",
+    title: "LEMCORP",
     description: "Sistema de gestión de almacén con IA integrada.",
   },
 };

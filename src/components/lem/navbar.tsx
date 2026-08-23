@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -60,6 +60,8 @@ export function Navbar() {
   const empresa = useStore((s) => s.empresa);
   const settings = useStore((s) => s.settings);
   const setSetting = useStore((s) => s.setSetting);
+  const bajoStockVisto = useStore((s) => s.bajoStockVisto);
+  const marcarBajoStockVisto = useStore((s) => s.marcarBajoStockVisto);
 
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -69,6 +71,16 @@ export function Navbar() {
   const bajoStock = products.filter(
     (p) => p.minStock && p.minStock > 0 && p.quantity <= p.minStock
   ).length;
+
+  // Solo mostrar el badge si hay más productos en bajo stock que los que ya vio
+  const badgeCount = Math.max(0, bajoStock - bajoStockVisto);
+
+  // Cuando entra a /notificaciones, marcamos como visto el conteo actual
+  useEffect(() => {
+    if (pathname === "/notificaciones" && bajoStock > 0) {
+      marcarBajoStockVisto(bajoStock);
+    }
+  }, [pathname, bajoStock, marcarBajoStockVisto]);
 
   const cycleTema = () => {
     const order: Tema[] = ["claro", "oscuro", "sistema"];
@@ -87,7 +99,7 @@ export function Navbar() {
         <img src="/lemcorp-logo.png" alt="LEMCORP" className="h-9 w-9 rounded-lg object-contain" />
         <div className="flex flex-col leading-none">
           <span className="text-[15px] font-bold tracking-tight text-foreground">LEMCORP</span>
-          <span className="mt-0.5 hidden text-[9px] font-semibold tracking-[0.15em] text-muted-foreground uppercase sm:block">WMS</span>
+          <span className="mt-0.5 hidden text-[9px] font-semibold tracking-[0.15em] text-muted-foreground uppercase sm:block">Sistema de Almacén</span>
         </div>
       </Link>
 
@@ -156,9 +168,9 @@ export function Navbar() {
         {/* Notificaciones */}
         <Link href="/notificaciones" className="press relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground">
           <Bell className="h-4 w-4" />
-          {settings.lowStockAlerts && bajoStock > 0 && (
+          {settings.lowStockAlerts && badgeCount > 0 && (
             <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
-              {bajoStock > 99 ? "99+" : bajoStock}
+              {badgeCount > 99 ? "99+" : badgeCount}
             </span>
           )}
         </Link>

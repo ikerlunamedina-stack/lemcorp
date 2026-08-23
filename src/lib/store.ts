@@ -47,6 +47,10 @@ interface StoreState {
   // Memoria de aprendizaje de Alana (cosas que ha aprendido del usuario)
   memoriaIA: string[];
 
+  // Cuenta de productos en bajo stock que el usuario ya vio
+  // (para que el badge de la campana desaparezca al visitar /notificaciones)
+  bajoStockVisto: number;
+
   // UI / sesión
   activeView: ActiveView;
 
@@ -58,6 +62,9 @@ interface StoreState {
 
   // ─── Acciones: navegación ───
   setActiveView: (v: ActiveView) => void;
+
+  // ─── Acciones: notificaciones ───
+  marcarBajoStockVisto: (count: number) => void;
 
   // ─── Acciones: pistoleo ───
   setPistoleoConfig: (patch: Partial<{
@@ -188,6 +195,8 @@ export const useStore = create<StoreState>()(
       horario: [],
       memoriaIA: [],
 
+      bajoStockVisto: 0,
+
       activeView: "dashboard",
 
       // pistoleo
@@ -198,6 +207,9 @@ export const useStore = create<StoreState>()(
 
       // ─── Navegación ───
       setActiveView: (v) => set({ activeView: v }),
+
+      // ─── Notificaciones ───
+      marcarBajoStockVisto: (count) => set({ bajoStockVisto: count }),
 
       // ─── Pistoleo ───
       setPistoleoConfig: (patch) => set({ ...patch }),
@@ -705,18 +717,305 @@ export const useStore = create<StoreState>()(
 
       // ─── Export ───
       exportInventarioExcel: () => {
-        import("xlsx").then((XLSX: any) => {
-          const data: any[][] = [
-            ["INVENTARIO LEMCORP", "", "", "", ""],
-            ["Exportado:", new Date().toLocaleString("es-PE"), "", "", ""],
-            [],
-            ["SKU", "PRODUCTO", "STOCK ACTUAL", "STOCK MÍNIMO", "UDM"],
-            ...get().products.map((p) => [p.sku, p.name, p.quantity, p.minStock ?? "", p.udm ?? ""]),
+        import("xlsx-js-style").then((XLSX: any) => {
+          const productos = get().products;
+          const empresa = get().empresa;
+          const settings = get().settings;
+          const usuario = settings.usuario || "Iker";
+          const ahora = new Date();
+          const fechaStr = ahora.toLocaleDateString("es-PE", { timeZone: "America/Lima" });
+          const horaStr = ahora.toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit" });
+
+          // Paleta corporativa (gris mate, sin morado/neón)
+          const C = {
+            headerBg: "1F1F1F",       // casi negro
+            headerFg: "FFFFFF",
+            subBg: "2A2A2A",
+            subFg: "E5E5E5",
+            infoLabelBg: "EFEFEF",
+            infoLabelFg: "1A1A1A",
+            infoValueBg: "FFFFFF",
+            infoValueFg: "1A1A1A",
+            tableHeaderBg: "3A3A3A",
+            tableHeaderFg: "FFFFFF",
+            rowAlt: "F5F5F5",
+            rowNormal: "FFFFFF",
+            dangerBg: "FCE4E4",
+            dangerFg: "9B1C1C",
+            warnBg: "FFF4D6",
+            warnFg: "92500A",
+            okBg: "DCFCE7",
+            okFg: "166534",
+            border: "B0B0B0",
+          };
+
+          const borderAll = {
+            top: { style: "thin", color: { rgb: C.border } },
+            bottom: { style: "thin", color: { rgb: C.border } },
+            left: { style: "thin", color: { rgb: C.border } },
+            right: { style: "thin", color: { rgb: C.border } },
+          };
+
+          // ─── Cálculos ───
+          const totalUnidades = productos.reduce((s, p) => s + p.quantity, 0);
+          const bajoStock = productos.filter((p) => p.minStock && p.minStock > 0 && p.quantity <= p.minStock);
+          const bajoCount = bajoStock.length;
+          const udmMap: Record<string, number> = {};
+          for (const p of productos) {
+            const k = p.udm ?? "Sin UDM";
+            udmMap[k] = (udmMap[k] ?? 0) + p.quantity;
+          }
+
+          // ─── Construir filas (aoa) ───
+          const ncols = 9;
+          const rows: any[][] = [];
+
+          // Fila 1: Título principal
+          rows.push(["INVENTARIO LEMCORP", "", "", "", "", "", "", "", ""]);
+          // Fila 2: subtítulo empresa
+          rows.push([empresa.nombre || "Lemcorp", "", "", "", "", "", "", "", ""]);
+          // Fila 3: vacía
+          rows.push(Array(ncols).fill(""));
+          // Fila 4-7: bloque info
+          rows.push(["Exportado por:", usuario, "", "Fecha:", fechaStr, "", "Hora:", horaStr, ""]);
+          rows.push(["Productos en catálogo:", productos.length, "", "Unidades totales:", totalUnidades.toLocaleString("es-PE"), "", "Productos en bajo stock:", bajoCount, ""]);
+          rows.push(["Empresa:", empresa.nombre || "Lemcorp", "", "RUC:", empresa.ruc || "—", "", "Teléfono:", empresa.telefono || "—", ""]);
+          rows.push(["Dirección:", empresa.direccion || "—", "", "Correo:", empresa.correo || "—", "", "", "", ""]);
+          // Fila 8: vacía
+          rows.push(Array(ncols).fill(""));
+          // Fila 9: encabezado de tabla
+          rows.push(["SKU", "PRODUCTO", "STOCK ACTUAL", "STOCK MÍNIMO", "UDM", "ESTADO", "VALOR UNIT. (S/)", "VALOR TOTAL (S/)", "OBSERVACIONES"]);
+          // Filas de datos
+          for (const p of productos) {
+            const estado = !p.minStock || p.minStock === 0
+              ? "Sin mínimo"
+              : p.quantity <= p.minStock
+              ? "BAJO STOCK"
+              : p.quantity <= p.minStock * 1.5
+              ? "Por agotarse"
+              : "OK";
+            rows.push([
+              p.sku,
+              p.name,
+              p.quantity,
+              p.minStock ?? "",
+              p.udm ?? "",
+              estado,
+              "", // valor unitario (lo llena el usuario)
+              "", // valor total (lo llena el usuario)
+              "",
+            ]);
+          }
+          // Fila vacía
+          rows.push(Array(ncols).fill(""));
+          // Fila de totales
+          rows.push(["TOTALES", "", totalUnidades, "", "", `${bajoCount} bajo stock`, "", "", ""]);
+
+          const ws = XLSX.utils.aoa_to_sheet(rows);
+
+          // ─── Merges ───
+          ws["!merges"] = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: ncols - 1 } }, // título
+            { s: { r: 1, c: 0 }, e: { r: 1, c: ncols - 1 } }, // subtítulo empresa
+            { s: { r: 3, c: 1 }, e: { r: 3, c: 2 } },
+            { s: { r: 3, c: 4 }, e: { r: 3, c: 5 } },
+            { s: { r: 3, c: 7 }, e: { r: 3, c: 8 } },
+            { s: { r: 4, c: 1 }, e: { r: 4, c: 2 } },
+            { s: { r: 4, c: 4 }, e: { r: 4, c: 5 } },
+            { s: { r: 4, c: 7 }, e: { r: 4, c: 8 } },
+            { s: { r: 5, c: 1 }, e: { r: 5, c: 2 } },
+            { s: { r: 5, c: 4 }, e: { r: 5, c: 5 } },
+            { s: { r: 5, c: 7 }, e: { r: 5, c: 8 } },
+            { s: { r: 6, c: 1 }, e: { r: 6, c: 2 } },
+            { s: { r: 6, c: 4 }, e: { r: 6, c: 5 } },
+            { s: { r: 6, c: 7 }, e: { r: 6, c: 8 } },
+            { s: { r: rows.length - 1, c: 1 }, e: { r: rows.length - 1, c: 2 } },
+            { s: { r: rows.length - 1, c: 3 }, e: { r: rows.length - 1, c: 4 } },
+            { s: { r: rows.length - 1, c: 5 }, e: { r: rows.length - 1, c: 8 } },
           ];
-          const ws = XLSX.utils.aoa_to_sheet(data);
-          ws["!cols"] = [{ wch: 14 }, { wch: 40 }, { wch: 14 }, { wch: 14 }, { wch: 12 }];
+
+          // ─── Ancho de columnas ───
+          ws["!cols"] = [
+            { wch: 14 },  // SKU
+            { wch: 42 },  // PRODUCTO
+            { wch: 14 },  // STOCK
+            { wch: 14 },  // MÍN
+            { wch: 12 },  // UDM
+            { wch: 14 },  // ESTADO
+            { wch: 16 },  // VALOR UNIT
+            { wch: 16 },  // VALOR TOTAL
+            { wch: 28 },  // OBSERVACIONES
+          ];
+
+          // ─── Alto de filas ───
+          ws["!rows"] = [];
+          ws["!rows"][0] = { hpt: 32 };
+          ws["!rows"][1] = { hpt: 20 };
+          ws["!rows"][8] = { hpt: 26 };
+
+          // ─── Aplicar estilos ───
+          const setStyle = (addr: string, style: any) => {
+            if (!ws[addr]) ws[addr] = { t: "s", v: "" };
+            ws[addr].s = { ...(ws[addr].s || {}), ...style };
+          };
+
+          // Fila 1: título
+          setStyle("A1", {
+            font: { name: "Calibri", sz: 22, bold: true, color: { rgb: C.headerFg } },
+            fill: { fgColor: { rgb: C.headerBg } },
+            alignment: { horizontal: "center", vertical: "center" },
+          });
+          // Fila 2: subtítulo empresa
+          setStyle("A2", {
+            font: { name: "Calibri", sz: 12, bold: true, color: { rgb: C.subFg } },
+            fill: { fgColor: { rgb: C.subBg } },
+            alignment: { horizontal: "center", vertical: "center" },
+          });
+
+          // Bloque info (filas 4-7, índices 3-6)
+          const infoLabelCells = ["A4", "D4", "G4", "A5", "D5", "G5", "A6", "D6", "G6", "A7", "D7"];
+          const infoValueCells = ["B4", "E4", "H4", "B5", "E5", "H5", "B6", "E6", "H6", "B7", "E7"];
+          for (const c of infoLabelCells) {
+            setStyle(c, {
+              font: { name: "Calibri", sz: 10, bold: true, color: { rgb: C.infoLabelFg } },
+              fill: { fgColor: { rgb: C.infoLabelBg } },
+              alignment: { horizontal: "left", vertical: "center", indent: 1 },
+              border: borderAll,
+            });
+          }
+          for (const c of infoValueCells) {
+            setStyle(c, {
+              font: { name: "Calibri", sz: 10, color: { rgb: C.infoValueFg } },
+              fill: { fgColor: { rgb: C.infoValueBg } },
+              alignment: { horizontal: "left", vertical: "center", indent: 1 },
+              border: borderAll,
+            });
+          }
+
+          // Encabezado de tabla (fila 9, índice 8)
+          const headerCols = ["A", "B", "C", "D", "E", "F", "G", "H", "I"];
+          for (const col of headerCols) {
+            setStyle(`${col}9`, {
+              font: { name: "Calibri", sz: 11, bold: true, color: { rgb: C.tableHeaderFg } },
+              fill: { fgColor: { rgb: C.tableHeaderBg } },
+              alignment: { horizontal: "center", vertical: "center", wrapText: true },
+              border: borderAll,
+            });
+          }
+
+          // Filas de datos (empiezan en fila 10, índice 9)
+          const dataStartRow = 9;
+          for (let i = 0; i < productos.length; i++) {
+            const rowIdx = dataStartRow + i;
+            const excelRow = rowIdx + 1;
+            const isAlt = i % 2 === 1;
+            const rowBg = isAlt ? C.rowAlt : C.rowNormal;
+
+            const p = productos[i];
+            const isBajo = !!(p.minStock && p.minStock > 0 && p.quantity <= p.minStock);
+            const isWarn = !!(p.minStock && p.minStock > 0 && p.quantity > p.minStock && p.quantity <= p.minStock * 1.5);
+            const estadoBg = isBajo ? C.dangerBg : isWarn ? C.warnBg : C.okBg;
+            const estadoFg = isBajo ? C.dangerFg : isWarn ? C.warnFg : C.okFg;
+
+            for (let c = 0; c < ncols; c++) {
+              const addr = `${headerCols[c]}${excelRow}`;
+              const isEstadoCol = c === 5;
+              const isNumberCol = c === 2 || c === 3;
+              const isMoneyCol = c === 6 || c === 7;
+              setStyle(addr, {
+                font: {
+                  name: "Calibri",
+                  sz: 10,
+                  bold: isEstadoCol,
+                  color: { rgb: isEstadoCol ? estadoFg : "1A1A1A" },
+                },
+                fill: { fgColor: { rgb: isEstadoCol ? estadoBg : rowBg } },
+                alignment: {
+                  horizontal: isEstadoCol || isNumberCol || isMoneyCol ? "center" : "left",
+                  vertical: "center",
+                  indent: isNumberCol || isMoneyCol || isEstadoCol ? 0 : 1,
+                },
+                border: borderAll,
+                numFmt: isMoneyCol ? '"S/" #,##0.00' : isNumberCol ? "#,##0" : undefined,
+              });
+            }
+          }
+
+          // Fila de totales
+          const totalRowIdx = rows.length - 1;
+          const totalExcelRow = totalRowIdx + 1;
+          for (let c = 0; c < ncols; c++) {
+            const addr = `${headerCols[c]}${totalExcelRow}`;
+            setStyle(addr, {
+              font: { name: "Calibri", sz: 11, bold: true, color: { rgb: "FFFFFF" } },
+              fill: { fgColor: { rgb: C.headerBg } },
+              alignment: { horizontal: c === 0 || c === 2 || c === 5 ? "center" : "left", vertical: "center" },
+              border: borderAll,
+            });
+          }
+
+          // ─── Hoja 2: Resumen por UDM ───
+          const resumenRows: any[][] = [
+            ["RESUMEN POR UNIDAD DE MEDIDA", "", ""],
+            ["", "", ""],
+            ["UDM", "UNIDADES TOTALES", "% DEL TOTAL"],
+          ];
+          const udmEntries = Object.entries(udmMap).sort((a, b) => b[1] - a[1]);
+          for (const [udm, count] of udmEntries) {
+            const pct = totalUnidades > 0 ? (count / totalUnidades) * 100 : 0;
+            resumenRows.push([udm, count, `${pct.toFixed(1)}%`]);
+          }
+          resumenRows.push(["", "", ""]);
+          resumenRows.push(["TOTAL", totalUnidades, "100%"]);
+
+          const ws2 = XLSX.utils.aoa_to_sheet(resumenRows);
+          ws2["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }];
+          ws2["!cols"] = [{ wch: 24 }, { wch: 22 }, { wch: 16 }];
+          ws2["!rows"] = [{ hpt: 28 }];
+
+          const setStyle2 = (addr: string, style: any) => {
+            if (!ws2[addr]) ws2[addr] = { t: "s", v: "" };
+            ws2[addr].s = { ...(ws2[addr].s || {}), ...style };
+          };
+          setStyle2("A1", {
+            font: { name: "Calibri", sz: 16, bold: true, color: { rgb: C.headerFg } },
+            fill: { fgColor: { rgb: C.headerBg } },
+            alignment: { horizontal: "center", vertical: "center" },
+          });
+          for (const col of ["A", "B", "C"]) {
+            setStyle2(`${col}3`, {
+              font: { name: "Calibri", sz: 11, bold: true, color: { rgb: C.tableHeaderFg } },
+              fill: { fgColor: { rgb: C.tableHeaderBg } },
+              alignment: { horizontal: "center", vertical: "center" },
+              border: borderAll,
+            });
+          }
+          for (let i = 0; i < udmEntries.length; i++) {
+            const excelRow = 4 + i;
+            const isAlt = i % 2 === 1;
+            const rowBg = isAlt ? C.rowAlt : C.rowNormal;
+            for (const col of ["A", "B", "C"]) {
+              setStyle2(`${col}${excelRow}`, {
+                font: { name: "Calibri", sz: 10, color: { rgb: "1A1A1A" } },
+                fill: { fgColor: { rgb: rowBg } },
+                alignment: { horizontal: col === "A" ? "left" : "center", vertical: "center", indent: col === "A" ? 1 : 0 },
+                border: borderAll,
+              });
+            }
+          }
+          const totalResRow = 4 + udmEntries.length + 1;
+          for (const col of ["A", "B", "C"]) {
+            setStyle2(`${col}${totalResRow}`, {
+              font: { name: "Calibri", sz: 11, bold: true, color: { rgb: "FFFFFF" } },
+              fill: { fgColor: { rgb: C.headerBg } },
+              alignment: { horizontal: "center", vertical: "center" },
+              border: borderAll,
+            });
+          }
+
           const wb = XLSX.utils.book_new();
           XLSX.utils.book_append_sheet(wb, ws, "Inventario");
+          XLSX.utils.book_append_sheet(wb, ws2, "Resumen por UDM");
           XLSX.writeFile(wb, `Inventario_LEMCORP_${new Date().toISOString().slice(0, 10)}.xlsx`);
         });
       },
@@ -744,6 +1043,7 @@ export const useStore = create<StoreState>()(
           pistoleoEstado: "disponible",
           horario: [],
           memoriaIA: [],
+          bajoStockVisto: 0,
         }),
 
       // ─── Demo data (siempre limpia y carga) ───
@@ -839,6 +1139,7 @@ export const useStore = create<StoreState>()(
         pistoleoFilas: s.pistoleoFilas,
         horario: s.horario,
         memoriaIA: s.memoriaIA,
+        bajoStockVisto: s.bajoStockVisto,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
