@@ -81,7 +81,7 @@ export function Navbar() {
     <header className="glass-topbar sticky top-0 z-40 flex h-16 shrink-0 items-center gap-3 border-b border-border/60 px-4 lg:px-6">
       {/* ─── LEFT: Logo ─── */}
       <button
-        onClick={() => { setActiveView("dashboard"); window.location.href = "/dashboard"; }}
+        onClick={() => setActiveView("dashboard")}
         className="group flex shrink-0 items-center gap-2.5 pr-2"
       >
         <div className="relative">
@@ -183,7 +183,7 @@ export function Navbar() {
 
         {/* Notifications bell → vista de Notificaciones */}
         <button
-          onClick={() => { setActiveView("notificaciones"); window.location.href = "/notificaciones"; }}
+          onClick={() => setActiveView("notificaciones")}
           className="press relative flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground"
           title="Notificaciones"
         >
@@ -197,7 +197,7 @@ export function Navbar() {
 
         {/* Settings */}
         <button
-          onClick={() => { setActiveView("config"); window.location.href = "/config"; }}
+          onClick={() => setActiveView("config")}
           className={cn(
             "press flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground",
             pathname === "/config" && "bg-accent text-foreground"
@@ -209,7 +209,7 @@ export function Navbar() {
 
         {/* Avatar */}
         <button
-          onClick={() => { setActiveView("config"); window.location.href = "/config"; }}
+          onClick={() => setActiveView("config")}
           className="press relative ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground shadow-md"
           title={settings.usuario || "Iker"}
         >
