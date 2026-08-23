@@ -1764,3 +1764,24 @@ Work Log:
   - /notificaciones → página de Notificaciones separada ✓
   - Logo LEMCORP visible en navbar ✓
   - Lint limpio ✓
+
+---
+Task ID: LOADING-FIX-V37
+Agent: main
+Task: Arreglar errores + pantalla de carga bonita y centrada
+
+Work Log:
+- Errores de consola: eran warnings de Fast Refresh por caché viejo del navegador
+  - Sesión limpia (nuevo browser): 0 errores ✓
+- Pantalla de carga rediseñada:
+  - Logo LEMCORP centrado (h-20 w-20)
+  - 3 puntos animados (bounce) debajo del logo
+  - "Cargando..." con puntos animados (...)
+  - min-h-screen + items-center + justify-center (centrado vertical y horizontal)
+  - Tema oscuro (bg-background)
+- loading.tsx copiado a todas las rutas (dashboard, inventario, despachos, etc.)
+
+Verificación:
+- Sesión limpia: sin errores en consola ✓
+- Página carga correctamente ✓
+- Lint limpio ✓
