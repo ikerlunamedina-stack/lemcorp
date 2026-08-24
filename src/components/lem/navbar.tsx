@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -14,17 +14,15 @@ import {
   Sparkles,
   StickyNote,
   Building2,
-  Search,
   Bell,
   Settings as SettingsIcon,
-  ChevronDown,
   Sun,
   Moon,
   Monitor,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import type { Tema } from "@/lib/types";
+import { ROL_META, type Permiso, type Tema } from "@/lib/types";
 
 interface NavItem {
   href: string;
@@ -34,18 +32,18 @@ interface NavItem {
   exact?: boolean;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { href: "/", icon: LayoutDashboard, label: "Dashboard", exact: true },
-  { href: "/inventario", icon: Boxes, label: "Inventario" },
-  { href: "/despachos", icon: TrendingDown, label: "Despachos" },
-  { href: "/equipos", icon: Cpu, label: "Equipos" },
-  { href: "/series", icon: Hash, label: "Series" },
-  { href: "/pistolear", icon: ScanLine, label: "Pistolear" },
-  { href: "/horario", icon: Calendar, label: "Horario" },
-  { href: "/ia", icon: Sparkles, label: "Alana" },
-  { href: "/bloc", icon: StickyNote, label: "Bloc" },
-  { href: "/empresa", icon: Building2, label: "Empresas" },
-  { href: "/notificaciones", icon: Bell, label: "Avisos" },
+const NAV_ITEMS: (NavItem & { permiso: Permiso })[] = [
+  { href: "/", icon: LayoutDashboard, label: "Dashboard", exact: true, permiso: "ver_dashboard" },
+  { href: "/inventario", icon: Boxes, label: "Inventario", permiso: "ver_inventario" },
+  { href: "/despachos", icon: TrendingDown, label: "Despachos", permiso: "ver_despachos" },
+  { href: "/equipos", icon: Cpu, label: "Equipos", permiso: "ver_equipos" },
+  { href: "/series", icon: Hash, label: "Series", permiso: "ver_equipos" },
+  { href: "/pistolear", icon: ScanLine, label: "Pistolear", permiso: "pistolear" },
+  { href: "/horario", icon: Calendar, label: "Horario", permiso: "ver_horario" },
+  { href: "/ia", icon: Sparkles, label: "Alana", permiso: "usar_ia" },
+  { href: "/bloc", icon: StickyNote, label: "Bloc", permiso: "ver_bloc" },
+  { href: "/empresa", icon: Building2, label: "Empresas", permiso: "ver_empresa" },
+  { href: "/notificaciones", icon: Bell, label: "Avisos", permiso: "ver_notificaciones" },
 ];
 
 function iniciales(usuario: string): string {
@@ -62,8 +60,9 @@ export function Navbar() {
   const setSetting = useStore((s) => s.setSetting);
   const bajoStockVisto = useStore((s) => s.bajoStockVisto);
   const marcarBajoStockVisto = useStore((s) => s.marcarBajoStockVisto);
-
-  const [searchOpen, setSearchOpen] = useState(false);
+  const tienePermiso = useStore((s) => s.tienePermiso);
+  const miembros = useStore((s) => s.miembros);
+  const sesionUsuarioId = useStore((s) => s.sesionUsuarioId);
 
   const isActive = (item: NavItem) =>
     item.exact ? pathname === item.href : pathname?.startsWith(item.href);
@@ -81,6 +80,20 @@ export function Navbar() {
       marcarBajoStockVisto(bajoStock);
     }
   }, [pathname, bajoStock, marcarBajoStockVisto]);
+
+  // Miembro actual (sesión)
+  const miembroActual = sesionUsuarioId
+    ? miembros.find((m) => m.id === sesionUsuarioId)
+    : null;
+  // Si no hay sesión, el usuario es el "dueño/admin" (settings.usuario)
+  const nombreUsuario = miembroActual?.nombre || settings.usuario || "Iker";
+  const rolLabel = miembroActual
+    ? ROL_META[miembroActual.rol].short
+    : "Admin";
+  const esAdmin = !miembroActual || miembroActual.rol === "administrador";
+
+  // Filtrar items por permisos
+  const navItemsVisibles = NAV_ITEMS.filter((item) => tienePermiso(item.permiso));
 
   const cycleTema = () => {
     const order: Tema[] = ["claro", "oscuro", "sistema"];
@@ -107,7 +120,7 @@ export function Navbar() {
 
       {/* Nav desktop */}
       <nav className="mx-auto hidden items-center gap-0.5 lg:flex">
-        {NAV_ITEMS.map((item) => {
+        {navItemsVisibles.map((item) => {
           const active = isActive(item);
           const Icon = item.icon;
           return (
@@ -130,7 +143,7 @@ export function Navbar() {
 
       {/* Nav móvil (iconos) */}
       <nav className="flex flex-1 items-center gap-0.5 overflow-x-auto scroll-thin lg:hidden">
-        {NAV_ITEMS.map((item) => {
+        {navItemsVisibles.map((item) => {
           const active = isActive(item);
           const Icon = item.icon;
           return (
@@ -153,46 +166,46 @@ export function Navbar() {
 
       {/* Zona derecha */}
       <div className="flex items-center gap-1.5">
-        {/* Empresa */}
-        <Link href="/empresa" className="press hidden items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-[12px] font-medium hover:bg-accent xl:flex">
-          <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="max-w-[100px] truncate">{empresa.nombre}</span>
-          <ChevronDown className="h-3 w-3 text-muted-foreground" />
-        </Link>
-
         {/* Tema */}
         <button onClick={cycleTema} title={`Tema: ${settings.tema}`} className="press flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground">
           <TemaIcon className="h-4 w-4" />
         </button>
 
-        {/* Notificaciones */}
-        <Link href="/notificaciones" className="press relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground">
-          <Bell className="h-4 w-4" />
-          {settings.lowStockAlerts && badgeCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
-              {badgeCount > 99 ? "99+" : badgeCount}
-            </span>
-          )}
-        </Link>
+        {/* Notificaciones (solo si tiene permiso) */}
+        {tienePermiso("ver_notificaciones") && (
+          <Link href="/notificaciones" className="press relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground">
+            <Bell className="h-4 w-4" />
+            {settings.lowStockAlerts && badgeCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                {badgeCount > 99 ? "99+" : badgeCount}
+              </span>
+            )}
+          </Link>
+        )}
 
-        {/* Config */}
+        {/* Config (solo si tiene permiso) */}
+        {tienePermiso("ver_config") && (
+          <Link
+            href="/config"
+            className={cn(
+              "press flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
+              pathname?.startsWith("/config") ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"
+            )}
+          >
+            <SettingsIcon className="h-4 w-4" />
+          </Link>
+        )}
+
+        {/* Avatar con rol */}
         <Link
           href="/config"
           className={cn(
-            "press flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
-            pathname?.startsWith("/config") ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"
+            "press relative ml-1 flex h-9 w-9 items-center justify-center rounded-full text-[11px] font-bold text-primary-foreground shadow-sm",
+            esAdmin ? "bg-primary" : "bg-muted-foreground"
           )}
+          title={`${nombreUsuario} · ${rolLabel}`}
         >
-          <SettingsIcon className="h-4 w-4" />
-        </Link>
-
-        {/* Avatar */}
-        <Link
-          href="/config"
-          className="press relative ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground shadow-sm"
-          title={settings.usuario || "Iker"}
-        >
-          {iniciales(settings.usuario)}
+          {iniciales(nombreUsuario)}
         </Link>
       </div>
     </header>

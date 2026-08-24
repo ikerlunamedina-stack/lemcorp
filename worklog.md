@@ -1963,3 +1963,62 @@ Stage Summary:
 - Animaciones bonitas (logo con glow, check SVG, anillos, transiciones) ✓
 - Persiste el flag "onboarding completado" para no mostrar de nuevo ✓
 - Botón en Config para repetir el onboarding si se quiere ✓
+
+---
+Task ID: ROLES-PERMISOS
+Agent: main
+Task: Desactivar onboarding, arreglar error, sistema de roles ADMIN/Personal con permisos, vaciar personal, quitar chip de Empresa del navbar
+
+Work Log:
+- DESACTIVADO el OnboardingGate en layout.tsx (el usuario lo activará cuando decida vender)
+- Arreglado error "OnboardingGate is not defined" quitando la referencia del layout
+- Añadido sistema de permisos completo en types.ts:
+  * Tipo Permiso con 20 permisos diferentes
+  * PERMISO_META con label y descripción de cada permiso
+  * PERMISOS_POR_ROL: matriz de permisos por defecto según rol (admin, jefe_op, supervisor, tecnico, almacenero)
+  * MiembroEquipo ahora tiene permisosExtra[] y permisosRevocados[]
+- Store: añadido sesionUsuarioId (string | null) para trackear quién está logueado
+- Store: añadidas acciones iniciarSesion, cerrarSesion, tienePermiso, setPermisosMiembro
+  * tienePermiso: si no hay sesión → admin (todo); si hay sesión → calcula permisos efectivos (rol + extra - revocados)
+  * setPermisosMiembro: guarda permisosExtra y permisosRevocados de un miembro
+- sesionUsuarioId añadido a partialize (persiste) y a sync (comparte entre dispositivos)
+- seedDemo: ahora solo crea 1 miembro "Iker" como administrador (NO más 6 técnicos demo)
+- Navbar:
+  * Cada item tiene un permiso asociado
+  * navItemsVisibles = NAV_ITEMS filtrado por tienePermiso()
+  * Eliminado el chip de Empresa al lado de Avisos (era redundante con /empresa)
+  * Notificaciones y Config botones ahora se filtran por permiso
+  * Avatar muestra nombre y rol actual (iniciales + color según admin/no-admin)
+- SubHeader: ahora muestra el nombre del miembro con sesión (no solo settings.usuario)
+- empresa-view.tsx:
+  * Botón "Añadir" solo visible si tiene gestionar_personal
+  * Estado vacío con icono Users + mensaje + botón "Añadir primer miembro"
+  * Botón "Permisos" (Shield) por cada miembro (si tiene gestionar_permisos)
+  * Badge "Permisos personalizados" en miembros con override
+  * Modal de permisos con lista de los 20 permisos:
+    - Permisos del rol: botón "Activo"/"Revocado"
+    - Permisos fuera del rol: botón "Otorgar"/"Otorgado"
+    - Guardar aplica los cambios al store
+- config-view.tsx: añadida sección "Sesión" con SesionSelector:
+  * Muestra el usuario actual (Admin dueño o miembro logueado)
+  * Botones para iniciar sesión como cualquier miembro
+  * Botón "Cerrar sesión" para volver a modo admin
+  * Lista de permisos efectivos (verdes) + detalle de permisos no concedidos (rojos tachados)
+- Auto-verificado con Agent Browser:
+  * Limpé store, recargué → 0 productos, 0 miembros (vacío) ✓
+  * Añadí "Carlos" como Técnico ✓
+  * Abrí modal de Permisos, otorgué "Ver Inventario", revoqué "Ver Dashboard" ✓
+  * Carlos tiene badge "Permisos personalizados" ✓
+  * Inicié sesión como Carlos → navbar solo muestra 8 items (sin Dashboard, Despachos, Empresas) ✓
+  * Avatar muestra "CA", SubHeader dice "Buenas noches, Carlos" ✓
+  * Cerré sesión → volví a modo Admin con todos los items ✓
+
+Stage Summary:
+- Onboarding DESACTIVADO (cuando digas lo activo) ✓
+- Error "OnboardingGate is not defined" arreglado ✓
+- Sistema de roles: ADMIN (dueño) + 5 roles con permisos ✓
+- Admin puede otorgar/quitar permisos a cualquier miembro ✓
+- "Técnicos y personal" vacío por defecto (lo añade el admin) ✓
+- Chip de Empresa quitado del navbar (solo 1 ventana de empresa) ✓
+- Permisos filtran navbar, botones y páginas ✓
+- Sesión se puede cambiar en Config → Sesión ✓

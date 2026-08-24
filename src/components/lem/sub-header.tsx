@@ -23,7 +23,14 @@ function fmtTime(): string {
 
 export function SubHeader() {
   const usuario = useStore((s) => s.settings.usuario);
+  const miembros = useStore((s) => s.miembros);
+  const sesionUsuarioId = useStore((s) => s.sesionUsuarioId);
   const [now, setNow] = useState("");
+
+  const miembroActual = sesionUsuarioId
+    ? miembros.find((m) => m.id === sesionUsuarioId)
+    : null;
+  const nombre = miembroActual?.nombre || usuario || "Iker";
 
   useEffect(() => {
     const tick = () => setNow(fmtTime());
@@ -35,7 +42,7 @@ export function SubHeader() {
   return (
     <div className="flex items-center justify-between border-b border-border/60 bg-card/40 px-4 py-2.5 backdrop-blur lg:px-6">
       <h1 className="text-[15px] font-semibold tracking-tight text-foreground">
-        {greeting()}, {usuario || "Iker"}
+        {greeting()}, {nombre}
       </h1>
       <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
         <RefreshCw className="h-3 w-3" />

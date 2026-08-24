@@ -15,6 +15,7 @@ import type {
   MiembroEquipo,
   Nota,
   Notificacion,
+  Permiso,
   PistoleoCampo,
   Product,
   Recordatorio,
@@ -24,6 +25,7 @@ import type {
 import {
   DEFAULT_EMPRESA,
   DEFAULT_SETTINGS,
+  PERMISOS_POR_ROL,
   REGLAS_PREFIJO,
   uid,
 } from "./types";
@@ -50,6 +52,10 @@ interface StoreState {
   // Cuenta de productos en bajo stock que el usuario ya vio
   // (para que el badge de la campana desaparezca al visitar /notificaciones)
   bajoStockVisto: number;
+
+  // Sesión: ID del miembro del equipo que está usando el sistema ahora.
+  // Si es null, se asume modo ADMIN (dueño del sistema) para compatibilidad.
+  sesionUsuarioId: string | null;
 
   // UI / sesión
   activeView: ActiveView;
@@ -160,6 +166,12 @@ interface StoreState {
   updateMiembro: (id: string, data: Partial<Omit<MiembroEquipo, "id">>) => void;
   deleteMiembro: (id: string) => void;
 
+  // ─── Acciones: sesión y permisos ───
+  iniciarSesion: (miembroId: string) => void;
+  cerrarSesion: () => void;
+  tienePermiso: (permiso: Permiso) => boolean;
+  setPermisosMiembro: (id: string, permisosExtra: Permiso[], permisosRevocados: Permiso[]) => void;
+
   // ─── Export ───
   exportInventarioExcel: () => void;
 
@@ -201,6 +213,8 @@ export const useStore = create<StoreState>()(
 
       bajoStockVisto: 0,
 
+      sesionUsuarioId: null,
+
       activeView: "dashboard",
 
       // pistoleo
@@ -215,6 +229,33 @@ export const useStore = create<StoreState>()(
 
       // ─── Notificaciones ───
       marcarBajoStockVisto: (count) => set({ bajoStockVisto: count }),
+
+      // ─── Sesión y permisos ───
+      iniciarSesion: (miembroId) => set({ sesionUsuarioId: miembroId }),
+      cerrarSesion: () => set({ sesionUsuarioId: null }),
+      tienePermiso: (permiso) => {
+        const state = get();
+        const userId = state.sesionUsuarioId;
+        // Si no hay sesión iniciada, modo ADMIN (dueño) — todos los permisos
+        if (!userId) return true;
+        const miembro = state.miembros.find((m) => m.id === userId);
+        if (!miembro) return true; // fallback admin
+        // Admin tiene todo
+        if (miembro.rol === "administrador") return true;
+        // Permisos del rol
+        const permisosRol = PERMISOS_POR_ROL[miembro.rol] ?? [];
+        const extra = miembro.permisosExtra ?? [];
+        const revocados = miembro.permisosRevocados ?? [];
+        const efectivos = new Set([...permisosRol, ...extra]);
+        for (const r of revocados) efectivos.delete(r);
+        return efectivos.has(permiso);
+      },
+      setPermisosMiembro: (id, permisosExtra, permisosRevocados) =>
+        set({
+          miembros: get().miembros.map((m) =>
+            m.id === id ? { ...m, permisosExtra, permisosRevocados } : m
+          ),
+        }),
 
       // ─── Pistoleo ───
       setPistoleoConfig: (patch) => set({ ...patch }),
@@ -1092,6 +1133,7 @@ export const useStore = create<StoreState>()(
           horario: [],
           memoriaIA: [],
           bajoStockVisto: 0,
+          sesionUsuarioId: null,
         }),
 
       // ─── Demo data (siempre limpia y carga) ───
@@ -1159,13 +1201,8 @@ export const useStore = create<StoreState>()(
         get().addNota("Router con serie 48575443365E42D1 no enciende - llevar a taller");
         get().addNota("Verificar stock de cable RG-6, parece bajo");
 
-        // 6 miembros
-        get().addMiembro("Antonio", "jefe_operaciones", "antonio@lemcorp.com", "999888777");
-        get().addMiembro("Carlos Mendoza", "supervisor", "carlos@lemcorp.com", "999111222");
-        get().addMiembro("J. Pérez", "tecnico", "jperez@lemcorp.com", "999333444");
-        get().addMiembro("M. Luna", "tecnico", "mluna@lemcorp.com", "999555666");
-        get().addMiembro("R. García", "tecnico", undefined, "999777888");
-        get().addMiembro("L. Medina", "almacenero", "lmedina@lemcorp.com", undefined);
+        // Personal: solo el admin por defecto (el resto lo añade el admin)
+        get().addMiembro("Iker", "administrador", "iker@lemcorp.com", undefined);
       },
     }),
     {
@@ -1190,6 +1227,7 @@ export const useStore = create<StoreState>()(
         horario: s.horario,
         memoriaIA: s.memoriaIA,
         bajoStockVisto: s.bajoStockVisto,
+        sesionUsuarioId: s.sesionUsuarioId,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {

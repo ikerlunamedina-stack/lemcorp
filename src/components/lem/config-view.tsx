@@ -8,6 +8,7 @@ import {
   Info,
   Download,
   User,
+  UserCheck,
   Palette,
   Sun,
   Moon,
@@ -20,9 +21,11 @@ import {
   Brain,
   VolumeX,
   Square,
+  LogOut,
 } from "lucide-react";
+import Link from "next/link";
 import { useStore } from "@/lib/store";
-import type { Tema } from "@/lib/types";
+import { PERMISO_META, ROL_META, type Permiso, type Tema } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -175,6 +178,17 @@ export function ConfigView() {
             Tema actual: <strong className="text-foreground">{settings.tema}</strong>. El tema "sistema" sigue la preferencia de tu navegador.
           </p>
         </div>
+      </section>
+
+      {/* ─── Sesión / Cambiar de usuario ─── */}
+      <section className="anim-fade-up mb-5 rounded-3xl border border-border bg-card p-5 shadow-sm">
+        <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold">
+          <UserCheck className="h-4 w-4 text-primary" /> Sesión
+        </h2>
+        <p className="mb-4 text-[11px] text-muted-foreground">
+          Inicia sesión como un miembro del equipo para probar sus permisos. Si no hay sesión, eres el admin (dueño) con todos los permisos.
+        </p>
+        <SesionSelector />
       </section>
 
       {/* ─── Pistoleo ─── */}
@@ -526,6 +540,119 @@ function Stat({ label, value }: { label: string; value: number }) {
     <div className="rounded-xl border border-border bg-muted/30 p-3 text-center">
       <p className="text-xl font-semibold tabular-nums">{value}</p>
       <p className="text-[10px] font-medium text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+function SesionSelector() {
+  const miembros = useStore((s) => s.miembros);
+  const sesionUsuarioId = useStore((s) => s.sesionUsuarioId);
+  const iniciarSesion = useStore((s) => s.iniciarSesion);
+  const cerrarSesion = useStore((s) => s.cerrarSesion);
+  const tienePermiso = useStore((s) => s.tienePermiso);
+
+  const miembroActual = sesionUsuarioId
+    ? miembros.find((m) => m.id === sesionUsuarioId)
+    : null;
+
+  if (miembros.length === 0) {
+    return (
+      <p className="text-[12px] text-muted-foreground">
+        No hay miembros del equipo registrados. Añádelos desde{" "}
+        <Link href="/empresa" className="font-semibold text-primary hover:underline">Empresas</Link>.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Estado actual */}
+      <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-3">
+        <div className={cn(
+          "flex h-9 w-9 items-center justify-center rounded-full text-[11px] font-bold",
+          !miembroActual ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
+        )}>
+          {miembroActual ? miembroActual.nombre.charAt(0).toUpperCase() : "AD"}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[12px] font-semibold text-foreground">
+            {miembroActual?.nombre || "Admin (dueño)"}
+          </p>
+          <p className="text-[10px] text-muted-foreground">
+            {miembroActual ? ROL_META[miembroActual.rol].label : "Acceso total al sistema"}
+          </p>
+        </div>
+        {miembroActual && (
+          <Button variant="outline" size="sm" onClick={cerrarSesion} className="press h-8 rounded-lg">
+            <LogOut className="mr-1 h-3.5 w-3.5" /> Cerrar sesión
+          </Button>
+        )}
+      </div>
+
+      {/* Selector */}
+      {!miembroActual && (
+        <div>
+          <Label className="mb-1.5 block text-[11px] uppercase tracking-wide text-muted-foreground">
+            Iniciar sesión como
+          </Label>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {miembros.map((m) => {
+              const esAdmin = m.rol === "administrador";
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => iniciarSesion(m.id)}
+                  className={cn(
+                    "press flex items-center gap-2.5 rounded-xl border border-border bg-card p-2.5 text-left transition-colors hover:bg-accent"
+                  )}
+                >
+                  <div className={cn(
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold",
+                    esAdmin ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  )}>
+                    {m.nombre.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[12px] font-semibold">{m.nombre}</p>
+                    <p className="truncate text-[10px] text-muted-foreground">{ROL_META[m.rol].label}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-[10px] text-muted-foreground">
+            Al iniciar sesión verás el sistema como ese usuario (con sus permisos). Útil para probar configuraciones.
+          </p>
+        </div>
+      )}
+
+      {/* Info de permisos */}
+      {miembroActual && (
+        <div className="rounded-xl border border-border bg-muted/30 p-3 text-[11px]">
+          <p className="mb-1.5 font-semibold text-foreground">Tus permisos efectivos:</p>
+          <div className="flex flex-wrap gap-1">
+            {(Object.keys(PERMISO_META) as Permiso[]).filter((p) => tienePermiso(p)).map((p) => (
+              <span key={p} className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
+                {PERMISO_META[p].label}
+              </span>
+            ))}
+            {(Object.keys(PERMISO_META) as Permiso[]).filter((p) => !tienePermiso(p)).length > 0 && (
+              <details className="w-full">
+                <summary className="mt-1.5 cursor-pointer text-[10px] text-muted-foreground hover:text-foreground">
+                  Ver permisos NO concedidos ({(Object.keys(PERMISO_META) as Permiso[]).filter((p) => !tienePermiso(p)).length})
+                </summary>
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {(Object.keys(PERMISO_META) as Permiso[]).filter((p) => !tienePermiso(p)).map((p) => (
+                    <span key={p} className="rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-400/80 line-through">
+                      {PERMISO_META[p].label}
+                    </span>
+                  ))}
+                </div>
+              </details>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

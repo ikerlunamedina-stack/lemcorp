@@ -170,6 +170,108 @@ export const ROL_META: Record<Rol, { label: string; short: string }> = {
   administrador: { label: "Administrador del Sistema", short: "Admin" },
 };
 
+// ─────────── Permisos del sistema ───────────
+export type Permiso =
+  | "ver_dashboard"
+  | "ver_inventario"
+  | "editar_inventario"
+  | "ver_despachos"
+  | "editar_despachos"
+  | "ver_equipos"
+  | "editar_equipos"
+  | "pistolear"
+  | "ver_horario"
+  | "editar_horario"
+  | "usar_ia"
+  | "ver_bloc"
+  | "editar_bloc"
+  | "ver_empresa"
+  | "editar_empresa"
+  | "ver_notificaciones"
+  | "ver_config"
+  | "editar_config"
+  | "gestionar_personal"
+  | "gestionar_permisos";
+
+export const PERMISO_META: Record<Permiso, { label: string; desc: string }> = {
+  ver_dashboard: { label: "Ver Dashboard", desc: "Acceso al panel principal" },
+  ver_inventario: { label: "Ver Inventario", desc: "Consultar productos" },
+  editar_inventario: { label: "Editar Inventario", desc: "Añadir/modificar/eliminar productos" },
+  ver_despachos: { label: "Ver Despachos", desc: "Consultar despachos" },
+  editar_despachos: { label: "Editar Despachos", desc: "Registrar/modificar despachos" },
+  ver_equipos: { label: "Ver Equipos", desc: "Consultar equipos por serie" },
+  editar_equipos: { label: "Editar Equipos", desc: "Añadir/modificar equipos" },
+  pistolear: { label: "Pistolear", desc: "Capturar series" },
+  ver_horario: { label: "Ver Horario", desc: "Consultar horario del almacén" },
+  editar_horario: { label: "Editar Horario", desc: "Añadir/modificar actividades" },
+  usar_ia: { label: "Usar Alana (IA)", desc: "Conversar con el asistente" },
+  ver_bloc: { label: "Ver Bloc", desc: "Consultar notas" },
+  editar_bloc: { label: "Editar Bloc", desc: "Crear/modificar notas" },
+  ver_empresa: { label: "Ver Empresa", desc: "Consultar datos de la empresa" },
+  editar_empresa: { label: "Editar Empresa", desc: "Modificar datos de la empresa" },
+  ver_notificaciones: { label: "Ver Avisos", desc: "Consultar notificaciones" },
+  ver_config: { label: "Ver Configuración", desc: "Ver ajustes del sistema" },
+  editar_config: { label: "Editar Configuración", desc: "Modificar ajustes del sistema" },
+  gestionar_personal: { label: "Gestionar Personal", desc: "Añadir/editar/eliminar miembros del equipo" },
+  gestionar_permisos: { label: "Gestionar Permisos", desc: "Otorgar o quitar permisos a otros" },
+};
+
+// Permisos por defecto según el rol
+export const PERMISOS_POR_ROL: Record<Rol, Permiso[]> = {
+  administrador: [
+    "ver_dashboard", "ver_inventario", "editar_inventario",
+    "ver_despachos", "editar_despachos",
+    "ver_equipos", "editar_equipos", "pistolear",
+    "ver_horario", "editar_horario",
+    "usar_ia",
+    "ver_bloc", "editar_bloc",
+    "ver_empresa", "editar_empresa",
+    "ver_notificaciones",
+    "ver_config", "editar_config",
+    "gestionar_personal", "gestionar_permisos",
+  ],
+  jefe_operaciones: [
+    "ver_dashboard", "ver_inventario", "editar_inventario",
+    "ver_despachos", "editar_despachos",
+    "ver_equipos", "editar_equipos", "pistolear",
+    "ver_horario", "editar_horario",
+    "usar_ia",
+    "ver_bloc", "editar_bloc",
+    "ver_empresa", "editar_empresa",
+    "ver_notificaciones",
+    "ver_config",
+    "gestionar_personal",
+  ],
+  supervisor: [
+    "ver_dashboard", "ver_inventario",
+    "ver_despachos", "editar_despachos",
+    "ver_equipos", "editar_equipos", "pistolear",
+    "ver_horario",
+    "usar_ia",
+    "ver_bloc",
+    "ver_empresa",
+    "ver_notificaciones",
+  ],
+  tecnico: [
+    "ver_dashboard",
+    "ver_equipos",
+    "pistolear",
+    "ver_horario",
+    "usar_ia",
+    "ver_bloc",
+    "ver_notificaciones",
+  ],
+  almacenero: [
+    "ver_dashboard",
+    "ver_inventario", "editar_inventario",
+    "ver_despachos",
+    "ver_equipos", "editar_equipos", "pistolear",
+    "ver_horario",
+    "ver_bloc",
+    "ver_notificaciones",
+  ],
+};
+
 export interface MiembroEquipo {
   id: string;
   nombre: string;
@@ -177,6 +279,10 @@ export interface MiembroEquipo {
   correo?: string;
   telefono?: string;
   activo: boolean;
+  /** Permisos personalizados (override sobre el rol). Si está vacío, se usan los del rol. */
+  permisosExtra?: Permiso[];
+  /** Permisos del rol que se le revocaron. */
+  permisosRevocados?: Permiso[];
 }
 
 export interface InfoEmpresa {

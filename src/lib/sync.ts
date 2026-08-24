@@ -46,6 +46,7 @@ export interface SyncPayload {
   horario?: unknown[];
   memoriaIA?: unknown[];
   bajoStockVisto?: number;
+  sesionUsuarioId?: string | null;
   activeView?: unknown;
   __syncedAt?: number;
 }
