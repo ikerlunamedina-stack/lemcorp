@@ -42,6 +42,7 @@ export interface SyncPayload {
   pistoleoCampo?: unknown;
   pistoleoModelo?: unknown;
   pistoleoEstado?: unknown;
+  pistoleoModeloSeleccionado?: unknown;
   horario?: unknown[];
   memoriaIA?: unknown[];
   bajoStockVisto?: number;

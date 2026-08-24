@@ -1859,3 +1859,47 @@ Stage Summary:
 - Modal de detalle de duplicados al hacer click en el banner ✓
 - Detección de duplicados dentro del lote actual → banner rojo ✓
 - Auto-verificado con Agent Browser: captura, edición, preview, banner, modal ✓
+
+---
+Task ID: PISTOLEO-PERSISTENCIA
+Agent: main
+Task: El prefijo lo ingresa el usuario (ej: ZTE) y todo debe persistir al refrescar la página
+
+Work Log:
+- Movido `modeloSeleccionado` del estado local del componente al store como `pistoleoModeloSeleccionado`
+- Añadido `pistoleoModeloSeleccionado` a:
+  * StoreState interface
+  * setPistoleoConfig (acepta patch con pistoleoModeloSeleccionado)
+  * Initial state (vacío "")
+  * clearAllData (resetea a "")
+  * seedDemo (resetea a "")
+  * partialize (persiste en localStorage)
+  * SyncPayload interface en sync.ts
+  * buildPayload en sync-provider (se envía al server)
+  * applyServerPayload en sync-provider (se recibe del server)
+  * equality check en subscribe (para detectar cambios)
+- Reorganizado el panel de configuración rápida:
+  * Panel azul SIEMPRE VISIBLE arriba con 2 columnas:
+    - Equipo del inventario (dropdown)
+    - Prefijo (switch + input, placeholder "Ej: ZTE")
+  * Panel "Configuración avanzada" colapsable ahora solo tiene modelo/estado/reglas
+  * showConfig por defecto en false (no abre automáticamente)
+- Input de prefijo ahora convierte a mayúsculas automáticamente (.toUpperCase())
+- Auto-verificado con Agent Browser:
+  * Activé switch de prefijo, escribí "ZTE"
+  * Seleccioné equipo ROUTER ONT HG8145X6-13 50088770 HUAWEI
+  * Capturé 2 series (ZTE123456, ZTE789012)
+  * Recargué la página
+  * TODO se mantuvo: equipo, prefijo, switch activado, 2 series capturadas
+
+Stage Summary:
+- El prefijo lo ingresa el usuario manualmente (ej: ZTE) ✓
+- Input de prefijo siempre visible arriba (no oculto en config) ✓
+- Al refrescar la página TODO se mantiene:
+  * Equipo del inventario seleccionado ✓
+  * Prefijo ingresado ("ZTE") ✓
+  * Switch de validación activado ✓
+  * Series capturadas en la tabla ✓
+  * Modo de pistoleo (Solo serie / +MAC / +CM MAC) ✓
+  * Modelo y estado por defecto ✓
+- Todo se sincroniza al server (POST /api/sync) para compartir entre dispositivos ✓

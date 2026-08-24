@@ -42,6 +42,7 @@ function buildPayload(state: any): SyncPayload {
     pistoleoCampo: state.pistoleoCampo,
     pistoleoModelo: state.pistoleoModelo,
     pistoleoEstado: state.pistoleoEstado,
+    pistoleoModeloSeleccionado: state.pistoleoModeloSeleccionado ?? "",
     horario: state.horario ?? [],
     memoriaIA: state.memoriaIA ?? [],
     bajoStockVisto: state.bajoStockVisto ?? 0,
@@ -93,6 +94,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
                 ? { ...cur.settings, ...serverPayload.settings }
                 : cur.settings,
               pistoleoFilas: serverPayload.pistoleoFilas ?? [],
+              pistoleoModeloSeleccionado: serverPayload.pistoleoModeloSeleccionado ?? cur.pistoleoModeloSeleccionado ?? "",
               horario: serverPayload.horario ?? [],
               memoriaIA: serverPayload.memoriaIA ?? [],
               bajoStockVisto: Number(serverPayload.bajoStockVisto) || 0,
@@ -134,7 +136,9 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         state.settings === prev.settings &&
         state.horario === prev.horario &&
         state.memoriaIA === prev.memoriaIA &&
-        state.bajoStockVisto === prev.bajoStockVisto
+        state.bajoStockVisto === prev.bajoStockVisto &&
+        state.pistoleoFilas === prev.pistoleoFilas &&
+        state.pistoleoModeloSeleccionado === prev.pistoleoModeloSeleccionado
       ) {
         return;
       }

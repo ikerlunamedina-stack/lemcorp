@@ -59,6 +59,8 @@ interface StoreState {
   pistoleoModelo: string;
   pistoleoEstado: EstadoEquipo;
   pistoleoFilas: FilaPistoleo[];
+  /** Equipo del inventario seleccionado para aplicar a nuevas capturas */
+  pistoleoModeloSeleccionado: string;
 
   // ─── Acciones: navegación ───
   setActiveView: (v: ActiveView) => void;
@@ -71,6 +73,7 @@ interface StoreState {
     pistoleoCampo: PistoleoCampo;
     pistoleoModelo: string;
     pistoleoEstado: EstadoEquipo;
+    pistoleoModeloSeleccionado: string;
   }>) => void;
   addPistoleoFila: (valores: string[], modeloSeleccionado?: string) => void;
   updatePistoleoFila: (id: string, valores: string[], modeloSeleccionado?: string) => void;
@@ -205,6 +208,7 @@ export const useStore = create<StoreState>()(
       pistoleoModelo: "",
       pistoleoEstado: "disponible",
       pistoleoFilas: [],
+      pistoleoModeloSeleccionado: "",
 
       // ─── Navegación ───
       setActiveView: (v) => set({ activeView: v }),
@@ -1084,6 +1088,7 @@ export const useStore = create<StoreState>()(
           pistoleoCampo: "serie",
           pistoleoModelo: "",
           pistoleoEstado: "disponible",
+          pistoleoModeloSeleccionado: "",
           horario: [],
           memoriaIA: [],
           bajoStockVisto: 0,
@@ -1102,6 +1107,7 @@ export const useStore = create<StoreState>()(
           notificaciones: [],
           miembros: [],
           pistoleoFilas: [],
+          pistoleoModeloSeleccionado: "",
           horario: [],
         });
 
@@ -1180,6 +1186,7 @@ export const useStore = create<StoreState>()(
         pistoleoModelo: s.pistoleoModelo,
         pistoleoEstado: s.pistoleoEstado,
         pistoleoFilas: s.pistoleoFilas,
+        pistoleoModeloSeleccionado: s.pistoleoModeloSeleccionado,
         horario: s.horario,
         memoriaIA: s.memoriaIA,
         bajoStockVisto: s.bajoStockVisto,

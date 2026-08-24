@@ -108,6 +108,7 @@ export function PistolearView() {
   const pistoleoModelo = useStore((s) => s.pistoleoModelo);
   const pistoleoEstado = useStore((s) => s.pistoleoEstado);
   const pistoleoFilas = useStore((s) => s.pistoleoFilas);
+  const pistoleoModeloSeleccionado = useStore((s) => s.pistoleoModeloSeleccionado);
   const equipos = useStore((s) => s.equipos);
   const products = useStore((s) => s.products);
   const findEquipmentBySerie = useStore((s) => s.findEquipmentBySerie);
@@ -119,21 +120,23 @@ export function PistolearView() {
   const confirmarPistoleo = useStore((s) => s.confirmarPistoleo);
   const { toast } = useToast();
 
-  const [showConfig, setShowConfig] = useState(true);
+  const [showConfig, setShowConfig] = useState(false);
   const [valor, setValor] = useState("");
   const [feedback, setFeedback] = useState<FeedbackMsg | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValores, setEditingValores] = useState<string[]>([]);
   const [editingModelo, setEditingModelo] = useState<string>("");
   const [showPreview, setShowPreview] = useState(false);
-  /** Modelo seleccionado del inventario para aplicar a las nuevas filas */
-  const [modeloSeleccionado, setModeloSeleccionado] = useState<string>("");
   /** Series ya registradas detectadas (para mostrar mensaje clickeable) */
   const [duplicadosSistema, setDuplicadosSistema] = useState<string[]>([]);
   /** Mostrar modal de detalle de duplicados */
   const [showDuplicadosModal, setShowDuplicadosModal] = useState(false);
   /** Resultado de la última confirmación */
   const [lastConfirmResult, setLastConfirmResult] = useState<{ ok: boolean; msg: string; duplicados?: string[] } | null>(null);
+
+  // Setter que actualiza el store (persiste al refrescar)
+  const setModeloSeleccionado = (v: string) => setPistoleoConfig({ pistoleoModeloSeleccionado: v });
+  const modeloSeleccionado = pistoleoModeloSeleccionado;
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -317,19 +320,24 @@ export function PistolearView() {
         </Button>
       </div>
 
-      {/* Selector de equipo del inventario */}
+      {/* Panel de configuración rápida: equipo + prefijo (siempre visible) */}
       <div className="anim-fade-up mb-4 rounded-2xl border border-primary/30 bg-primary/5 p-4">
-        <div className="flex flex-wrap items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <PackageSearch className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-              Equipo del inventario (opcional)
-            </Label>
-            <p className="mb-2 text-[11px] text-muted-foreground">
-              Selecciona el equipo/modelo al que pertenecen las series que vas a pistolear. Se aplicará a todas las nuevas capturas.
-            </p>
+        <div className="grid gap-4 lg:grid-cols-2">
+          {/* Equipo del inventario */}
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <PackageSearch className="h-4 w-4" />
+              </div>
+              <div>
+                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Equipo del inventario
+                </Label>
+                <p className="text-[10px] text-muted-foreground">
+                  Al que pertenecen las series que vas a pistolear
+                </p>
+              </div>
+            </div>
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <select
@@ -346,52 +354,57 @@ export function PistolearView() {
               </select>
               <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             </div>
+            {modeloSeleccionado && (
+              <button
+                onClick={() => setModeloSeleccionado("")}
+                className="press mt-2 rounded-lg border border-border bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:bg-accent"
+              >
+                <X className="mr-1 inline h-3 w-3" /> Quitar selección
+              </button>
+            )}
           </div>
-          {modeloSeleccionado && (
-            <button
-              onClick={() => setModeloSeleccionado("")}
-              className="press shrink-0 rounded-lg border border-border bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:bg-accent"
-            >
-              <X className="mr-1 inline h-3 w-3" /> Quitar
-            </button>
-          )}
+
+          {/* Prefijo (lo ingresa el usuario, ej: ZTE) */}
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <Hash className="h-4 w-4" />
+              </div>
+              <div>
+                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Prefijo de validación
+                </Label>
+                <p className="text-[10px] text-muted-foreground">
+                  Tú lo pones — ej: ZTE, ZTEATV. Solo acepta series que empiecen así.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={settings.pistoleoPrefijoEnabled}
+                onCheckedChange={(v) => setSetting("pistoleoPrefijoEnabled", v)}
+              />
+              <Input
+                value={settings.pistoleoPrefijo}
+                onChange={(e) => setSetting("pistoleoPrefijo", e.target.value.toUpperCase())}
+                placeholder="Ej: ZTE"
+                className="h-10 flex-1 rounded-xl font-mono uppercase"
+                disabled={!settings.pistoleoPrefijoEnabled}
+              />
+            </div>
+            {!settings.pistoleoPrefijoEnabled && (
+              <p className="mt-1.5 text-[10px] text-muted-foreground">
+                Activar para validar que las series empiecen con el prefijo.
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Config panel */}
+      {/* Config panel avanzado (colapsable) */}
       {showConfig && (
         <div className="anim-fade-up mb-4 rounded-2xl border border-border bg-card p-5">
-          <div className="grid gap-4 lg:grid-cols-3">
-            {/* Toggle + prefijo */}
-            <div className="lg:col-span-1">
-              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                Validación de prefijo
-              </Label>
-              <div className="mt-1.5 flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-3">
-                <Switch
-                  checked={settings.pistoleoPrefijoEnabled}
-                  onCheckedChange={(v) => setSetting("pistoleoPrefijoEnabled", v)}
-                />
-                <div className="flex-1">
-                  <p className="text-[12px] font-medium">Activar validación</p>
-                  <p className="text-[10px] text-muted-foreground">Solo acepta series con el prefijo</p>
-                </div>
-              </div>
-              <div className="mt-2">
-                <Label htmlFor="prefijo" className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                  Prefijo
-                </Label>
-                <Input
-                  id="prefijo"
-                  value={settings.pistoleoPrefijo}
-                  onChange={(e) => setSetting("pistoleoPrefijo", e.target.value)}
-                  placeholder="ZTEATV"
-                  className="mt-1 rounded-xl font-mono uppercase"
-                  disabled={!settings.pistoleoPrefijoEnabled}
-                />
-              </div>
-            </div>
-
+          <div className="grid gap-4 lg:grid-cols-2">
             {/* Modelo y estado por defecto */}
             <div className="lg:col-span-1">
               <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
