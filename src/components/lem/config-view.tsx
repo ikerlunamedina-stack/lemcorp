@@ -426,6 +426,22 @@ export function ConfigView() {
             <span className="font-medium text-emerald-500">Activada</span>
           </div>
         </div>
+
+        {/* Re-lanzar onboarding */}
+        <div className="mt-4 flex justify-end">
+          <button
+            onClick={() => {
+              try {
+                localStorage.removeItem("lemcorp-onboarding-done-v1");
+              } catch {}
+              setTimeout(() => window.location.reload(), 200);
+            }}
+            className="press inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            <Sparkles className="h-3 w-3 text-primary" />
+            Repetir configuración inicial
+          </button>
+        </div>
       </section>
 
       {/* Confirmar borrado */}

@@ -381,6 +381,57 @@ html.light .scroll-thin::-webkit-scrollbar-thumb { background: oklch(0.75 0.01 2
 .anim-float { animation: lem-float 3s ease-in-out infinite; }
 .anim-glow { animation: lem-glow-pulse 3s ease-in-out infinite; }
 
+/* ===== Onboarding (primer arranque tipo celular/laptop nuevo) ===== */
+@keyframes lem-boot-logo {
+  0%   { opacity: 0; transform: scale(0.6) translateY(20px); filter: blur(8px); }
+  40%  { opacity: 1; transform: scale(1.05) translateY(0); filter: blur(0); }
+  60%  { transform: scale(1); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes lem-boot-glow {
+  0%, 100% { opacity: 0.4; transform: scale(0.95); }
+  50%      { opacity: 0.9; transform: scale(1.05); }
+}
+@keyframes lem-boot-progress {
+  0%   { width: 0%; }
+  100% { width: 100%; }
+}
+@keyframes lem-boot-fade-out {
+  0%   { opacity: 1; }
+  100% { opacity: 0; visibility: hidden; }
+}
+@keyframes lem-onboard-step-in {
+  0%   { opacity: 0; transform: translateY(24px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes lem-onboard-step-out {
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-24px) scale(0.96); }
+}
+@keyframes lem-onboard-dot-bounce {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.4); }
+}
+@keyframes lem-onboard-check {
+  0%   { stroke-dashoffset: 100; opacity: 0; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+@keyframes lem-onboard-ring {
+  0%   { transform: scale(0.5); opacity: 0; }
+  60%  { transform: scale(1.2); opacity: 0.6; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.anim-boot-logo { animation: lem-boot-logo 1.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-boot-glow { animation: lem-boot-glow 2.5s ease-in-out infinite; }
+.anim-boot-progress { animation: lem-boot-progress 2.4s cubic-bezier(0.5, 0, 0.5, 1) both; }
+.anim-boot-fade-out { animation: lem-boot-fade-out 0.6s ease 0.2s both; }
+.anim-onboard-in { animation: lem-onboard-step-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-onboard-out { animation: lem-onboard-step-out 0.4s cubic-bezier(0.4, 0, 1, 1) both; }
+.anim-onboard-dot { animation: lem-onboard-dot-bounce 0.4s ease both; }
+.anim-onboard-check { animation: lem-onboard-check 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both; }
+.anim-onboard-ring { animation: lem-onboard-ring 1.5s ease-out infinite; }
+
 /* ===== Glass morphism REAL (visible) ===== */
 .glass {
   background: color-mix(in oklch, var(--card) 70%, transparent);

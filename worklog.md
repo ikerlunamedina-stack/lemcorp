@@ -1903,3 +1903,63 @@ Stage Summary:
   * Modo de pistoleo (Solo serie / +MAC / +CM MAC) ✓
   * Modelo y estado por defecto ✓
 - Todo se sincroniza al server (POST /api/sync) para compartir entre dispositivos ✓
+
+---
+Task ID: ONBOARDING
+Agent: main
+Task: Crear animación de onboarding tipo primer arranque de celular/laptop nuevo, con preguntas paso a paso que configuran el sistema según las respuestas
+
+Work Log:
+- Añadidas animaciones CSS nuevas en globals.css:
+  * lem-boot-logo (logo aparece con scale+blur+glow)
+  * lem-boot-glow (resplandor pulsante)
+  * lem-boot-progress (barra de carga tipo encendido)
+  * lem-boot-fade-out (salida suave del boot)
+  * lem-onboard-step-in/out (transiciones entre pasos)
+  * lem-onboard-dot-bounce (dots de progreso)
+  * lem-onboard-check (check SVG animado)
+  * lem-onboard-ring (anillos concéntricos en pantalla final)
+- Creado componente Onboarding en src/components/lem/onboarding.tsx:
+  * Pantalla BOOT (2.4s): logo LEMCORP con glow + barra de progreso tipo encendido
+  * Wizard de 8 pasos:
+    1. Bienvenida — "¡Hola! Soy Alana"
+    2. ¿Cómo te llamas? (input)
+    3. ¿Cuál es tu empresa? (input)
+    4. ¿A qué te dedicas? (cards: Telecom, Retail, Logística, Otro)
+    5. ¿Cuántos técnicos? (cards: 1-5, 6-20, 21-50, 50+)
+    6. ¿Zona de cobertura? (input)
+    7. Elige tu tema (Claro, Oscuro, Sistema)
+    8. ¿Activar voz de Alana? (toggle circular)
+  * Pantalla DONE: check SVG animado + anillos concéntricos + "¡Todo listo, {nombre}!"
+  * Barra de progreso superior + dots animados
+  * Tip de Alana en cada paso (cambia según el paso)
+  * Botón "Atrás" para navegar
+  * Animaciones de transición entre pasos (slide-up + fade)
+- finalizar() aplica respuestas al store:
+  * settings.usuario ← nombre
+  * empresa.nombre ← empresa
+  * settings.tema ← tema elegido
+  * settings.voz ← voz elegida
+  * empresa.descripcion ← texto autogenerado con rubro/técnicos/zona
+  * localStorage.setItem("lemcorp-onboarding-done-v1", "1")
+- Creado OnboardingGate en src/components/lem/onboarding-gate.tsx:
+  * Usa useState con función inicial para leer localStorage sin useEffect
+  * Muestra Onboarding si no está completado, si no children
+- Integrado OnboardingGate en layout.tsx (envuelve children)
+- Añadido botón "Repetir configuración inicial" en config-view.tsx
+  (borra flag y recarga página)
+- Lint: 0 errores
+- Auto-verificado con Agent Browser:
+  * Boot animation se muestra con logo + glow + barra ✓
+  * Wizard recorre los 8 pasos con transiciones ✓
+  * Al finalizar, settings.usuario = "Iker", empresa.nombre = "Lemcorp" ✓
+  * Refresh posterior: onboarding no se muestra de nuevo ✓
+  * Dashboard carga con el saludo personalizado "Buenas noches, Iker" ✓
+
+Stage Summary:
+- Onboarding tipo primer arranque de celular nuevo ✓
+- 8 pasos: nombre, empresa, rubro, técnicos, zona, tema, voz ✓
+- Configura el sistema según las respuestas ✓
+- Animaciones bonitas (logo con glow, check SVG, anillos, transiciones) ✓
+- Persiste el flag "onboarding completado" para no mostrar de nuevo ✓
+- Botón en Config para repetir el onboarding si se quiere ✓
