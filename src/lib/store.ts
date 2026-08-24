@@ -72,10 +72,11 @@ interface StoreState {
     pistoleoModelo: string;
     pistoleoEstado: EstadoEquipo;
   }>) => void;
-  addPistoleoFila: (valores: string[]) => void;
+  addPistoleoFila: (valores: string[], modeloSeleccionado?: string) => void;
+  updatePistoleoFila: (id: string, valores: string[], modeloSeleccionado?: string) => void;
   deletePistoleoFila: (id: string) => void;
   clearPistoleoFilas: () => void;
-  confirmarPistoleo: () => { ok: boolean; msg: string; count: number };
+  confirmarPistoleo: () => { ok: boolean; msg: string; count: number; duplicados?: string[] };
 
   // ─── Acciones: inventario ───
   addProduct: (sku: string, name: string, quantity: number, minStock?: number, udm?: string) => string | null;
@@ -213,12 +214,29 @@ export const useStore = create<StoreState>()(
 
       // ─── Pistoleo ───
       setPistoleoConfig: (patch) => set({ ...patch }),
-      addPistoleoFila: (valores) =>
+      addPistoleoFila: (valores, modeloSeleccionado) =>
         set({
           pistoleoFilas: [
-            { id: uid(), valores: valores.map((v) => v.trim()), timestamp: Date.now() },
+            {
+              id: uid(),
+              valores: valores.map((v) => v.trim()),
+              timestamp: Date.now(),
+              modeloSeleccionado,
+            },
             ...get().pistoleoFilas,
           ],
+        }),
+      updatePistoleoFila: (id, valores, modeloSeleccionado) =>
+        set({
+          pistoleoFilas: get().pistoleoFilas.map((f) =>
+            f.id === id
+              ? {
+                  ...f,
+                  valores: valores.map((v) => v.trim()),
+                  modeloSeleccionado: modeloSeleccionado ?? f.modeloSeleccionado,
+                }
+              : f
+          ),
         }),
       deletePistoleoFila: (id) =>
         set({ pistoleoFilas: get().pistoleoFilas.filter((f) => f.id !== id) }),
@@ -227,22 +245,39 @@ export const useStore = create<StoreState>()(
       confirmarPistoleo: () => {
         const filas = get().pistoleoFilas;
         if (filas.length === 0) return { ok: false, msg: "No hay series para guardar.", count: 0 };
-        const { pistoleoModelo, pistoleoEstado } = get();
+        const { pistoleoModelo, pistoleoEstado, pistoleoCampo } = get();
         let count = 0;
         const nuevos: Equipment[] = [];
         const existentes = new Set(get().equipos.map((e) => e.serie.trim().toLowerCase()));
+        const duplicadosNoGuardados: string[] = [];
         const fechasNow = Date.now();
         for (const f of filas) {
           const serie = (f.valores[0] ?? "").trim();
           if (!serie) continue;
-          if (existentes.has(serie.toLowerCase())) continue;
-          const modelo = pistoleoModelo.trim() || detectarModeloPorPrefijo(serie) || "SIN MODELO";
+          if (existentes.has(serie.toLowerCase())) {
+            duplicadosNoGuardados.push(serie);
+            continue;
+          }
+          // MAC es valores[1] cuando el modo es serie_mac o serie_mac_cm
+          // CM MAC es valores[2] cuando el modo es serie_mac_cm
+          const mac = pistoleoCampo === "serie_mac" || pistoleoCampo === "serie_mac_cm"
+            ? (f.valores[1] ?? "").trim() || undefined
+            : undefined;
+          const cmMac = pistoleoCampo === "serie_mac_cm"
+            ? (f.valores[2] ?? "").trim() || undefined
+            : undefined;
+          const modelo = f.modeloSeleccionado?.trim()
+            || pistoleoModelo.trim()
+            || detectarModeloPorPrefijo(serie)
+            || "SIN MODELO";
           nuevos.push({
             id: uid(),
             serie,
             modelo,
             estado: pistoleoEstado,
             ubicacion: "Almacén HUB",
+            mac,
+            cmMac,
             createdAt: fechasNow,
             updatedAt: fechasNow,
           });
@@ -250,13 +285,21 @@ export const useStore = create<StoreState>()(
           count++;
         }
         if (count === 0) {
-          return { ok: false, msg: "Todas las series ya estaban registradas.", count: 0 };
+          return {
+            ok: false,
+            msg: `Las ${duplicadosNoGuardados.length} serie(s) ya estaban registradas en el sistema.`,
+            count: 0,
+            duplicados: duplicadosNoGuardados,
+          };
         }
         set({ equipos: [...nuevos, ...get().equipos], pistoleoFilas: [] });
         return {
           ok: true,
-          msg: `${count} equipo(s) guardado(s) correctamente.`,
+          msg: duplicadosNoGuardados.length > 0
+            ? `${count} equipo(s) guardado(s). ${duplicadosNoGuardados.length} ya estaban registradas.`
+            : `${count} equipo(s) guardado(s) correctamente.`,
           count,
+          duplicados: duplicadosNoGuardados.length > 0 ? duplicadosNoGuardados : undefined,
         };
       },
 

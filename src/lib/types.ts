@@ -55,6 +55,10 @@ export interface Equipment {
   estado: EstadoEquipo;
   ubicacion?: string;
   observacion?: string;
+  /** MAC del equipo (si aplica) */
+  mac?: string;
+  /** CM MAC (Cable Modem MAC, si aplica) */
+  cmMac?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -222,7 +226,7 @@ export function uid(): string {
 }
 
 // ─────────── Pistoleo ───────────
-export type PistoleoCampo = "serie" | "serie_ua" | "serie_mac";
+export type PistoleoCampo = "serie" | "serie_ua" | "serie_mac" | "serie_mac_cm";
 
 export interface PistoleoCampoMeta {
   value: PistoleoCampo;
@@ -254,12 +258,21 @@ export const PISTOLEO_CAMPOS: Record<PistoleoCampo, PistoleoCampoMeta> = {
     campos: ["Serie", "MAC"],
     hint: "Dos lecturas: primero serie, luego MAC",
   },
+  serie_mac_cm: {
+    value: "serie_mac_cm",
+    label: "Serie + MAC + CM MAC",
+    short: "Serie + MAC + CM MAC",
+    campos: ["Serie", "MAC", "CM MAC"],
+    hint: "Tres lecturas: primero serie, luego MAC, luego CM MAC",
+  },
 };
 
 export interface FilaPistoleo {
   id: string;
   valores: string[];
   timestamp: number;
+  /** Modelo/equipo del inventario seleccionado para esta fila (si aplica) */
+  modeloSeleccionado?: string;
 }
 
 // ─────────── Reglas de prefijo → modelo ───────────

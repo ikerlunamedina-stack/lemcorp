@@ -22,7 +22,10 @@ export function SeriesView() {
     if (estadoFilter !== "todos" && e.estado !== estadoFilter) return false;
     const q = query.toLowerCase().trim();
     if (!q) return true;
-    return e.serie.toLowerCase().includes(q) || e.modelo.toLowerCase().includes(q);
+    return e.serie.toLowerCase().includes(q)
+      || e.modelo.toLowerCase().includes(q)
+      || (e.mac ?? "").toLowerCase().includes(q)
+      || (e.cmMac ?? "").toLowerCase().includes(q);
   });
 
   const byModel: Record<string, typeof equipos> = {};
@@ -48,7 +51,7 @@ export function SeriesView() {
       <div className="anim-fade-up mb-4 flex items-center gap-2">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar serie o modelo…" className="h-9 rounded-xl bg-muted/50 pl-8 text-sm" />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar serie, modelo, MAC…" className="h-9 rounded-xl bg-muted/50 pl-8 text-sm" />
         </div>
       </div>
 
@@ -83,6 +86,8 @@ export function SeriesView() {
                     <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted-foreground">
                       <th className="pb-2 pr-3 font-medium">#</th>
                       <th className="pb-2 pr-3 font-medium">Serie</th>
+                      <th className="pb-2 pr-3 font-medium">MAC</th>
+                      <th className="pb-2 pr-3 font-medium">CM MAC</th>
                       <th className="pb-2 pr-3 font-medium">Estado</th>
                       <th className="pb-2 pr-3 font-medium">Ubicación</th>
                       <th className="pb-2 font-medium">Observación</th>
@@ -93,6 +98,8 @@ export function SeriesView() {
                       <tr key={e.id} className="border-b border-border/50 last:border-0 hover:bg-accent/30 transition-colors">
                         <td className="py-2 pr-3 text-[11px] text-muted-foreground tabular-nums">{idx + 1}</td>
                         <td className="py-2 pr-3"><span className="font-mono text-[12px] font-semibold">{e.serie}</span></td>
+                        <td className="py-2 pr-3 font-mono text-[11px] text-muted-foreground">{e.mac ?? "—"}</td>
+                        <td className="py-2 pr-3 font-mono text-[11px] text-muted-foreground">{e.cmMac ?? "—"}</td>
                         <td className="py-2 pr-3">
                           <span className={cn(
                             "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",

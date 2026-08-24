@@ -1826,3 +1826,36 @@ Stage Summary:
   - Sin errores en consola ni en dev.log
   - Navbar resalta item activo según pathname
   - Responsive mobile (390x844) y desktop (1440x900) OK
+
+---
+Task ID: PISTOLEO-MEJORAS
+Agent: main
+Task: Mejorar el módulo de Pistolear: 3 campos (serie/mac/cm), editable, seleccionar equipo, preview, detección de duplicados con mensaje clickeable
+
+Work Log:
+- Añadidos campos `mac` y `cmMac` al tipo Equipment en types.ts
+- Añadido nuevo modo `serie_mac_cm` a PistoleoCampo (3 campos: Serie, MAC, CM MAC)
+- Añadido `modeloSeleccionado` a FilaPistoleo para trackear el equipo del inventario
+- Store: añadida acción `updatePistoleoFila` para editar filas existentes
+- Store: `addPistoleoFila` ahora acepta modeloSeleccionado opcional
+- Store: `confirmarPistoleo` ahora guarda mac, cmMac y respeta modeloSeleccionado
+- Store: `confirmarPistoleo` retorna `duplicados: string[]` con las series ya registradas
+- Reescrito pistolear-view.tsx con:
+  * Selector de equipo del inventario (dropdown con productos) antes de pistolear
+  * Botón de editar (lápiz) en cada fila → inputs editables para serie/mac/cm/mac/modelo
+  * Banner naranja clickeable: "X serie(s) ya están registradas en tu sistema. Más información, dale click a este mensaje."
+  * Modal de detalle al hacer click en el banner (lista con serie, modelo, estado, fecha)
+  * Modal de preview antes de guardar (resumen con totales, lista con estado "A guardar"/"Ya registrada")
+  * Etiquetas "REGISTRADA" (rojo) y "Repetida" (ámbar) en la tabla
+  * Scroll vertical en la tabla (max-h-96)
+- Actualizado series-view.tsx: añadidas columnas MAC y CM MAC, búsqueda incluye MAC
+
+Stage Summary:
+- 4 modos de pistoleo: Solo serie, Serie+UA, Serie+MAC, Serie+MAC+CM MAC ✓
+- Filas editables (lápiz) con inputs para todos los campos ✓
+- Selector de equipo del inventario antes de pistolear ✓
+- Preview antes de guardar con resumen (total/a guardar/ya registradas) ✓
+- Detección de duplicados en sistema → banner naranja clickeable ✓
+- Modal de detalle de duplicados al hacer click en el banner ✓
+- Detección de duplicados dentro del lote actual → banner rojo ✓
+- Auto-verificado con Agent Browser: captura, edición, preview, banner, modal ✓
