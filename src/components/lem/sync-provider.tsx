@@ -23,8 +23,9 @@ import { cn } from "@/lib/utils";
 
 type SyncStatus = "idle" | "pushing" | "synced" | "error";
 
-const DEBOUNCE_MS = 1500;
-const PERIODIC_PULL_MS = 120_000; // pull every 2min for cross-device updates (reduced to save memory)
+const DEBOUNCE_MS = 2000;
+// Sin pull periódico — solo al cargar y al hacer cambios manuales
+// (el pull cada 2min causaba peticiones constantes que saturaban la memoria)
 
 function buildPayload(state: any): SyncPayload {
   return {
@@ -113,9 +114,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     };
 
     doPull();
-
-    const interval = setInterval(doPull, PERIODIC_PULL_MS);
-    return () => clearInterval(interval);
+    // Sin pull periódico — solo al cargar la página
   }, []);
 
   // Subscribe to changes → debounced push (only after the first pull)

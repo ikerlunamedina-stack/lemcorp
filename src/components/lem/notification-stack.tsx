@@ -96,7 +96,7 @@ export function NotificationStack() {
       }
     };
     check();
-    const id = setInterval(check, 30000);
+    const id = setInterval(check, 60000);
     return () => clearInterval(id);
   }, [checkRecordatorios, marcarRecordatorioDisparado, addNotificacion, dispararFull]);
 
@@ -124,7 +124,7 @@ export function NotificationStack() {
       }
     };
     check();
-    const id = setInterval(check, 120_000);
+    const id = setInterval(check, 300000);
     return () => clearInterval(id);
   }, [checkHorario, marcarHorarioDisparado, addNotificacion, dispararFull]);
 
