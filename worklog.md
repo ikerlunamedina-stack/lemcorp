@@ -2244,3 +2244,39 @@ Stage Summary:
 - Animaciones de entrada de página solo en móvil ✓
 - Lint: 0 errores ✓
 - Verificado: HTML contiene "Abrir menú", "safe-area", "textarea" ✓
+
+---
+Task ID: IA-PRESENTACION-ACCIONES
+Agent: main
+Task: Arreglar que Alana deje de decir "hola soy Alana" en cada respuesta + que no ejecute acciones no solicitadas + añadir acción set_theme
+
+Work Log:
+- Problema 1: Alana decía "Hola, soy Alana" en CADA respuesta
+  * Causa: el system prompt decía "Te presentas SIEMPRE como Alana cuando te preguntan tu nombre o cuando el usuario te saluda por primera vez en una conversación"
+  * El LLM interpretaba "saluda" como cualquier mensaje
+  * Solución: Reescrito el prompt con REGLA CRÍTICA DE PRESENTACIÓN:
+    - SOLO decir "Soy Alana" si el usuario PREGUNTA EXPLÍCITAMENTE el nombre
+    - NUNCA presentarse al inicio de cada respuesta
+    - Ejemplos de CORRECTO e INCORRECTO incluidos
+- Problema 2: Alana creó una nota cuando el usuario dijo "pon la página en blanco"
+  * Causa: no existía la acción set_theme, entonces Alana interpretó "pon" como "anota"
+  * Solución: Añadida acción set_theme al system prompt:
+    [[ACCION]]
+    tipo: set_theme
+    tema: <claro | oscuro | sistema>
+    [[/ACCION]]
+  * Reglas estrictas añadidas:
+    - "pon la página en blanco/claro" → set_theme con tema: claro (NO add_note)
+    - "pon la página en oscuro/negro" → set_theme con tema: oscuro
+    - NUNCA crear notas si el usuario no dijo "anota" o "crea una nota"
+- Frontend (ia-view.tsx):
+  * Añadido procesamiento de set_theme: llama a setSetting("tema", tema)
+  * Añadido icono Sun para set_theme en el badge de acciones ejecutadas
+  * Importado setSetting del store
+
+Stage Summary:
+- Alana ya NO dice "hola soy Alana" en cada respuesta ✓
+- Alana ahora puede cambiar el tema con set_theme ✓
+- Alana NO crea notas cuando el usuario pide cambiar el tema ✓
+- Reglas estrictas para evitar acciones no solicitadas ✓
+- Lint: 0 errores ✓

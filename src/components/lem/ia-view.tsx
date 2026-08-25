@@ -103,6 +103,7 @@ export function IAView() {
   const registrarDespacho = useStore((s) => s.registrarDespacho);
   const addNota = useStore((s) => s.addNota);
   const addMiembro = useStore((s) => s.addMiembro);
+  const setSetting = useStore((s) => s.setSetting);
 
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
@@ -314,6 +315,10 @@ export function IAView() {
               }
               addMiembro(nombre, rol, correo, telefono);
               ejecutadas.push({ tipo, descripcion: `Añadí a "${nombre}" como ${rol}`, ok: true });
+            } else if (tipo === "set_theme") {
+              const tema = (a.tema || "oscuro") as "claro" | "oscuro" | "sistema";
+              setSetting("tema", tema);
+              ejecutadas.push({ tipo, descripcion: `Tema cambiado a "${tema}"`, ok: true });
             } else {
               ejecutadas.push({ tipo, descripcion: `Acción desconocida: ${tipo}`, ok: false, error: "Tipo no reconocido" });
             }
@@ -515,6 +520,7 @@ export function IAView() {
                             a.tipo === "add_despacho" ? Send :
                             a.tipo === "add_note" ? FileText :
                             a.tipo === "add_member" ? Users :
+                            a.tipo === "set_theme" ? Sun :
                             ClipboardList;
                           const Icon = iconoAccion;
                           return (
