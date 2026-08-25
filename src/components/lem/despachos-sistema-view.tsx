@@ -158,9 +158,9 @@ export function DespachosView() {
               />
             </div>
 
-            {/* Técnico */}
+            {/* Destinatario */}
             <div className="flex flex-col gap-1.5">
-              <Label>Técnico (opcional)</Label>
+              <Label>Destinatario (opcional)</Label>
               <Input
                 value={tecnico}
                 onChange={(e) => setTecnico(e.target.value)}
@@ -223,7 +223,7 @@ export function DespachosView() {
                       <p className="mt-0.5 text-[10px] text-muted-foreground">
                         {d.cliente && `👤 ${d.cliente}`}
                         {d.cliente && d.tecnico && " · "}
-                        {d.tecnico && `🔧 ${d.tecnico}`}
+                        {d.tecnico && `📦 ${d.tecnico}`}
                       </p>
                     )}
                     <p className="text-[10px] text-muted-foreground">

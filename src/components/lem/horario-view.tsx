@@ -384,7 +384,7 @@ export function HorarioView() {
               <Input
                 value={actividad}
                 onChange={(e) => setActividad(e.target.value)}
-                placeholder="Ej: Despacho matutino a técnicos"
+                placeholder="Ej: Despacho matutino"
                 className="rounded-xl"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleAdd();

@@ -25,7 +25,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   const [nombre, setNombre] = useState("");
   const [empresa, setEmpresa] = useState("");
   const [tipoNegocio, setTipoNegocio] = useState<"telecom" | "retail" | "logistica" | "otro">("telecom");
-  const [numTecnicos, setNumTecnicos] = useState<"1-5" | "6-20" | "21-50" | "50+">("6-20");
+  const [numPersonal, setNumPersonal] = useState<"1-5" | "6-20" | "21-50" | "50+">("6-20");
   const [zona, setZona] = useState("");
   const [tema, setTema] = useState<Tema>("oscuro");
   const [voz, setVoz] = useState(false);
@@ -71,15 +71,15 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
       logistica: "Logística y Distribución",
       otro: "Otro rubro",
     }[tipoNegocio];
-    const tecnicosLabel = {
-      "1-5": "1 a 5 técnicos",
-      "6-20": "6 a 20 técnicos",
-      "21-50": "21 a 50 técnicos",
-      "50+": "Más de 50 técnicos",
-    }[numTecnicos];
+    const personalLabel = {
+      "1-5": "1 a 5 personas",
+      "6-20": "6 a 20 personas",
+      "21-50": "21 a 50 personas",
+      "50+": "Más de 50 personas",
+    }[numPersonal];
     const zonaTxt = zona.trim() || "Lima, Perú";
     updateEmpresa({
-      descripcion: `LEMCORP — ${tipoLabel}\nPropietario: ${empresa.trim() || "Lemcorp"}\nRubro: ${tipoLabel}\nTécnicos en campo: ${tecnicosLabel}\nCobertura: ${zonaTxt}`,
+      descripcion: `LEMCORP — ${tipoLabel}\nPropietario: ${empresa.trim() || "Lemcorp"}\nRubro: ${tipoLabel}\nPersonal del almacén: ${personalLabel}\nCobertura: ${zonaTxt}`,
     });
 
     // Reset pistoleo config (prefijo se define en onboarding según tipo de negocio)
@@ -278,10 +278,10 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
       ),
       canContinue: true,
     },
-    // Step 4: ¿Cuántos técnicos tienes?
+    // Step 4: ¿Cuántas personas hay en el almacén?
     {
       icon: Users,
-      title: "¿Cuántos técnicos tienes?",
+      title: "¿Cuántas personas hay en el almacén?",
       subtitle: "Para dimensionar el panel de despachos",
       body: (
         <div className="grid grid-cols-2 gap-2.5">
@@ -291,11 +291,11 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             { v: "21-50" as const, label: "21 a 50", desc: "Equipo grande" },
             { v: "50+" as const, label: "Más de 50", desc: "Gran escala" },
           ].map((opt) => {
-            const active = numTecnicos === opt.v;
+            const active = numPersonal === opt.v;
             return (
               <button
                 key={opt.v}
-                onClick={() => setNumTecnicos(opt.v)}
+                onClick={() => setNumPersonal(opt.v)}
                 className={cn(
                   "press flex flex-col items-center gap-1 rounded-2xl border-2 py-4 transition-all",
                   active

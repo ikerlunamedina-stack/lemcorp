@@ -23,7 +23,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 
-const ROLES: Rol[] = ["jefe_operaciones", "supervisor", "tecnico", "almacenero", "administrador"];
+const ROLES: Rol[] = ["jefe_operaciones", "supervisor", "almacenero", "administrador"];
 
 export function EmpresaView() {
   const empresa = useStore((s) => s.empresa);
@@ -42,7 +42,7 @@ export function EmpresaView() {
   const [form, setForm] = useState(empresa);
   const [miembroDialog, setMiembroDialog] = useState(false);
   const [editingMiembro, setEditingMiembro] = useState<MiembroEquipo | null>(null);
-  const [miembroForm, setMiembroForm] = useState({ nombre: "", rol: "tecnico" as Rol, correo: "", telefono: "" });
+  const [miembroForm, setMiembroForm] = useState({ nombre: "", rol: "almacenero" as Rol, correo: "", telefono: "" });
   const [permisosDialog, setPermisosDialog] = useState<MiembroEquipo | null>(null);
   const [permisosExtra, setPermisosExtra] = useState<Permiso[]>([]);
   const [permisosRevocados, setPermisosRevocados] = useState<Permiso[]>([]);
@@ -54,7 +54,7 @@ export function EmpresaView() {
 
   const openCreateMiembro = () => {
     setEditingMiembro(null);
-    setMiembroForm({ nombre: "", rol: "tecnico", correo: "", telefono: "" });
+    setMiembroForm({ nombre: "", rol: "almacenero", correo: "", telefono: "" });
     setMiembroDialog(true);
   };
 
@@ -114,7 +114,7 @@ export function EmpresaView() {
           <Building2 className="h-5 w-5" /> Empresas y Contactos
         </h1>
         <p className="text-sm text-muted-foreground">
-          Empresas contratistas (ej: LPS) y técnicos a los que despachas. El almacén es LEMCORP.
+          Empresas contratistas (ej: LPS) y personal a los que despachas. El almacén es LEMCORP.
         </p>
       </div>
 
@@ -162,7 +162,7 @@ export function EmpresaView() {
               <Textarea
                 value={form.descripcion ?? ""}
                 onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
-                placeholder={"Ej:\nLPS — CONTRATISTA DE CLARO\nTÉCNICOS EN CAMPO: 30\nDespacho diario: ~17 técnicos\nCobertura: Lima Norte, Comas, Los Olivos\n...toda la info que necesites"}
+                placeholder={"Ej:\nLPS — CONTRATISTA DE CLARO\nPERSONAL EN CAMPO: 30\nDespacho diario: ~17 despachos\nCobertura: Lima Norte, Comas, Los Olivos\n...toda la info que necesites"}
                 className="rounded-xl min-h-[140px] text-[13px] leading-relaxed"
               />
               <p className="text-[10px] text-muted-foreground">
@@ -187,12 +187,12 @@ export function EmpresaView() {
         )}
       </div>
 
-      {/* Técnicos / Miembros del equipo de la contratista */}
+      {/* Personal del almacén */}
       <div className="anim-fade-up rounded-2xl border border-border bg-card p-5 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-sm font-semibold">Técnicos y personal ({miembros.length})</h2>
+            <h2 className="text-sm font-semibold">Personal del almacén ({miembros.length})</h2>
           </div>
           {puedeGestionarPersonal && (
             <Button size="sm" onClick={openCreateMiembro} className="press h-8 rounded-lg"><Plus className="mr-1 h-3.5 w-3.5" />Añadir</Button>
@@ -205,7 +205,7 @@ export function EmpresaView() {
             <p className="text-[13px] font-semibold text-foreground">Sin personal registrado</p>
             <p className="mt-1 text-[12px] text-muted-foreground">
               {puedeGestionarPersonal
-                ? "Añade a tu equipo: administradores, jefes, supervisores, técnicos y almaceneros."
+                ? "Añade a tu equipo: administradores, jefes, supervisores y almaceneros."
                 : "El administrador añadirá al personal cuando corresponda."}
             </p>
             {puedeGestionarPersonal && (
@@ -358,7 +358,7 @@ export function EmpresaView() {
       <Dialog open={miembroDialog} onOpenChange={setMiembroDialog}>
         <DialogContent className="rounded-2xl">
           <DialogHeader>
-            <DialogTitle>{editingMiembro ? "Editar" : "Añadir"} técnico / personal</DialogTitle>
+            <DialogTitle>{editingMiembro ? "Editar" : "Añadir"} personal del almacén</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-3 py-1">
             <div className="col-span-2 flex flex-col gap-1.5">

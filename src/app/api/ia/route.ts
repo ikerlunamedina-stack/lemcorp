@@ -134,8 +134,7 @@ export async function POST(req: NextRequest) {
       en_reparacion: eqs.filter((e) => e.estado === "en_reparacion").length,
     };
 
-    const tecnicos = pers.filter((m) => m.rol === "tecnico");
-    const numTecnicos = tecnicos.length;
+    const numPersonal = pers.length;
 
     const despachosHoy = desps.filter((d) => {
       try {
@@ -187,7 +186,7 @@ export async function POST(req: NextRequest) {
       : "\n\n📦 No hay equipos registrados.";
 
     const miembrosTxt = pers.length > 0
-      ? `\n\n👥 EQUIPO DE TRABAJO (${pers.length} personas, ${numTecnicos} técnicos):\n${pers
+      ? `\n\n👥 PERSONAL DEL ALMACÉN (${pers.length} personas):\n${pers
           .map((m) => `- ${m.nombre} | ${m.rol}${m.activo === false ? " (inactivo)" : ""}`)
           .join("\n")}`
       : "";
@@ -214,7 +213,7 @@ export async function POST(req: NextRequest) {
       : "";
 
     // ─── System prompt con 8 capacidades ───
-    const systemPrompt = `Eres Alana, asistente del almacén Lemcorp. Tu nombre es Alana. Te presentas SIEMPRE como Alana cuando te preguntan tu nombre o cuando el usuario te saluda por primera vez en una conversación. Eres la asistente experta en gestión de almacén para LEMCORP, el almacén central de Lemcorp. LEMCORP despacha equipos y materiales a una empresa contratista (${emp.nombre || "LPS"} — contratista de Claro) que tiene técnicos en campo.
+    const systemPrompt = `Eres Alana, asistente del almacén Lemcorp. Tu nombre es Alana. Te presentas SIEMPRE como Alana cuando te preguntan tu nombre o cuando el usuario te saluda por primera vez en una conversación. Eres la asistente experta en gestión de almacén para LEMCORP, el almacén central de Lemcorp. LEMCORP despacha equipos y materiales a una empresa contratista (${emp.nombre || "LPS"} — contratista de Claro).
 
 OPERADOR ACTUAL: ${usuarioNombre}
 FECHA/HORA LIMA: ${new Date().toLocaleString("es-PE", { timeZone: "America/Lima" })}
@@ -223,10 +222,10 @@ FECHA/HORA LIMA: ${new Date().toLocaleString("es-PE", { timeZone: "America/Lima"
 TUS 8 CAPACIDADES PRINCIPALES:
 ═══════════════════════════════════════
 1. 📊 ANÁLISIS DE STOCK: Detectar productos con bajo stock o agotados, calcular ratios de cobertura y priorizar compras.
-2. 📈 CÁLCULO DE CONSUMO: Tienes datos REALES de consumo de los últimos 7 y 30 días. Úsalos para estimar consumo diario por técnico y proyectar necesidades futuras.
+2. 📈 CÁLCULO DE CONSUMO: Tienes datos REALES de consumo de los últimos 7 y 30 días. Úsalos para estimar consumo diario y proyectar necesidades futuras.
 3. 🛒 RECOMENDACIONES DE COMPRA: Sugerir qué productos pedir, en qué cantidad, justificando con datos (SKU, cantidad, justificación). Usa el campo "Déficit" de la proyección para recomendaciones precisas.
 4. 📦 TRAZABILIDAD DE EQUIPOS: Reportar el estado de los equipos (disponibles, averiados, en reparación, en retiro) y buscar por serie si el usuario pregunta por una.
-5. 👥 GESTIÓN DE TÉCNICOS: Informar sobre el equipo de trabajo, cargas, distribución.
+5. 👥 GESTIÓN DE PERSONAL: Informar sobre el equipo del almacén, cargas, distribución.
 6. 🚨 ALERTAS TEMPRANAS: Anticipar quiebres de stock basándose en el ritmo de despacho y el déficit proyectado.
 7. 📋 REPORTES EJECUTIVOS: Generar resúmenes accionables del estado del almacén. Incluye KPIs, tendencias y acciones recomendadas.
 8. 📅 PLANIFICACIÓN: Calcular necesidades para un período (ej: "¿cuántos conectores para 30 días?"). Usa consumoDiario * días + stock mínimo de seguridad.
@@ -273,10 +272,10 @@ texto: <lo que aprendiste, en una frase clara y concisa>
 [[/MEMORIA]]
 
 Ejemplo:
-Usuario: "Recuerda que el técnico Pérez trabaja solo de lunes a miércoles"
+Usuario: "Recuerda que el personal Pérez trabaja solo de lunes a miércoles"
 Alana: Entendido. Lo recordaré.
 [[MEMORIA]]
-texto: El técnico Pérez trabaja solo de lunes a miércoles
+texto: El personal Pérez trabaja solo de lunes a miércoles
 [[/MEMORIA]]
 
 Reglas para la memoria:

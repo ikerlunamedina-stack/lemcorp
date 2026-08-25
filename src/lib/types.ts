@@ -158,14 +158,12 @@ export interface Notificacion {
 export type Rol =
   | "jefe_operaciones"
   | "supervisor"
-  | "tecnico"
   | "almacenero"
   | "administrador";
 
 export const ROL_META: Record<Rol, { label: string; short: string }> = {
   jefe_operaciones: { label: "Jefe de Operaciones", short: "Jefe Op." },
   supervisor: { label: "Supervisor", short: "Supervisor" },
-  tecnico: { label: "Técnico de Campo", short: "Técnico" },
   almacenero: { label: "Almacenero", short: "Almacenero" },
   administrador: { label: "Administrador del Sistema", short: "Admin" },
 };
@@ -252,15 +250,6 @@ export const PERMISOS_POR_ROL: Record<Rol, Permiso[]> = {
     "ver_empresa",
     "ver_notificaciones",
   ],
-  tecnico: [
-    "ver_dashboard",
-    "ver_equipos",
-    "pistolear",
-    "ver_horario",
-    "usar_ia",
-    "ver_bloc",
-    "ver_notificaciones",
-  ],
   almacenero: [
     "ver_dashboard",
     "ver_inventario", "editar_inventario",
@@ -323,7 +312,7 @@ export const DEFAULT_EMPRESA: InfoEmpresa = {
   telefono: "",
   correo: "",
   descripcion:
-    "LEMCORP — Almacén central\nPropietario: Lemcorp\nContratista: LPS (Claro)\nTécnicos en campo: 30\nDespacho diario: ~17 técnicos\nCobertura: Lima Norte, Comas, Los Olivos",
+    "LEMCORP — Almacén central\nPropietario: Lemcorp\nContratista: LPS (Claro)\nPersonal en campo: 30\nDespacho diario: ~17 despachos\nCobertura: Lima Norte, Comas, Los Olivos",
 };
 
 // ─────────── Helper ───────────

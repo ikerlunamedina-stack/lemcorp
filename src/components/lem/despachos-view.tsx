@@ -258,7 +258,7 @@ export function DespachosView() {
             <span className="font-semibold text-foreground">{despachos.length}</span> despachos ·
             <span className="font-semibold text-foreground"> {fmtNum(totalDespachado)}</span> unidades ·
             <span className="font-semibold text-foreground"> {diasConDespachos}</span> días ·
-            <span className="font-semibold text-foreground"> {tecnicosUnicos}</span> técnicos
+            <span className="font-semibold text-foreground"> {tecnicosUnicos}</span> destinatarios
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -284,14 +284,14 @@ export function DespachosView() {
         <StatCard label="Unidades enviadas" value={fmtNum(totalDespachado)} icon={<TrendingDown className="h-4 w-4" />} />
         <StatCard label="Hoy" value={despachosHoy.length} sub={`${fmtNum(totalDespachadoHoy)} und`} icon={<Calendar className="h-4 w-4" />} highlight />
         <StatCard label="Días con despachos" value={diasConDespachos} icon={<Hash className="h-4 w-4" />} />
-        <StatCard label="Técnicos activos" value={tecnicosUnicos} icon={<Users className="h-4 w-4" />} />
+        <StatCard label="Destinatarios" value={tecnicosUnicos} icon={<Users className="h-4 w-4" />} />
       </div>
 
       {/* Toolbar historial */}
       <div className="anim-fade-up mb-3 flex flex-wrap items-center gap-2">
         <div className="relative w-full sm:w-64">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por producto, técnico, destino…" className="h-9 rounded-lg bg-card pl-9 text-sm shadow-sm" />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por producto, destinatario, destino…" className="h-9 rounded-lg bg-card pl-9 text-sm shadow-sm" />
         </div>
         <button
           onClick={() => setFilterToday(!filterToday)}
@@ -350,7 +350,7 @@ export function DespachosView() {
                     </div>
                     <div className="text-center">
                       <p className="font-bold tabular-nums text-foreground">{tecnicosDia}</p>
-                      <p className="text-[9px] text-muted-foreground">técnicos</p>
+                      <p className="text-[9px] text-muted-foreground">destinatarios</p>
                     </div>
                     <div className="text-center">
                       <p className="font-bold tabular-nums text-foreground">{productosDia}</p>
@@ -449,7 +449,7 @@ export function DespachosView() {
           {/* Formatos (compacto) */}
           <div className="rounded-lg border border-border bg-muted/30 px-3 py-2">
             <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-              Formatos: SKU*cantidad · Técnico | SKU*cantidad · Técnico [TAB] SKU*cantidad (de Excel)
+              Formatos: SKU*cantidad · Destinatario | SKU*cantidad · Destinatario [TAB] SKU*cantidad (de Excel)
             </p>
           </div>
 
@@ -521,7 +521,7 @@ export function DespachosView() {
               {/* Resumen por técnico (máximo 150px con scroll) */}
               {Object.keys(resultadoIA.porTecnico).length > 0 && (
                 <div className="rounded-lg border border-border bg-muted/30 p-3">
-                  <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Desglose por técnico</p>
+                  <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Desglose por destinatario</p>
                   <div className="grid max-h-[150px] grid-cols-1 gap-1.5 overflow-y-auto scroll-thin sm:grid-cols-2">
                     {Object.entries(resultadoIA.porTecnico)
                       .sort((a, b) => b[1] - a[1])

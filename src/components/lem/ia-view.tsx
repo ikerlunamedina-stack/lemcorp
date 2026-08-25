@@ -21,14 +21,14 @@ interface ChatMsg {
 
 const SUGERENCIAS: { text: string; icon: typeof TrendingDown; color: string }[] = [
   { text: "¿Qué productos necesito pedir urgentemente?", icon: AlertTriangle, color: "text-rose-400" },
-  { text: "Calcula el consumo mensual de routers ONT con 3 técnicos", icon: TrendingDown, color: "text-foreground" },
+  { text: "Calcula el consumo mensual de routers ONT con 3 personas", icon: TrendingDown, color: "text-foreground" },
   { text: "¿Cuántos conectores FTTH debo pedir para 30 días?", icon: ShoppingCart, color: "text-foreground" },
   { text: "Dame un reporte ejecutivo del estado del almacén", icon: BarChart3, color: "text-foreground" },
   { text: "¿Qué equipos están averiados o en reparación?", icon: Cpu, color: "text-amber-400" },
   { text: "Recomienda cantidades a comprar para cable RG-6", icon: Package, color: "text-foreground" },
   { text: "Recuérdame pedir conectores en 1 minuto", icon: BellRing, color: "text-primary" },
-  { text: "Recuerda que el técnico Pérez trabaja solo de lunes a miércoles", icon: Brain, color: "text-emerald-400" },
-  { text: "¿Cómo está el equipo de técnicos hoy?", icon: Users, color: "text-foreground" },
+  { text: "Recuerda que el personal Pérez trabaja solo de lunes a miércoles", icon: Brain, color: "text-emerald-400" },
+  { text: "¿Cómo está el equipo del almacén hoy?", icon: Users, color: "text-foreground" },
 ];
 
 const STORAGE_KEY = "nuclon-ia-chat-v2";

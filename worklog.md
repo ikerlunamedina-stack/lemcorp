@@ -2022,3 +2022,68 @@ Stage Summary:
 - Chip de Empresa quitado del navbar (solo 1 ventana de empresa) ✓
 - Permisos filtran navbar, botones y páginas ✓
 - Sesión se puede cambiar en Config → Sesión ✓
+
+---
+Task ID: QUITAR-TECNICOS
+Agent: main
+Task: Quitar todo lo de técnicos — es un sistema de almacén, no de gestión de técnicos
+
+Work Log:
+- types.ts:
+  * Eliminado rol "tecnico" del tipo Rol (ahora: jefe_operaciones, supervisor, almacenero, administrador)
+  * Eliminado ROL_META.tecnico
+  * Eliminado PERMISOS_POR_ROL.tecnico
+  * Actualizada DEFAULT_EMPRESA.descripcion: "Personal en campo" en vez de "Técnicos en campo"
+- empresa-view.tsx:
+  * ROLES: ya no incluye "tecnico"
+  * Default del form de nuevo miembro: "almacenero" (antes "tecnico")
+  * Sección renombrada: "Técnicos y personal" → "Personal del almacén"
+  * DialogTitle: "técnico / personal" → "personal del almacén"
+  * Mensaje vacío: "administradores, jefes, supervisores y almaceneros" (sin técnicos)
+  * Placeholder de descripción: "PERSONAL EN CAMPO" (antes "TÉCNICOS EN CAMPO")
+- despachos-view.tsx:
+  * "X técnicos" → "X destinatarios"
+  * StatCard "Técnicos activos" → "Destinatarios"
+  * Placeholder búsqueda: "técnico" → "destinatario"
+  * "técnicos" → "destinatarios" en el resumen por día
+  * Formato de import: "Técnico" → "Destinatario"
+  * "Desglose por técnico" → "Desglose por destinatario"
+- despachos-sistema-view.tsx:
+  * Campo "Técnico (opcional)" → "Destinatario (opcional)"
+  * Icono 🔧 → 📦 para destinatario
+- horario-view.tsx:
+  * Placeholder "Despacho matutino a técnicos" → "Despacho matutino"
+- dashboard-view.tsx:
+  * numTecnicos eliminado (no se usaba en render, era cálculo muerto)
+- ia-view.tsx:
+  * Sugerencia "con 3 técnicos" → "con 3 personas"
+  * Sugerencia "el técnico Pérez" → "el personal Pérez"
+  * Sugerencia "equipo de técnicos hoy" → "equipo del almacén hoy"
+- config-view.tsx:
+  * "Recuerda que el técnico Pérez" → "Recuerda que el personal Pérez"
+- onboarding.tsx:
+  * numTecnicos → numPersonal
+  * Pregunta "¿Cuántos técnicos tienes?" → "¿Cuántas personas hay en el almacén?"
+  * Labels "1 a 5 técnicos" → "1 a 5 personas", etc.
+  * Descripción generada: "Personal del almacén" en vez de "Técnicos en campo"
+- store.ts (seedDemo):
+  * Horario demo: "Despacho matutino a técnicos" → "Despacho matutino"
+  * Nota demo: "del técnico Pérez" → "del personal Pérez"
+- app/api/ia/route.ts:
+  * Eliminado cálculo de tecnicos y numTecnicos
+  * "EQUIPO DE TRABAJO (X personas, Y técnicos)" → "PERSONAL DEL ALMACÉN (X personas)"
+  * System prompt: quitada mención de "técnicos en campo"
+  * Capacidad 5: "GESTIÓN DE TÉCNICOS" → "GESTIÓN DE PERSONAL"
+  * Ejemplo de memoria: "técnico Pérez" → "personal Pérez"
+
+Stage Summary:
+- Eliminado el rol "Técnico" del sistema ✓
+- Roles disponibles: Administrador, Jefe de Operaciones, Supervisor, Almacenero ✓
+- "Técnicos y personal" renombrado a "Personal del almacén" ✓
+- Todas las menciones visuales de "técnico" cambiadas a "destinatario" o "personal" ✓
+- Sugerencias de IA, system prompt, ejemplos — todo actualizado ✓
+- Onboarding pregunta por personas del almacén, no técnicos ✓
+- Auto-verificado con Agent Browser:
+  * /empresa: "Personal del almacén (0)" + dropdown sin opción "Técnico" ✓
+  * /despachos: "0 destinatarios" + "Destinatarios" + búsqueda "destinatario" ✓
+  * Sin errores en consola ni dev.log ✓

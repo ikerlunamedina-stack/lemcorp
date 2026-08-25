@@ -316,7 +316,7 @@ export function ConfigView() {
             <Brain className="mb-2 h-8 w-8 text-muted-foreground/50" />
             <p className="text-[12px] font-semibold text-muted-foreground">Todavía no has enseñado nada a Alana</p>
             <p className="mt-0.5 text-[10px] text-muted-foreground">
-              Abre la pestaña IA y prueba: <em>"Recuerda que el técnico Pérez trabaja de lunes a miércoles"</em>
+              Abre la pestaña IA y prueba: <em>"Recuerda que el personal Pérez trabaja de lunes a miércoles"</em>
             </p>
           </div>
         ) : (

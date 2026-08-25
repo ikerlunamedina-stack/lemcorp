@@ -1155,15 +1155,15 @@ export const useStore = create<StoreState>()(
 
         // Horario demo (Lunes-Viernes)
         const horarioDemo: Array<Omit<Horario, "id">> = [
-          { dia: "lunes", horaInicio: "08:00", horaFin: "09:00", actividad: "Despacho matutino a técnicos", tipo: "despacho" },
+          { dia: "lunes", horaInicio: "08:00", horaFin: "09:00", actividad: "Despacho matutino", tipo: "despacho" },
           { dia: "lunes", horaInicio: "13:00", horaFin: "14:00", actividad: "Almuerzo", tipo: "almuerzo" },
           { dia: "lunes", horaInicio: "15:00", horaFin: "16:00", actividad: "Reunión de coordinación", tipo: "reunion" },
-          { dia: "martes", horaInicio: "08:00", horaFin: "09:00", actividad: "Despacho matutino a técnicos", tipo: "despacho" },
+          { dia: "martes", horaInicio: "08:00", horaFin: "09:00", actividad: "Despacho matutino", tipo: "despacho" },
           { dia: "martes", horaInicio: "13:00", horaFin: "14:00", actividad: "Almuerzo", tipo: "almuerzo" },
-          { dia: "miercoles", horaInicio: "08:00", horaFin: "09:00", actividad: "Despacho matutino a técnicos", tipo: "despacho" },
+          { dia: "miercoles", horaInicio: "08:00", horaFin: "09:00", actividad: "Despacho matutino", tipo: "despacho" },
           { dia: "miercoles", horaInicio: "10:00", horaFin: "11:00", actividad: "Inventario físico semanal", tipo: "otro" },
-          { dia: "jueves", horaInicio: "08:00", horaFin: "09:00", actividad: "Despacho matutino a técnicos", tipo: "despacho" },
-          { dia: "viernes", horaInicio: "08:00", horaFin: "09:00", actividad: "Despacho matutino a técnicos", tipo: "despacho" },
+          { dia: "jueves", horaInicio: "08:00", horaFin: "09:00", actividad: "Despacho matutino", tipo: "despacho" },
+          { dia: "viernes", horaInicio: "08:00", horaFin: "09:00", actividad: "Despacho matutino", tipo: "despacho" },
           { dia: "viernes", horaInicio: "16:00", horaFin: "17:00", actividad: "Cierre semanal", tipo: "reunion" },
         ];
         for (const h of horarioDemo) get().addHorarioItem(h);
@@ -1197,7 +1197,7 @@ export const useStore = create<StoreState>()(
           get().addEquipment({ serie, modelo, estado, ubicacion: ubi });
 
         // 3 notas
-        get().addNota("Traer 50 conectores FTTH para mañana - pedido urgente del técnico Pérez");
+        get().addNota("Traer 50 conectores FTTH para mañana - pedido urgente del personal Pérez");
         get().addNota("Router con serie 48575443365E42D1 no enciende - llevar a taller");
         get().addNota("Verificar stock de cable RG-6, parece bajo");
 

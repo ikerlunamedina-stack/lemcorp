@@ -43,7 +43,7 @@ export function DashboardView() {
   const totalUnidades = products.reduce((s, p) => s + p.quantity, 0);
   const bajoStock = products.filter((p) => p.minStock && p.minStock > 0 && p.quantity <= p.minStock);
   const equiposDisponibles = equipos.filter((e) => e.estado === "disponible").length;
-  const numTecnicos = miembros.filter((m) => m.rol === "tecnico").length;
+  const numPersonal = miembros.length;
 
   const catMap: Record<string, number> = {};
   for (const p of products) {
