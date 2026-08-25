@@ -432,6 +432,48 @@ html.light .scroll-thin::-webkit-scrollbar-thumb { background: oklch(0.75 0.01 2
 .anim-onboard-check { animation: lem-onboard-check 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both; }
 .anim-onboard-ring { animation: lem-onboard-ring 1.5s ease-out infinite; }
 
+/* ===== Horario — animaciones dinámicas ===== */
+@keyframes lem-horario-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.85; }
+}
+@keyframes lem-horario-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes lem-horario-slide-in {
+  0% { opacity: 0; transform: translateX(-12px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+@keyframes lem-horario-glow {
+  0%, 100% { box-shadow: 0 0 0 0 var(--primary, oklch(0.65 0 0)); opacity: 0.6; }
+  50% { box-shadow: 0 0 0 8px transparent; opacity: 1; }
+}
+@keyframes lem-horario-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+@keyframes lem-horario-orbit {
+  0% { transform: rotate(0deg) translateX(0); }
+  100% { transform: rotate(360deg) translateX(0); }
+}
+@keyframes lem-horario-wave {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(-3px); }
+  75% { transform: translateY(3px); }
+}
+
+.anim-horario-pulse { animation: lem-horario-pulse 2s ease-in-out infinite; }
+.anim-horario-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+  background-size: 200% 100%;
+  animation: lem-horario-shimmer 3s linear infinite;
+}
+.anim-horario-slide-in { animation: lem-horario-slide-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-horario-glow { animation: lem-horario-glow 2s ease-out infinite; }
+.anim-horario-breathe { animation: lem-horario-breathe 4s ease-in-out infinite; }
+.anim-horario-wave { animation: lem-horario-wave 2s ease-in-out infinite; }
+
 /* ===== Glass morphism REAL (visible) ===== */
 .glass {
   background: color-mix(in oklch, var(--card) 70%, transparent);

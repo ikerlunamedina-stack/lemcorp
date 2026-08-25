@@ -2139,3 +2139,63 @@ Stage Summary:
     - "Anota revisar cable RG-6" → nota creada en el bloc ✓
   * Badge "ACCIONES EJECUTADAS" se muestra con icono y check ✓
 - El sistema es 100% responsive (verificado en sesiones anteriores con 390x844) ✓
+
+---
+Task ID: MOVIL-RESPONSIVE-HORARIO
+Agent: main
+Task: Arreglar chat de Alana en móvil, dashboard con accesos grandes, responsive general, y rediseñar Horario con edición, formato 12h AM/PM y animaciones
+
+Work Log:
+- Chat de Alana (ia-view.tsx):
+  * Header: badges "ACTIVO" y "VOZ" ocultos en móvil (sm:inline), visibles en desktop
+  * Botón "Historial": solo icono en móvil, texto en desktop
+  * Botón "Borrar": solo icono en móvil
+  * Sugerencias: padding y tamaño aumentados (px-3 py-1.5), mejor truncado en móvil
+  * Input: cambiado de <input> a <textarea> con h-12 (48px touch target), text-[15px]
+  * Botón enviar: h-12 w-12 (48px touch target)
+  * Padding general ajustado: px-3 en móvil, px-4 en sm, px-6 en lg
+- Dashboard (dashboard-view.tsx):
+  * Padding: px-4 en móvil (antes px-6), sm:px-6, lg:px-8
+  * Título: text-xl en móvil, sm:text-2xl
+  * KPIs: padding p-3 en móvil, p-4 en sm; iconos h-9 (móvil) h-10 (sm); texto text-xl (móvil) text-2xl (sm)
+  * QuickLink rediseñado: iconos h-10 (móvil) h-12 (sm), padding p-4 (móvil) p-5 (sm), active:scale-95 para feedback táctil
+  * Border radius: rounded-xl (antes rounded-lg) más moderno
+- Horario rediseñado completamente (horario-view.tsx):
+  * Formato 12h AM/PM: función a12h() convierte "14:30" → "2:30 PM"
+  * Modo EDICIÓN: botón lápiz en cada actividad, abre el dialog con datos cargados
+  * Botón guardar cambia entre "Agregar" (nuevo) y "Guardar cambios" (edición)
+  * Tarjeta de hora actual grande con animación shimmer + breathe + pulse
+  * KPIs con iconos (Calendar, Zap, Truck, Users)
+  * Cards de días con animación slide-in escalonada (60ms por día)
+  * Iconos de tipo escalan al hover (group-hover:scale-110)
+  * Actividad "ocurriendo ahora" tiene glow animado (anim-horario-glow)
+  * Badge "Ahora" con BellRing pulsante
+  * Badge "Hecho" para actividades pasadas (opacity-50)
+  * Iconos de tipo más grandes (h-8 móvil, h-9 sm)
+  * Touch targets: h-9 (móvil) h-10 (sm) para todos los botones
+  * Padding general ajustado para móvil
+- Animaciones CSS nuevas en globals.css:
+  * lem-horario-pulse (escala pulsante 2s)
+  * lem-horario-shimmer (brillo que cruza 3s)
+  * lem-horario-slide-in (entrada escalonada)
+  * lem-horario-glow (anillo expandible 2s)
+  * lem-horario-breathe (respiración 4s)
+  * lem-horario-wave (ola vertical 2s)
+- notification-stack.tsx:
+  * Añadida función a12h() para convertir horas a 12h
+  * Notificaciones de horario usan formato 12h AM/PM
+
+Stage Summary:
+- Chat de Alana arreglado en móvil (input grande, header compacto) ✓
+- Dashboard con accesos grandes y touch targets de 44px+ ✓
+- Horario rediseñado con:
+  * Formato 12h AM/PM (2:30 PM en vez de 14:30) ✓
+  * Modo edición (botón lápiz para editar actividades) ✓
+  * Animaciones: breathe, pulse, shimmer, glow, slide-in, wave ✓
+  * Card de hora actual grande con animaciones ✓
+  * Badge "Ahora" pulsante para actividad en curso ✓
+  * Badge "Hecho" para actividades pasadas ✓
+  * Responsive completo (móvil y desktop) ✓
+- Notificaciones de horario en formato 12h AM/PM ✓
+- Lint: 0 errores ✓
+- Verificado con curl: /, /horario, /ia responden 200 con contenido correcto ✓

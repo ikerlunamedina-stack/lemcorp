@@ -28,6 +28,15 @@ interface FullScreenNotif {
 
 const AUTO_DISMISS_MS = 15_000;
 
+function a12h(hora24: string): string {
+  if (!hora24) return "";
+  const [h, m] = hora24.split(":").map((x) => parseInt(x, 10));
+  if (isNaN(h)) return hora24;
+  const periodo = h >= 12 ? "PM" : "AM";
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12}:${String(m || 0).padStart(2, "0")} ${periodo}`;
+}
+
 export function NotificationStack() {
   const notificaciones = useStore((s) => s.notificaciones);
   const markNotificacionLeida = useStore((s) => s.markNotificacionLeida);
@@ -101,13 +110,13 @@ export function NotificationStack() {
           .toString()
           .padStart(2, "0")}-${ahora.getDate().toString().padStart(2, "0")}`;
         marcarHorarioDisparado(h.id, fechaISO);
-        addNotificacion("Horario", `${h.horaInicio} · ${h.actividad}`, "horario");
+        addNotificacion("Horario", `${a12h(h.horaInicio)} · ${h.actividad}`, "horario");
         // Disparar notificación full-screen
         dispararFull({
           id: h.id,
           internalKey: `hor-${h.id}-${fechaISO}`,
           titulo: "Horario del almacén",
-          cuerpo: `${h.horaInicio}–${h.horaFin} · ${h.actividad}`,
+          cuerpo: `${a12h(h.horaInicio)} – ${a12h(h.horaFin)} · ${h.actividad}`,
           tipo: "horario",
           textoVoz: `Es hora de ${h.actividad}`,
           viewDestino: "horario",
