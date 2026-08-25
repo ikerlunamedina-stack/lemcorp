@@ -20,7 +20,10 @@ export function Footer() {
   const totalUnidades = products.reduce((s, p) => s + p.quantity, 0);
 
   return (
-    <footer className="glass-topbar flex h-9 shrink-0 items-center gap-4 border-t border-border/60 px-6 text-[11px] text-muted-foreground">
+    <footer
+      className="glass-topbar flex h-9 shrink-0 items-center gap-4 border-t border-border/60 px-4 text-[11px] text-muted-foreground sm:px-6"
+      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+    >
       <span className="flex items-center gap-1.5">
         <HardDrive className="h-3 w-3 text-primary" />
         <span className="font-medium text-foreground">{products.length}</span> productos

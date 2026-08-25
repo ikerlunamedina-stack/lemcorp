@@ -2199,3 +2199,48 @@ Stage Summary:
 - Notificaciones de horario en formato 12h AM/PM ✓
 - Lint: 0 errores ✓
 - Verificado con curl: /, /horario, /ia responden 200 con contenido correcto ✓
+
+---
+Task ID: MOVIL-DRAWER-SAFEAREA
+Agent: main
+Task: Arreglar barra del celular que tapa el chat de Alana, crear menú hamburguesa para móvil, animaciones tipo app nativa
+
+Work Log:
+- Chat de Alana (ia-view.tsx):
+  * Input del chat con safe-area-inset-bottom: paddingBottom: max(env(safe-area-inset-bottom, 0px), 12px)
+  * La barra de navegación del celular ya NO tapa el input
+- Navbar rediseñado para móvil (navbar.tsx):
+  * Eliminada la barra de scroll horizontal con iconos
+  * Añadido botón hamburguesa (Menu icon) en la esquina derecha, solo visible en móvil (lg:hidden)
+  * Botón de 40x40px (touch target) con border y bg-card
+  * Al pulsar abre un DRAWER deslizable desde la izquierda
+  * Drawer incluye:
+    - Cabecera con logo LEMCORP + botón X para cerrar
+    - Info del usuario (avatar, nombre, rol)
+    - Lista de navegación con todos los items visibles
+    - Cada item tiene icono + label + indicador activo (punto)
+    - Items con animación escalonada (30ms por item)
+    - Pie con botón de tema
+    - Safe-area en top y bottom
+  * Overlay oscuro con backdrop-blur al abrir el drawer
+  * Click en overlay cierra el drawer
+  * Click en item navega y cierra el drawer
+- Footer: safe-area-inset-bottom agregado
+- Animaciones CSS nuevas en globals.css:
+  * lem-drawer-overlay-in (fade in del overlay)
+  * lem-drawer-slide-in (slide desde izquierda)
+  * lem-drawer-item-in (items entran escalonados)
+  * lem-mobile-fade (fade + slide vertical suave)
+  * lem-mobile-scale (scale in)
+  * Media query: anim-page-enter solo en móvil (< 1024px)
+- AppShell: añadida clase anim-page-enter para animar entrada de páginas en móvil
+- En PC (lg+): el navbar se queda EXACTAMENTE como estaba (nav horizontal con texto)
+
+Stage Summary:
+- Barra del celular ya NO tapa el input del chat de Alana (safe-area) ✓
+- Menú hamburguesa (3 rayitas) en la esquina para móvil ✓
+- Drawer deslizable con animaciones tipo app nativa ✓
+- En PC el navbar se queda como estaba (sin cambios) ✓
+- Animaciones de entrada de página solo en móvil ✓
+- Lint: 0 errores ✓
+- Verificado: HTML contiene "Abrir menú", "safe-area", "textarea" ✓

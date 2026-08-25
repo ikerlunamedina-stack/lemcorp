@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -19,6 +19,8 @@ import {
   Sun,
   Moon,
   Monitor,
+  Menu,
+  X,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -63,6 +65,8 @@ export function Navbar() {
   const tienePermiso = useStore((s) => s.tienePermiso);
   const miembros = useStore((s) => s.miembros);
   const sesionUsuarioId = useStore((s) => s.sesionUsuarioId);
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const isActive = (item: NavItem) =>
     item.exact ? pathname === item.href : pathname?.startsWith(item.href);
@@ -141,28 +145,14 @@ export function Navbar() {
         })}
       </nav>
 
-      {/* Nav móvil (iconos) */}
-      <nav className="flex flex-1 items-center gap-0.5 overflow-x-auto scroll-thin lg:hidden">
-        {navItemsVisibles.map((item) => {
-          const active = isActive(item);
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "press flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors",
-                active
-                  ? "bg-accent text-foreground"
-                  : "text-muted-foreground hover:bg-accent/50"
-              )}
-              title={item.label}
-            >
-              <Icon className="h-4 w-4" />
-            </Link>
-          );
-        })}
-      </nav>
+      {/* Botón hamburguesa para móvil */}
+      <button
+        onClick={() => setDrawerOpen(true)}
+        className="press ml-auto flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-foreground transition-colors hover:bg-accent lg:hidden"
+        aria-label="Abrir menú"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
 
       {/* Zona derecha */}
       <div className="flex items-center gap-1.5">
@@ -208,6 +198,100 @@ export function Navbar() {
           {iniciales(nombreUsuario)}
         </Link>
       </div>
+
+      {/* Drawer móvil — menú deslizable desde la izquierda */}
+      {drawerOpen && (
+        <>
+          {/* Overlay oscuro */}
+          <div
+            className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm anim-drawer-overlay lg:hidden"
+            onClick={() => setDrawerOpen(false)}
+          />
+          {/* Panel deslizable */}
+          <aside
+            className="fixed left-0 top-0 z-[70] flex h-full w-[280px] max-w-[85vw] flex-col border-r border-border bg-card shadow-2xl anim-drawer-slide lg:hidden"
+            style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+          >
+            {/* Cabecera del drawer */}
+            <div className="flex items-center justify-between border-b border-border p-4">
+              <div className="flex items-center gap-2.5">
+                <img src="/lemcorp-logo.png" alt="LEMCORP" className="h-9 w-9 rounded-lg object-contain" />
+                <div className="flex flex-col leading-none">
+                  <span className="text-[15px] font-bold tracking-tight text-foreground">LEMCORP</span>
+                  <span className="mt-0.5 text-[9px] font-semibold tracking-[0.15em] text-muted-foreground uppercase">Menú</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setDrawerOpen(false)}
+                className="press flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
+                aria-label="Cerrar menú"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Info del usuario */}
+            <div className="flex items-center gap-3 border-b border-border p-4">
+              <div className={cn(
+                "flex h-11 w-11 items-center justify-center rounded-full text-[13px] font-bold",
+                esAdmin ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              )}>
+                {iniciales(nombreUsuario)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[14px] font-bold text-foreground">{nombreUsuario}</p>
+                <p className="text-[11px] text-muted-foreground">{rolLabel}</p>
+              </div>
+            </div>
+
+            {/* Lista de navegación */}
+            <nav className="flex-1 overflow-y-auto scroll-thin p-3">
+              <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                Navegación
+              </p>
+              {navItemsVisibles.map((item, idx) => {
+                const active = isActive(item);
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setDrawerOpen(false)}
+                    className={cn(
+                      "press anim-drawer-item flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-medium transition-colors",
+                      active
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                    )}
+                    style={{ animationDelay: `${idx * 30}ms` }}
+                  >
+                    {item.imageSrc ? (
+                      <img src={item.imageSrc} alt={item.label} className="h-5 w-5 rounded-full object-cover" />
+                    ) : (
+                      <Icon className="h-5 w-5" />
+                    )}
+                    <span>{item.label}</span>
+                    {active && (
+                      <span className="ml-auto h-2 w-2 rounded-full bg-primary" />
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
+
+            {/* Pie del drawer */}
+            <div className="border-t border-border p-3" style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 12px)" }}>
+              <button
+                onClick={cycleTema}
+                className="press flex w-full items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+              >
+                <TemaIcon className="h-5 w-5" />
+                <span>Tema: {settings.tema}</span>
+              </button>
+            </div>
+          </aside>
+        </>
+      )}
     </header>
   );
 }

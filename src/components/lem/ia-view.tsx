@@ -625,8 +625,11 @@ export function IAView() {
         </div>
       </div>
 
-      {/* Input fijo abajo */}
-      <div className="border-t border-border bg-card px-3 py-3 sm:px-4 lg:px-6">
+      {/* Input fijo abajo — con safe-area para que la barra del celular no lo tape */}
+      <div
+        className="border-t border-border bg-card px-3 py-3 sm:px-4 lg:px-6"
+        style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 12px)" }}
+      >
         <div className="mx-auto flex max-w-3xl items-end gap-2">
           <textarea
             value={input}

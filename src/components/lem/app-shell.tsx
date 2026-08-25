@@ -23,7 +23,7 @@ export function AppShell({ children, isChat = false }: AppShellProps) {
           {isChat ? (
             children
           ) : (
-            <div className="min-h-full pb-14 lg:pb-0 anim-fade-in">
+            <div className="min-h-full pb-14 lg:pb-0 anim-page-enter anim-fade-in">
               {children}
             </div>
           )}

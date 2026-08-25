@@ -474,6 +474,41 @@ html.light .scroll-thin::-webkit-scrollbar-thumb { background: oklch(0.75 0.01 2
 .anim-horario-breathe { animation: lem-horario-breathe 4s ease-in-out infinite; }
 .anim-horario-wave { animation: lem-horario-wave 2s ease-in-out infinite; }
 
+/* ===== Drawer móvil — animaciones tipo app nativa ===== */
+@keyframes lem-drawer-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes lem-drawer-slide-in {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+@keyframes lem-drawer-item-in {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes lem-mobile-fade {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes lem-mobile-scale {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.anim-drawer-overlay { animation: lem-drawer-overlay-in 0.3s ease both; }
+.anim-drawer-slide { animation: lem-drawer-slide-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-drawer-item { animation: lem-drawer-item-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-mobile-fade { animation: lem-mobile-fade 0.4s ease both; }
+.anim-mobile-scale { animation: lem-mobile-scale 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Solo en móvil: aplicar animación de entrada a las páginas */
+@media (max-width: 1023px) {
+  .anim-page-enter {
+    animation: lem-mobile-fade 0.4s ease both;
+  }
+}
+
 /* ===== Glass morphism REAL (visible) ===== */
 .glass {
   background: color-mix(in oklch, var(--card) 70%, transparent);
