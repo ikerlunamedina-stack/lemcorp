@@ -61,60 +61,67 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isApplyingRemote = useRef(false);
 
-  // Initial pull + periodic pull
+  // Initial pull — solo al cargar, SIN pull periódico
   useEffect(() => {
     const deviceId = getDeviceId();
     deviceIdRef.current = deviceId;
 
+    // Marcar como ready inmediatamente (usar datos de localStorage)
+    // El pull del servidor se hace en background sin bloquear
+    setReady(true);
+
     const doPull = async () => {
-      const result = await pullFromServer(deviceId);
-      if (!result.ok) {
-        setStatus("error");
-        setReady(true);
-        return;
-      }
-      if (result.payload) {
-        const serverPayload = result.payload as any;
-        const serverSyncedAt = Number(serverPayload.__syncedAt) || 0;
-        const localSyncedAt = Number(localStorage.getItem("nuclon-synced-at")) || 0;
-        // Apply server data if it's newer than what we have locally
-        if (serverSyncedAt > localSyncedAt) {
-          isApplyingRemote.current = true;
-          try {
-            const cur = useStore.getState();
-            useStore.setState({
-              products: serverPayload.products ?? [],
-              equipos: serverPayload.equipos ?? [],
-              entradas: serverPayload.entradas ?? [],
-              despachos: serverPayload.despachos ?? [],
-              notas: serverPayload.notas ?? [],
-              recordatorios: serverPayload.recordatorios ?? [],
-              notificaciones: serverPayload.notificaciones ?? [],
-              miembros: serverPayload.miembros ?? [],
-              empresa: serverPayload.empresa ?? cur.empresa,
-              settings: serverPayload.settings
-                ? { ...cur.settings, ...serverPayload.settings }
-                : cur.settings,
-              pistoleoFilas: serverPayload.pistoleoFilas ?? [],
-              pistoleoModeloSeleccionado: serverPayload.pistoleoModeloSeleccionado ?? cur.pistoleoModeloSeleccionado ?? "",
-              horario: serverPayload.horario ?? [],
-              memoriaIA: serverPayload.memoriaIA ?? [],
-              bajoStockVisto: Number(serverPayload.bajoStockVisto) || 0,
-              sesionUsuarioId: serverPayload.sesionUsuarioId ?? null,
-            });
-            localStorage.setItem("nuclon-synced-at", String(serverSyncedAt));
-            setLastSync(Date.now());
-          } finally {
-            isApplyingRemote.current = false;
+      try {
+        const result = await pullFromServer(deviceId);
+        if (!result.ok) {
+          setStatus("error");
+          return;
+        }
+        if (result.payload) {
+          const serverPayload = result.payload as any;
+          const serverSyncedAt = Number(serverPayload.__syncedAt) || 0;
+          const localSyncedAt = Number(localStorage.getItem("nuclon-synced-at")) || 0;
+          // Apply server data if it's newer than what we have locally
+          if (serverSyncedAt > localSyncedAt) {
+            isApplyingRemote.current = true;
+            try {
+              const cur = useStore.getState();
+              useStore.setState({
+                products: serverPayload.products ?? [],
+                equipos: serverPayload.equipos ?? [],
+                entradas: serverPayload.entradas ?? [],
+                despachos: serverPayload.despachos ?? [],
+                notas: serverPayload.notas ?? [],
+                recordatorios: serverPayload.recordatorios ?? [],
+                notificaciones: serverPayload.notificaciones ?? [],
+                miembros: serverPayload.miembros ?? [],
+                empresa: serverPayload.empresa ?? cur.empresa,
+                settings: serverPayload.settings
+                  ? { ...cur.settings, ...serverPayload.settings }
+                  : cur.settings,
+                pistoleoFilas: serverPayload.pistoleoFilas ?? [],
+                pistoleoModeloSeleccionado: serverPayload.pistoleoModeloSeleccionado ?? cur.pistoleoModeloSeleccionado ?? "",
+                horario: serverPayload.horario ?? [],
+                memoriaIA: serverPayload.memoriaIA ?? [],
+                bajoStockVisto: Number(serverPayload.bajoStockVisto) || 0,
+                sesionUsuarioId: serverPayload.sesionUsuarioId ?? null,
+              });
+              localStorage.setItem("nuclon-synced-at", String(serverSyncedAt));
+              setLastSync(Date.now());
+            } finally {
+              isApplyingRemote.current = false;
+            }
           }
         }
+        setStatus("synced");
+      } catch {
+        setStatus("error");
       }
-      setStatus("synced");
-      setReady(true);
     };
 
-    doPull();
-    // Sin pull periódico — solo al cargar la página
+    // Pull después de 3 segundos (no bloquea el render inicial)
+    const pullTimer = setTimeout(doPull, 3000);
+    return () => clearTimeout(pullTimer);
   }, []);
 
   // Subscribe to changes → debounced push (only after the first pull)
