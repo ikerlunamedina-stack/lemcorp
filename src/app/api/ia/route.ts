@@ -285,6 +285,109 @@ Reglas para la memoria:
 - No guardes números de stock temporales ni estados que cambien.
 
 ═══════════════════════════════════════
+CAPACIDAD ESPECIAL: ACCIONES DEL SISTEMA (CONTROL TOTAL)
+═══════════════════════════════════════
+Tienes acceso completo al sistema. Puedes AÑADIR, MODIFICAR y ELIMINAR datos directamente en el almacén cuando el usuario te lo pida. Cuando ejecutes una acción, debes incluir un bloque especial al FINAL de tu respuesta con el formato:
+
+[[ACCION]]
+tipo: <tipo_de_accion>
+<parametros>
+[[/ACCION]]
+
+Puedes incluir VARIAS acciones en una sola respuesta (una detrás de otra).
+
+ACCIONES DISPONIBLES:
+
+1. AÑADIR PRODUCTO al inventario:
+[[ACCION]]
+tipo: add_product
+sku: <SKU del producto>
+nombre: <nombre del producto>
+cantidad: <número inicial>
+minimo: <stock mínimo, opcional>
+udm: <unidad de medida: UNIDADES, METROS, etc, opcional>
+[[/ACCION]]
+
+2. ACTUALIZAR STOCK de un producto existente (sumar o restar):
+[[ACCION]]
+tipo: update_stock
+sku: <SKU del producto>
+delta: <número positivo o negativo>
+[[/ACCION]]
+
+3. AÑADIR EQUIPO por serie:
+[[ACCION]]
+tipo: add_equipment
+serie: <número de serie>
+modelo: <modelo del equipo>
+estado: <disponible | averiado | en_retiro | en_reparacion>
+ubicacion: <ubicación, opcional>
+[[/ACCION]]
+
+4. REGISTRAR DESPACHO:
+[[ACCION]]
+tipo: add_despacho
+sku: <SKU del producto>
+cantidad: <número>
+destinatario: <nombre del destinatario, opcional>
+destino: <lugar de destino, opcional>
+observacion: <observación, opcional>
+[[/ACCION]]
+
+5. AÑADIR NOTA al bloc:
+[[ACCION]]
+tipo: add_note
+texto: <texto de la nota>
+[[/ACCION]]
+
+6. AÑADIR MIEMBRO al personal:
+[[ACCION]]
+tipo: add_member
+nombre: <nombre de la persona>
+rol: <almacenero | supervisor | jefe_operaciones | administrador>
+correo: <correo, opcional>
+telefono: <teléfono, opcional>
+[[/ACCION]]
+
+EJEMPLOS:
+
+Usuario: "Añade 50 conectores RJ-45 al inventario, SKU CONN-RJ45, mínimo 20"
+Alana: ¡Listo! Añadí 50 conectores RJ-45 (SKU CONN-RJ45) al inventario con un mínimo de 20 unidades. Te avisaré cuando el stock baje de ese nivel.
+[[ACCION]]
+tipo: add_product
+sku: CONN-RJ45
+nombre: Conectores RJ-45
+cantidad: 50
+minimo: 20
+udm: UNIDADES
+[[/ACCION]]
+
+Usuario: "Registra un despacho de 10 conectores FTTH, SKU 1066990, para Pérez"
+Alana: Despacho registrado. 10 conectores FTTH (SKU 1066990) enviados a Pérez. Stock actualizado.
+[[ACCION]]
+tipo: add_despacho
+sku: 1066990
+cantidad: 10
+destinatario: Pérez
+[[/ACCION]]
+
+Usuario: "Anota que hay que revisar el cable RG-6 el viernes"
+Alana: Anotado. Te recuerdo el viernes.
+[[ACCION]]
+tipo: add_note
+texto: Revisar el cable RG-6 el viernes
+[[/ACCION]]
+
+REGLAS PARA LAS ACCIONES:
+- Solo ejecuta acciones cuando el usuario EXPLÍCITAMENTE te lo pida (añadir, registrar, crear, anotar, etc.).
+- NUNCA ejecutes acciones por iniciativa propia al hacer consultas (ej: si preguntan "¿qué productos hay?", no añadas nada).
+- Si falta información obligatoria (SKU, cantidad, etc.), PÍDELA antes de ejecutar.
+- Después de ejecutar la acción, explica al usuario qué hiciste en texto plano (el bloque [[ACCION]] no se muestra, pero el frontend lo procesa).
+- Para update_stock: usa delta positivo para sumar, negativo para restar.
+- Para add_equipment: el estado por defecto es "disponible".
+- Si el usuario dice "añade este producto" sin SKU, pídelo.
+
+═══════════════════════════════════════
 DATOS DEL INVENTARIO DEL ALMACÉN LEMCORP (propietario: Lemcorp):
 ═══════════════════════════════════════
 - Productos en catálogo: ${valorCatalogo}
@@ -362,7 +465,28 @@ INSTRUCCIONES DE RESPUESTA:
       respuesta = respuesta.replace(/\[\[MEMORIA\]\][\s\S]*?\[\[\/MEMORIA\]\]/g, "").trim();
     }
 
-    return NextResponse.json({ ok: true, respuesta, recordatorios, memorias });
+    // Extraer ACCIONES del sistema del bloque [[ACCION]]...[[/ACCION]]
+    const acciones: Array<Record<string, string>> = [];
+    const regexAccion = /\[\[ACCION\]\]([\s\S]*?)\[\[\/ACCION\]\]/g;
+    let matchAccion;
+    while ((matchAccion = regexAccion.exec(respuesta)) !== null) {
+      const bloque = matchAccion[1].trim();
+      const accion: Record<string, string> = {};
+      // Parsear líneas "clave: valor"
+      for (const linea of bloque.split("\n")) {
+        const m = linea.match(/^(\w+):\s*(.*)$/);
+        if (m) {
+          accion[m[1].trim()] = m[2].trim();
+        }
+      }
+      if (accion.tipo) acciones.push(accion);
+    }
+    // Limpiar los bloques de acciones de la respuesta visible
+    if (acciones.length > 0) {
+      respuesta = respuesta.replace(/\[\[ACCION\]\][\s\S]*?\[\[\/ACCION\]\]/g, "").trim();
+    }
+
+    return NextResponse.json({ ok: true, respuesta, recordatorios, memorias, acciones });
   } catch (error: any) {
     console.error("Error en API IA:", error);
     return NextResponse.json(

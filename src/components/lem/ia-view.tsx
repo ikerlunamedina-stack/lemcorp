@@ -2,14 +2,16 @@
 
 import { useRef, useEffect, useState } from "react";
 import {
-  Sparkles, Send, Bot, User, Trash2,
+  Send, User, Trash2,
   TrendingDown, Package, AlertTriangle, Cpu, Users,
   BarChart3, ShoppingCart, Zap, BellRing, Clock,
   Volume2, Square, Brain,
+  Check, X as XIcon, FileText, PackagePlus, ClipboardList,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { speak, stopSpeaking } from "@/lib/tts";
+import { AlanaAvatar } from "@/components/lem/alana-avatar";
 
 interface ChatMsg {
   role: "user" | "assistant";
@@ -17,6 +19,14 @@ interface ChatMsg {
   ts: number;
   recordatorio?: { texto: string; cuando: number };
   aprendido?: string[]; // lista de memorias guardadas desde este mensaje
+  accionesEjecutadas?: AccionEjecutada[]; // acciones del sistema ejecutadas
+}
+
+interface AccionEjecutada {
+  tipo: string;
+  descripcion: string;
+  ok: boolean;
+  error?: string;
 }
 
 const SUGERENCIAS: { text: string; icon: typeof TrendingDown; color: string }[] = [
@@ -29,6 +39,8 @@ const SUGERENCIAS: { text: string; icon: typeof TrendingDown; color: string }[] 
   { text: "Recuérdame pedir conectores en 1 minuto", icon: BellRing, color: "text-primary" },
   { text: "Recuerda que el personal Pérez trabaja solo de lunes a miércoles", icon: Brain, color: "text-emerald-400" },
   { text: "¿Cómo está el equipo del almacén hoy?", icon: Users, color: "text-foreground" },
+  { text: "Añade 50 conectores RJ-45, SKU CONN-RJ45, mínimo 20", icon: PackagePlus, color: "text-primary" },
+  { text: "Anota que hay que revisar el cable RG-6 el viernes", icon: FileText, color: "text-foreground" },
 ];
 
 const STORAGE_KEY = "nuclon-ia-chat-v2";
@@ -83,6 +95,14 @@ export function IAView() {
   const addRecordatorio = useStore((s) => s.addRecordatorio);
   const addNotificacion = useStore((s) => s.addNotificacion);
   const addMemoria = useStore((s) => s.addMemoria);
+  // Acciones del sistema (control total de Alana)
+  const addProduct = useStore((s) => s.addProduct);
+  const updateProduct = useStore((s) => s.updateProduct);
+  const findProductBySku = useStore((s) => s.findProductBySku);
+  const addEquipment = useStore((s) => s.addEquipment);
+  const registrarDespacho = useStore((s) => s.registrarDespacho);
+  const addNota = useStore((s) => s.addNota);
+  const addMiembro = useStore((s) => s.addMiembro);
 
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
@@ -200,6 +220,112 @@ export function IAView() {
         );
       }
 
+      // Procesar ACCIONES del sistema (control total)
+      if (data.ok && Array.isArray(data.acciones) && data.acciones.length > 0) {
+        const ejecutadas: AccionEjecutada[] = [];
+        for (const a of data.acciones) {
+          const tipo = a.tipo;
+          try {
+            if (tipo === "add_product") {
+              const sku = (a.sku || "").trim();
+              const nombre = (a.nombre || "").trim();
+              const cantidad = parseInt(a.cantidad || "0", 10) || 0;
+              const minimo = a.minimo ? parseInt(a.minimo, 10) : undefined;
+              const udm = a.udm || undefined;
+              if (!sku || !nombre) {
+                ejecutadas.push({ tipo, descripcion: `Añadir producto ${sku || "(sin SKU)"}`, ok: false, error: "Faltan datos (SKU o nombre)" });
+                continue;
+              }
+              const existente = findProductBySku(sku);
+              if (existente) {
+                // Si ya existe, sumar la cantidad
+                updateProduct(existente.id, { quantity: existente.quantity + cantidad });
+                ejecutadas.push({ tipo, descripcion: `Sumé ${cantidad} a "${existente.name}" (SKU ${sku})`, ok: true });
+              } else {
+                const id = addProduct(sku, nombre, cantidad, minimo, udm);
+                if (id) {
+                  ejecutadas.push({ tipo, descripcion: `Añadí producto "${nombre}" (SKU ${sku}) con ${cantidad} unidades`, ok: true });
+                } else {
+                  ejecutadas.push({ tipo, descripcion: `Añadir producto ${sku}`, ok: false, error: "Ya existe un producto con ese SKU" });
+                }
+              }
+            } else if (tipo === "update_stock") {
+              const sku = (a.sku || "").trim();
+              const delta = parseInt(a.delta || "0", 10);
+              if (!sku) {
+                ejecutadas.push({ tipo, descripcion: "Actualizar stock", ok: false, error: "Falta el SKU" });
+                continue;
+              }
+              const p = findProductBySku(sku);
+              if (!p) {
+                ejecutadas.push({ tipo, descripcion: `Actualizar stock de ${sku}`, ok: false, error: "El producto no existe" });
+                continue;
+              }
+              const nuevaCant = Math.max(0, p.quantity + delta);
+              updateProduct(p.id, { quantity: nuevaCant });
+              ejecutadas.push({ tipo, descripcion: `Actualicé stock de "${p.name}": ${p.quantity} → ${nuevaCant} (${delta > 0 ? "+" : ""}${delta})`, ok: true });
+            } else if (tipo === "add_equipment") {
+              const serie = (a.serie || "").trim();
+              const modelo = (a.modelo || "").trim();
+              const estado = (a.estado || "disponible") as "disponible" | "averiado" | "en_retiro" | "en_reparacion";
+              const ubicacion = a.ubicacion || undefined;
+              if (!serie || !modelo) {
+                ejecutadas.push({ tipo, descripcion: "Añadir equipo", ok: false, error: "Faltan datos (serie o modelo)" });
+                continue;
+              }
+              const id = addEquipment({ serie, modelo, estado, ubicacion });
+              if (id) {
+                ejecutadas.push({ tipo, descripcion: `Registré equipo ${serie} (${modelo})`, ok: true });
+              } else {
+                ejecutadas.push({ tipo, descripcion: `Añadir equipo ${serie}`, ok: false, error: "Ya existe un equipo con esa serie" });
+              }
+            } else if (tipo === "add_despacho") {
+              const sku = (a.sku || "").trim();
+              const cantidad = parseInt(a.cantidad || "0", 10) || 0;
+              const destinatario = a.destinatario || undefined;
+              const destino = a.destino || undefined;
+              const observacion = a.observacion || undefined;
+              if (!sku || cantidad <= 0) {
+                ejecutadas.push({ tipo, descripcion: "Registrar despacho", ok: false, error: "Faltan datos (SKU o cantidad)" });
+                continue;
+              }
+              const r = registrarDespacho({ sku, cantidad, tecnico: destinatario, destino, observacion });
+              if (r.ok) {
+                ejecutadas.push({ tipo, descripcion: `Despachadas ${cantidad} unidades de ${sku}${destinatario ? ` para ${destinatario}` : ""}`, ok: true });
+              } else {
+                ejecutadas.push({ tipo, descripcion: `Despachar ${cantidad} de ${sku}`, ok: false, error: r.msg });
+              }
+            } else if (tipo === "add_note") {
+              const texto = (a.texto || "").trim();
+              if (!texto) {
+                ejecutadas.push({ tipo, descripcion: "Añadir nota", ok: false, error: "Falta el texto" });
+                continue;
+              }
+              addNota(texto);
+              ejecutadas.push({ tipo, descripcion: `Nota creada: "${texto.slice(0, 40)}${texto.length > 40 ? "…" : ""}"`, ok: true });
+            } else if (tipo === "add_member") {
+              const nombre = (a.nombre || "").trim();
+              const rol = (a.rol || "almacenero") as "almacenero" | "supervisor" | "jefe_operaciones" | "administrador";
+              const correo = a.correo || undefined;
+              const telefono = a.telefono || undefined;
+              if (!nombre) {
+                ejecutadas.push({ tipo, descripcion: "Añadir miembro", ok: false, error: "Falta el nombre" });
+                continue;
+              }
+              addMiembro(nombre, rol, correo, telefono);
+              ejecutadas.push({ tipo, descripcion: `Añadí a "${nombre}" como ${rol}`, ok: true });
+            } else {
+              ejecutadas.push({ tipo, descripcion: `Acción desconocida: ${tipo}`, ok: false, error: "Tipo no reconocido" });
+            }
+          } catch (err: any) {
+            ejecutadas.push({ tipo, descripcion: `Ejecutar ${tipo}`, ok: false, error: err?.message || "Error" });
+          }
+        }
+        if (ejecutadas.length > 0) {
+          assistantMsg.accionesEjecutadas = ejecutadas;
+        }
+      }
+
       const finalMessages = [...newMessages, assistantMsg];
       setMessages(finalMessages);
       saveChat(finalMessages);
@@ -248,9 +374,7 @@ export function IAView() {
       {/* Header compacto */}
       <div className="flex items-center justify-between border-b border-border px-4 py-2.5 lg:px-6">
         <div className="flex items-center gap-2.5">
-          <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md">
-            <Sparkles className="h-4 w-4" />
-          </div>
+          <AlanaAvatar size={36} glow />
           <div>
             <h1 className="flex items-center gap-2 text-[15px] font-bold tracking-tight">
               Alana
@@ -318,16 +442,14 @@ export function IAView() {
                   key={i}
                   className={cn("flex gap-3 anim-fade-in", m.role === "user" && "flex-row-reverse")}
                 >
-                  <div
-                    className={cn(
-                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[12px] font-bold shadow-sm",
-                      m.role === "assistant"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground"
-                    )}
-                  >
-                    {m.role === "assistant" ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
-                  </div>
+                  {m.role === "assistant"
+                    ? <AlanaAvatar size={32} className="shadow-sm" />
+                    : (
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground shadow-sm">
+                        <User className="h-4 w-4" />
+                      </div>
+                    )
+                  }
                   <div className={cn("flex max-w-[85%] flex-col", m.role === "user" && "items-end")}>
                     <div
                       className={cn(
@@ -378,6 +500,54 @@ export function IAView() {
                         ))}
                       </div>
                     )}
+                    {/* Acciones del sistema ejecutadas */}
+                    {m.accionesEjecutadas && m.accionesEjecutadas.length > 0 && (
+                      <div className="mt-1.5 flex flex-col gap-1">
+                        <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wide text-primary">
+                          <ClipboardList className="h-2.5 w-2.5" />
+                          Acciones ejecutadas
+                        </div>
+                        {m.accionesEjecutadas.map((a, idx) => {
+                          const iconoAccion =
+                            a.tipo === "add_product" ? PackagePlus :
+                            a.tipo === "update_stock" ? Package :
+                            a.tipo === "add_equipment" ? Cpu :
+                            a.tipo === "add_despacho" ? Send :
+                            a.tipo === "add_note" ? FileText :
+                            a.tipo === "add_member" ? Users :
+                            ClipboardList;
+                          const Icon = iconoAccion;
+                          return (
+                            <div
+                              key={idx}
+                              className={cn(
+                                "flex items-start gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px]",
+                                a.ok
+                                  ? "border-primary/30 bg-primary/5"
+                                  : "border-red-500/30 bg-red-500/5"
+                              )}
+                            >
+                              <Icon className="mt-0.5 h-3 w-3 shrink-0 text-primary" />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-foreground">{a.descripcion}</p>
+                                {a.error && (
+                                  <p className="text-red-400">⚠ {a.error}</p>
+                                )}
+                              </div>
+                              {a.ok ? (
+                                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+                                  <Check className="h-2.5 w-2.5" />
+                                </span>
+                              ) : (
+                                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-red-500 text-white">
+                                  <XIcon className="h-2.5 w-2.5" />
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                     <span className="mt-1 px-1 text-[9px] text-muted-foreground/60">
                       {timeAgo(m.ts)}
                     </span>
@@ -387,9 +557,7 @@ export function IAView() {
             })}
             {loading && (
               <div className="flex gap-3">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-                  <Bot className="h-4 w-4" />
-                </div>
+                <AlanaAvatar size={32} className="shadow-sm" />
                 <div className="flex items-center gap-2 rounded-2xl rounded-tl-sm border border-border bg-card px-4 py-3 shadow-sm">
                   <span className="flex gap-1">
                     <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "0ms", animationDuration: "0.8s" }} />
