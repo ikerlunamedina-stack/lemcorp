@@ -23,8 +23,8 @@ import { cn } from "@/lib/utils";
 
 type SyncStatus = "idle" | "pushing" | "synced" | "error";
 
-const DEBOUNCE_MS = 900;
-const PERIODIC_PULL_MS = 30_000; // pull every 30s for cross-device updates
+const DEBOUNCE_MS = 1500;
+const PERIODIC_PULL_MS = 120_000; // pull every 2min for cross-device updates (reduced to save memory)
 
 function buildPayload(state: any): SyncPayload {
   return {
