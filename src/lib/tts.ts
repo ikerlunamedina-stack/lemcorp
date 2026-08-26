@@ -29,7 +29,7 @@ export function speak(text: string, opts?: { lang?: string }): void {
 
 /** Implementación async interna */
 async function speakAsync(text: string, opts?: { lang?: string }): Promise<void> {
-  // Intentar con ElevenLabs primero
+  // Intentar con /api/tts (Google Translate, voz de mujer) primero
   try {
     const cached = audioCache.get(text);
     if (cached) {
@@ -60,37 +60,122 @@ async function speakAsync(text: string, opts?: { lang?: string }): Promise<void>
       await audio.play();
       return;
     }
-    // Si falla ElevenLabs, caer al fallback del navegador
+    // Si falla /api/tts, caer al navegador
   } catch {
     // Si falla la petición, usar el navegador
   }
 
-  // Fallback: Web Speech API del navegador
+  // Fallback: Web Speech API del navegador con voces premium
   speakBrowser(text, opts);
 }
 
-/** Voz del navegador (fallback gratis) */
+/** Voz del navegador (fallback gratis) — busca las mejores voces de mujer en español */
 function speakBrowser(text: string, opts?: { lang?: string }): void {
   if (!("speechSynthesis" in window)) return;
   try {
     window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = opts?.lang ?? "es-ES";
-    utter.rate = 1.0;
-    utter.pitch = 1.0;
-    utter.volume = 1.0;
 
-    const voces = window.speechSynthesis.getVoices();
-    const vozEs =
-      voces.find((v) => v.lang?.toLowerCase().startsWith("es-es")) ||
-      voces.find((v) => v.lang?.toLowerCase().startsWith("es-mx")) ||
-      voces.find((v) => v.lang?.toLowerCase().startsWith("es"));
-    if (vozEs) utter.voice = vozEs;
+    // Cargar voces si no están cargadas aún
+    let voces = window.speechSynthesis.getVoices();
 
-    window.speechSynthesis.speak(utter);
+    // Si no hay voces, esperar a que carguen
+    if (voces.length === 0) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        voces = window.speechSynthesis.getVoices();
+        hablarConVoz(text, voces, opts);
+      };
+      // Intentar de todas formas después de 100ms
+      setTimeout(() => {
+        voces = window.speechSynthesis.getVoices();
+        hablarConVoz(text, voces, opts);
+      }, 100);
+    } else {
+      hablarConVoz(text, voces, opts);
+    }
   } catch {
     /* noop */
   }
+}
+
+/** Busca y usa la mejor voz de mujer en español disponible */
+function hablarConVoz(text: string, voces: SpeechSynthesisVoice[], opts?: { lang?: string }): void {
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = opts?.lang ?? "es-ES";
+  utter.rate = 0.95;  // Un poco más lento para que suene más natural
+  utter.pitch = 1.1;  // Tono un poco más alto para que suene femenino
+  utter.volume = 1.0;
+
+  // Prioridad de voces de mujer en español (de mejor a peor)
+  const prioridadVoces = [
+    // Google español (mujer, suena natural)
+    "Google español",
+    // Microsoft Helena (mujer española)
+    "Microsoft Helena",
+    // Microsoft Sabina (mujer mexicana)
+    "Microsoft Sabina",
+    // Microsoft Paulina (mujer)
+    "Microsoft Paulina",
+    // Voces de Amazon (mujer)
+    "Mónica",
+    "Conchita",
+    "Lucia",
+    "Lupe",
+    // Cualquier voz de mujer que empiece con estos nombres
+    "Mujer",
+    "Female",
+    "Mónica",
+    "Paulina",
+    "Carmen",
+    "Esperanza",
+  ];
+
+  let vozSeleccionada: SpeechSynthesisVoice | null = null;
+
+  // 1. Buscar por nombre exacto (prioridad)
+  for (const nombreVoz of prioridadVoces) {
+    vozSeleccionada = voces.find((v) =>
+      v.name.toLowerCase().includes(nombreVoz.toLowerCase()) &&
+      v.lang?.toLowerCase().startsWith("es")
+    ) || null;
+    if (vozSeleccionada) break;
+  }
+
+  // 2. Si no encuentra, buscar cualquier voz de Google en español
+  if (!vozSeleccionada) {
+    vozSeleccionada = voces.find((v) =>
+      v.name.toLowerCase().includes("google") &&
+      v.lang?.toLowerCase().startsWith("es")
+    ) || null;
+  }
+
+  // 3. Si no, buscar cualquier voz de Microsoft en español
+  if (!vozSeleccionada) {
+    vozSeleccionada = voces.find((v) =>
+      v.name.toLowerCase().includes("microsoft") &&
+      v.lang?.toLowerCase().startsWith("es")
+    ) || null;
+  }
+
+  // 4. Si no, cualquier voz en español de España
+  if (!vozSeleccionada) {
+    vozSeleccionada = voces.find((v) => v.lang?.toLowerCase().startsWith("es-es")) || null;
+  }
+
+  // 5. Si no, cualquier voz en español mexicano
+  if (!vozSeleccionada) {
+    vozSeleccionada = voces.find((v) => v.lang?.toLowerCase().startsWith("es-mx")) || null;
+  }
+
+  // 6. Si no, cualquier voz en español
+  if (!vozSeleccionada) {
+    vozSeleccionada = voces.find((v) => v.lang?.toLowerCase().startsWith("es")) || null;
+  }
+
+  if (vozSeleccionada) {
+    utter.voice = vozSeleccionada;
+  }
+
+  window.speechSynthesis.speak(utter);
 }
 
 /** Detiene cualquier voz en curso. */
