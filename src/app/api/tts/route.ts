@@ -1,11 +1,8 @@
-// API route para TTS con ElevenLabs
-// Recibe texto, devuelve audio MP3 usando la voz configurada de ElevenLabs.
+// API route para TTS usando Google Translate TTS (gratis, sin API key)
+// Devuelve audio MP3 con voz de mujer en español.
 import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
-
-const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
-const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "2Lb1en5ujrODDIqmp7F3";
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,14 +12,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { ok: false, error: "Falta el texto" },
         { status: 400 }
-      );
-    }
-
-    // Si no hay API key de ElevenLabs, devolver error
-    if (!ELEVENLABS_API_KEY) {
-      return NextResponse.json(
-        { ok: false, error: "ELEVENLABS_API_KEY no configurada" },
-        { status: 500 }
       );
     }
 
@@ -41,41 +30,93 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Llamar a ElevenLabs API
-    const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`,
-      {
-        method: "POST",
-        headers: {
-          "Accept": "audio/mpeg",
-          "Content-Type": "application/json",
-          "xi-api-key": ELEVENLABS_API_KEY,
-        },
-        body: JSON.stringify({
-          text: cleanText,
-          model_id: "eleven_multilingual_v2",
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-            style: 0.0,
-            use_speaker_boost: true,
-          },
-        }),
-      }
-    );
+    // Google Translate TTS tiene límite de ~200 caracteres por petición
+    // Si el texto es más largo, lo dividimos y concatenamos
+    const MAX_LEN = 200;
+    const chunks: string[] = [];
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("ElevenLabs error:", response.status, errText);
+    if (cleanText.length <= MAX_LEN) {
+      chunks.push(cleanText);
+    } else {
+      // Dividir por frases (puntos) y luego por longitud si es necesario
+      const sentences = cleanText.split(/(?<=[.!?])\s+/);
+      let current = "";
+      for (const sentence of sentences) {
+        if ((current + " " + sentence).length > MAX_LEN) {
+          if (current) chunks.push(current.trim());
+          // Si la frase sola es muy larga, dividir por comas
+          if (sentence.length > MAX_LEN) {
+            const parts = sentence.split(/(?<=[,;])\s+/);
+            let part = "";
+            for (const p of parts) {
+              if ((part + " " + p).length > MAX_LEN) {
+                if (part) chunks.push(part.trim());
+                part = p;
+              } else {
+                part = part ? part + " " + p : p;
+              }
+            }
+            if (part) chunks.push(part.trim());
+            current = "";
+          } else {
+            current = sentence;
+          }
+        } else {
+          current = current ? current + " " + sentence : sentence;
+        }
+      }
+      if (current) chunks.push(current.trim());
+    }
+
+    // Obtener audio de cada chunk
+    const audioBuffers: Buffer[] = [];
+
+    for (const chunk of chunks) {
+      if (!chunk) continue;
+
+      const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=es&client=tw-ob&q=${encodeURIComponent(chunk)}`;
+
+      const response = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept": "audio/mpeg, audio/*; q=0.9, */*; q=0.5",
+          "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
+          "Referer": "https://translate.google.com/",
+        },
+      });
+
+      if (!response.ok) {
+        console.error("Google TTS error:", response.status);
+        continue;
+      }
+
+      const buffer = Buffer.from(await response.arrayBuffer());
+      audioBuffers.push(buffer);
+    }
+
+    if (audioBuffers.length === 0) {
       return NextResponse.json(
-        { ok: false, error: `ElevenLabs API error: ${response.status}` },
-        { status: response.status }
+        { ok: false, error: "No se pudo generar el audio" },
+        { status: 500 }
       );
     }
 
-    // Devolver el audio como MP3
-    const audioBuffer = await response.arrayBuffer();
-    return new NextResponse(audioBuffer, {
+    // Si solo hay un chunk, devolverlo directamente
+    if (audioBuffers.length === 1) {
+      return new NextResponse(audioBuffers[0], {
+        headers: {
+          "Content-Type": "audio/mpeg",
+          "Cache-Control": "no-cache",
+        },
+      });
+    }
+
+    // Si hay múltiples chunks, concatenarlos
+    // Los MP3 se pueden concatenar directamente (puede haber pequeños gaps)
+    const totalLength = audioBuffers.reduce((sum, buf) => sum + buf.length, 0);
+    const combined = Buffer.concat(audioBuffers, totalLength);
+
+    return new NextResponse(combined, {
       headers: {
         "Content-Type": "audio/mpeg",
         "Cache-Control": "no-cache",

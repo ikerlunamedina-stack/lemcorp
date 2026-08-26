@@ -2280,3 +2280,35 @@ Stage Summary:
 - Alana NO crea notas cuando el usuario pide cambiar el tema ✓
 - Reglas estrictas para evitar acciones no solicitadas ✓
 - Lint: 0 errores ✓
+
+---
+Task ID: TTS-GRATIS
+Agent: main
+Task: Configurar TTS gratuito con voz de mujer en español (sin API key)
+
+Work Log:
+- Probé StreamElements TTS → requiere JWT token (descartado)
+- Probé Google Translate TTS → ¡FUNCIONA! Gratis, sin API key, voz de mujer en español
+- Creado endpoint /api/tts/route.ts que:
+  * Recibe texto en POST
+  * Limpia emojis y markdown
+  * Divide textos largos (>200 chars) en chunks por frases
+  * Llama a Google Translate TTS (tl=es = español, voz femenina)
+  * Concatena los MP3 si hay múltiples chunks
+  * Devuelve audio MP3
+- Actualizado tts.ts para:
+  * Intentar primero con /api/tts (Google Translate, voz de mujer)
+  * Si falla, usar Web Speech API del navegador como fallback
+  * Cache de audios para no repetir peticiones
+- Limpiado .env: eliminadas variables de ElevenLabs (ya no necesarias)
+- Probado:
+  * Texto corto ("Hola soy Alana"): 36KB MP3 ✓
+  * Texto largo ("Buenos días Iker..."): 44KB MP3 ✓
+  * Lint: 0 errores ✓
+
+Stage Summary:
+- TTS 100% GRATIS, sin API key, sin límites ✓
+- Voz de mujer en español (Google Translate) ✓
+- Funciona con textos cortos y largos ✓
+- Fallback automático a Web Speech API si falla ✓
+- Cache de audios para optimizar ✓
