@@ -435,7 +435,13 @@ INSTRUCCIONES DE RESPUESTA:
 - Si el usuario pregunta por un SKU específico, busca en el inventario detallado y responde con sus datos exactos.
 - Si el usuario pregunta tu nombre, responde: "Soy Alana".`;
 
-    const zai = await ZAI.create();
+    const zai = await ZAI.create({
+      baseUrl: "https://internal-api.z.ai/v1",
+      apiKey: "Z.ai",
+      chatId: "chat-4fe20023-027a-4694-803d-4bc79d019243",
+      token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMmUzOTNhNDMtYjYxZS00ODM5LWFiOGItZWZkNzc3ZmE3MDdiIiwiY2hhdF9pZCI6ImNoYXQtNGZlMjAwMjMtMDI3YS00Njk0LTgwM2QtNGJjNzlkMDE5MjQzIiwicGxhdGZvcm0iOiJ6YWkifQ.pLa1AlWgguS-P_zBBQxua5eYP64GwOxEq36czXbjtuI",
+      userId: "2e393a43-b61e-4839-ab8b-efd777fa707b",
+    });
     const response = await zai.chat.completions.create({
       messages: [
         { role: "system", content: systemPrompt },
