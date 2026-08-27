@@ -1,6 +1,6 @@
 // TTS (text-to-speech) helper.
 // Usa SOLO la voz del navegador (gratis, sin APIs externas, sin límites).
-// Busca automáticamente las mejores voces de mujer en español.
+// Voz predeterminada: Google español de Estados Unidos (es-US) — voz de mujer.
 
 function limpiarTexto(text: string): string {
   return text
@@ -37,93 +37,44 @@ async function cargarVoces(): Promise<SpeechSynthesisVoice[]> {
   return voces;
 }
 
-// Nombres de voces de HOMBRE que debemos EVITAR
-const vocesHombre = [
-  "pablo", "jorge", "juan", "carlos", "diego", "miguel",
-  "male", "homme", "man", "javier", "raul", "pedro",
-  "Microsoft Pablo", "Microsoft Jorge", "Google español Male",
-];
-
-/** Verifica si una voz es de hombre (para evitarla) */
-function esVozHombre(voice: SpeechSynthesisVoice): boolean {
-  const nombre = voice.name.toLowerCase();
-  return vocesHombre.some((h) => nombre.includes(h.toLowerCase()));
-}
-
-/** Busca la mejor voz de mujer en español disponible */
-function buscarMejorVoz(voces: SpeechSynthesisVoice[], vozURI?: string): SpeechSynthesisVoice | null {
+/** Busca la voz de Google español de Estados Unidos (es-US) — voz de mujer */
+function buscarVozAlana(voces: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
   if (voces.length === 0) return null;
 
-  // 0. Si el usuario eligió una voz específica, usarla
-  if (vozURI) {
-    const vozSeleccionada = voces.find((v) => v.voiceURI === vozURI || v.name === vozURI);
-    if (vozSeleccionada) return vozSeleccionada;
-  }
-
-  // Prioridad de voces de mujer en español (de mejor a peor)
-  const prioridadVoces = [
-    "Google español",
-    "Microsoft Helena",
-    "Microsoft Sabina",
-    "Microsoft Paulina",
-    "Microsoft Esperanza",
-    "Microsoft Hilda",
-    "Mónica",
-    "Conchita",
-    "Lucia",
-    "Lupe",
-    "Mujer",
-    "Female",
-    "Carmen",
-    "Paulina",
-    "Esperanza",
-    "Francisca",
-    "Sara",
-    "Monica",
-  ];
-
-  // 1. Buscar por nombre exacto (prioridad), evitando voces de hombre
-  for (const nombreVoz of prioridadVoces) {
-    const voz = voces.find((v) =>
-      v.name.toLowerCase().includes(nombreVoz.toLowerCase()) &&
-      v.lang?.toLowerCase().startsWith("es") &&
-      !esVozHombre(v)
-    );
-    if (voz) return voz;
-  }
-
-  // 2. Buscar cualquier voz de Google en español que NO sea de hombre
-  const googleVoz = voces.find((v) =>
+  // 1. Buscar "Google español de Estados Unidos" (es-US) — la voz que queremos
+  const googleEsUS = voces.find((v) =>
     v.name.toLowerCase().includes("google") &&
-    v.lang?.toLowerCase().startsWith("es") &&
-    !esVozHombre(v)
+    v.lang?.toLowerCase() === "es-us"
   );
-  if (googleVoz) return googleVoz;
+  if (googleEsUS) return googleEsUS;
 
-  // 3. Buscar cualquier voz de Microsoft en español que NO sea de hombre
-  const msVoz = voces.find((v) =>
-    v.name.toLowerCase().includes("microsoft") &&
-    v.lang?.toLowerCase().startsWith("es") &&
-    !esVozHombre(v)
+  // 2. Buscar cualquier voz de Google con es-US
+  const googleEsUS2 = voces.find((v) =>
+    v.name.toLowerCase().includes("google") &&
+    v.lang?.toLowerCase().startsWith("es-us")
   );
-  if (msVoz) return msVoz;
+  if (googleEsUS2) return googleEsUS2;
 
-  // 4. Cualquier voz en español que NO sea de hombre
-  const esNoHombre = voces.find((v) =>
-    v.lang?.toLowerCase().startsWith("es") &&
-    !esVozHombre(v)
+  // 3. Buscar cualquier voz con es-US
+  const esUS = voces.find((v) => v.lang?.toLowerCase() === "es-us");
+  if (esUS) return esUS;
+
+  // 4. Fallback: Google español (cualquier variante)
+  const googleEs = voces.find((v) =>
+    v.name.toLowerCase().includes("google") &&
+    v.lang?.toLowerCase().startsWith("es")
   );
-  if (esNoHombre) return esNoHombre;
+  if (googleEs) return googleEs;
 
-  // 5. Cualquier voz en español (último recurso)
+  // 5. Último recurso: cualquier voz en español
   const es = voces.find((v) => v.lang?.toLowerCase().startsWith("es"));
   if (es) return es;
 
   return null;
 }
 
-/** Habla el texto usando la mejor voz de mujer en español del navegador. */
-export function speak(text: string, opts?: { lang?: string; vozURI?: string }): void {
+/** Habla el texto usando Google español de Estados Unidos (voz de mujer). */
+export function speak(text: string, opts?: { lang?: string }): void {
   if (typeof window === "undefined") return;
   if (!("speechSynthesis" in window)) return;
 
@@ -133,16 +84,16 @@ export function speak(text: string, opts?: { lang?: string; vozURI?: string }): 
   window.speechSynthesis.cancel();
 
   const utter = new SpeechSynthesisUtterance(cleanText);
-  utter.lang = opts?.lang ?? "es-ES";
+  utter.lang = "es-US";  // Español de Estados Unidos
   utter.rate = 0.95;
-  utter.pitch = 1.15;  // Tono más alto para sonar más femenino
+  utter.pitch = 1.1;
   utter.volume = 1.0;
 
   cargarVoces().then((voces) => {
-    const mejorVoz = buscarMejorVoz(voces, opts?.vozURI);
-    if (mejorVoz) {
-      utter.voice = mejorVoz;
-      utter.lang = mejorVoz.lang;
+    const voz = buscarVozAlana(voces);
+    if (voz) {
+      utter.voice = voz;
+      utter.lang = voz.lang;
     }
     window.speechSynthesis.speak(utter);
   });
@@ -153,12 +104,6 @@ export function speak(text: string, opts?: { lang?: string; vozURI?: string }): 
       window.speechSynthesis.speak(utter);
     }
   }, 200);
-}
-
-/** Obtiene todas las voces en español disponibles */
-export async function obtenerVocesEspanol(): Promise<SpeechSynthesisVoice[]> {
-  const voces = await cargarVoces();
-  return voces.filter((v) => v.lang?.toLowerCase().startsWith("es"));
 }
 
 /** Detiene cualquier voz en curso. */

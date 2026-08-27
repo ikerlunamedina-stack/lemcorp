@@ -279,52 +279,24 @@ export function ConfigView() {
           />
         </div>
         {ttsSoportado && (
-          <>
-            {/* Selector de voz */}
-            {vocesDisponibles.length > 0 && (
-              <div className="mt-3">
-                <Label className="mb-1.5 block text-[11px] uppercase tracking-wide text-muted-foreground">
-                  Voz de Alana (selecciona una voz de mujer)
-                </Label>
-                <div className="relative">
-                  <select
-                    value={settings.vozURI || ""}
-                    onChange={(e) => setSetting("vozURI", e.target.value)}
-                    className="h-10 w-full appearance-none rounded-xl border border-border bg-card px-3 pr-8 text-[13px] font-medium text-foreground outline-none focus:border-primary"
-                  >
-                    <option value="">Automática (recomendado)</option>
-                    {vocesDisponibles.map((v) => (
-                      <option key={v.voiceURI} value={v.voiceURI}>
-                        {v.name} ({v.lang})
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                </div>
-                <p className="mt-1 text-[10px] text-muted-foreground">
-                  Si la voz suena de hombre, prueba otra de la lista hasta encontrar una de mujer.
-                </p>
-              </div>
-            )}
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="press h-8 rounded-lg text-xs"
-                onClick={() => speak("Hola, soy Alana, asistente del almacén Lemcorp.", { vozURI: settings.vozURI || undefined })}
-              >
-                <Volume2 className="mr-1.5 h-3.5 w-3.5" /> Probar voz
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="press h-8 rounded-lg text-xs"
-                onClick={() => stopSpeaking()}
-              >
-                <Square className="mr-1.5 h-3.5 w-3.5" /> Detener
-              </Button>
-            </div>
-          </>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="press h-8 rounded-lg text-xs"
+              onClick={() => speak("Hola, soy Alana, asistente del almacén Lemcorp.")}
+            >
+              <Volume2 className="mr-1.5 h-3.5 w-3.5" /> Probar voz
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="press h-8 rounded-lg text-xs"
+              onClick={() => stopSpeaking()}
+            >
+              <Square className="mr-1.5 h-3.5 w-3.5" /> Detener
+            </Button>
+          </div>
         )}
       </section>
 
