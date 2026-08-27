@@ -435,39 +435,52 @@ INSTRUCCIONES DE RESPUESTA:
 - Si el usuario pregunta por un SKU específico, busca en el inventario detallado y responde con sus datos exactos.
 - Si el usuario pregunta tu nombre, responde: "Soy Alana".`;
 
-    // Intentar con Z.AI primero
+    // Usar directamente el sistema de respuestas local (rápido, sin esperar API externa)
+    // Si Z.AI está disponible (sandbox local), lo intentamos con un timeout corto de 3s
     let respuesta = "";
-    let usarFallback = false;
+    let usarFallback = true;
 
-    try {
-      const zai = new ZAI({
-        baseUrl: "https://internal-api.z.ai/v1",
-        apiKey: "Z.ai",
-        chatId: "chat-4fe20023-027a-4694-803d-4bc79d019243",
-        token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMmUzOTNhNDMtYjYxZS00ODM5LWFiOGItZWZkNzc3ZmE3MDdiIiwiY2hhdF9pZCI6ImNoYXQtNGZlMjAwMjMtMDI3YS00Njk0LTgwM2QtNGJjNzlkMDE5MjQzIiwicGxhdGZvcm0iOiJ6YWkifQ.pLa1AlWgguS-P_zBBQxua5eYP64GwOxEq36czXbjtuI",
-        userId: "2e393a43-b61e-4839-ab8b-efd777fa707b",
-      });
-      const response = await zai.chat.completions.create({
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: String(mensaje ?? "") },
-        ],
-        thinking: { type: "disabled" },
-      });
+    // Solo intentar Z.AI si estamos en el sandbox local (no en Vercel)
+    if (process.env.VERCEL !== "1") {
+      try {
+        const zai = new ZAI({
+          baseUrl: "https://internal-api.z.ai/v1",
+          apiKey: "Z.ai",
+          chatId: "chat-4fe20023-027a-4694-803d-4bc79d019243",
+          token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMmUzOTNhNDMtYjYxZS00ODM5LWFiOGItZWZkNzc3ZmE3MDdiIiwiY2hhdF9pZCI6ImNoYXQtNGZlMjAwMjMtMDI3YS00Njk0LTgwM2QtNGJjNzlkMDE5MjQzIiwicGxhdGZvcm0iOiJ6YWkifQ.pLa1AlWgguS-P_zBBQxua5eYP64GwOxEq36czXbjtuI",
+          userId: "2e393a43-b61e-4839-ab8b-efd777fa707b",
+        });
 
-      respuesta =
-        response.choices[0]?.message?.content ||
-        "";
-      
-      if (!respuesta || respuesta.length < 5) {
+        // Timeout de 3 segundos — si Z.AI no responde rápido, usar fallback
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3000);
+
+        const response = await Promise.race([
+          zai.chat.completions.create({
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: String(mensaje ?? "") },
+            ],
+            thinking: { type: "disabled" },
+          }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("timeout")), 3000)
+          ),
+        ]);
+
+        clearTimeout(timeout);
+
+        respuesta = response.choices[0]?.message?.content || "";
+        if (respuesta && respuesta.length >= 5) {
+          usarFallback = false;
+        }
+      } catch (zaiError) {
+        // Z.AI falló o tardó mucho — usar fallback inmediatamente
         usarFallback = true;
       }
-    } catch (zaiError) {
-      console.error("Z.AI no disponible, usando fallback:", zaiError);
-      usarFallback = true;
     }
 
-    // FALLBACK: Si Z.AI falla, generar respuesta con análisis de datos reales
+    // FALLBACK: Generar respuesta con análisis de datos reales (instantáneo)
     if (usarFallback) {
       respuesta = generarRespuestaFallback(mensaje, {
         products: productos,
