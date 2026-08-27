@@ -43,8 +43,9 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* ===== LEMCORP WMS — CORPORATE NEUTRAL ===== */
-/* Gris carbón + azul marino mate. Cero saturación. */
+/* ===== LEMCORP — AURORA LUXE ===== */
+/* Inspirado en Aurora Borealis: verde neón, púrpura, navy profundo */
+/* Lujo, tranquilidad, belleza — todo animado */
 
 :root {
   --radius: 0.5rem;
@@ -57,33 +58,33 @@
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.20 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.20 0 0);
-  /* Primary: azul Edge #0078D4 */
-  --primary: oklch(0.55 0.18 250);
-  --primary-foreground: oklch(0.98 0 0);
-  --secondary: oklch(0.95 0.02 220);
-  --secondary-foreground: oklch(0.25 0 0);
-  --muted: oklch(0.95 0.01 220);
-  --muted-foreground: oklch(0.50 0 0);
-  --accent: oklch(0.93 0.03 200);
-  --accent-foreground: oklch(0.25 0.05 250);
+  --popover-foreground: oklch(0.92 0 0);
+  /* Primary: verde aurora neón #00FF7F */
+  --primary: oklch(0.75 0.25 155);
+  --primary-foreground: oklch(0.10 0.02 250);
+  --secondary: oklch(0.20 0.03 250);
+  --secondary-foreground: oklch(0.92 0 0);
+  --muted: oklch(0.20 0.03 250);
+  --muted-foreground: oklch(0.60 0 0);
+  --accent: oklch(0.25 0.05 280);
+  --accent-foreground: oklch(0.92 0 0);
   --destructive: oklch(0.55 0.20 25);
-  --border: oklch(0.90 0.01 220);
-  --input: oklch(0.95 0.01 220);
-  --ring: oklch(0.55 0.18 250);
-  --chart-1: oklch(0.55 0.18 250);
-  --chart-2: oklch(0.70 0.15 200);
+  --border: oklch(0.25 0.03 250);
+  --input: oklch(0.20 0.03 250);
+  --ring: oklch(0.75 0.25 155);
+  --chart-1: oklch(0.75 0.25 155);
+  --chart-2: oklch(0.70 0.20 200);
   --chart-3: oklch(0.65 0.15 180);
-  --chart-4: oklch(0.50 0.20 280);
-  --chart-5: oklch(0.60 0.15 160);
-  --sidebar: oklch(0.97 0.01 220);
-  --sidebar-foreground: oklch(0.20 0 0);
-  --sidebar-primary: oklch(0.55 0.18 250);
-  --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.93 0.03 200);
-  --sidebar-accent-foreground: oklch(0.25 0.05 250);
-  --sidebar-border: oklch(0.90 0.01 220);
-  --sidebar-ring: oklch(0.55 0.18 250);
+  --chart-4: oklch(0.55 0.25 300);
+  --chart-5: oklch(0.70 0.20 160);
+  --sidebar: oklch(0.12 0.02 250);
+  --sidebar-foreground: oklch(0.92 0 0);
+  --sidebar-primary: oklch(0.75 0.25 155);
+  --sidebar-primary-foreground: oklch(0.10 0.02 250);
+  --sidebar-accent: oklch(0.22 0.05 280);
+  --sidebar-accent-foreground: oklch(0.92 0 0);
+  --sidebar-border: oklch(0.25 0.03 250);
+  --sidebar-ring: oklch(0.75 0.25 155);
 
   /* Tailwind v4: mapear variables a colores */
   --color-background: oklch(0.97 0.01 220);
@@ -114,60 +115,68 @@
   --shadow-glow: 0 0 20px oklch(0.55 0.18 250 / 0.20);
 }
 
-/* DARK: tema oscuro con azul Edge */
+/* DARK: Aurora Borealis — navy profundo con verde neón y púrpura */
 .dark {
-  --background: oklch(0.15 0.02 250);
+  --background: oklch(0.10 0.02 250);
   --foreground: oklch(0.92 0 0);
-  --card: oklch(0.19 0.02 250);
+  --card: oklch(0.14 0.02 250);
   --card-foreground: oklch(0.92 0 0);
-  --popover: oklch(0.19 0.02 250);
+  --popover: oklch(0.14 0.02 250);
   --popover-foreground: oklch(0.92 0 0);
-  /* Primary dark: azul Edge brillante #00BCF2 */
-  --primary: oklch(0.70 0.18 220);
-  --primary-foreground: oklch(0.15 0 0);
-  --secondary: oklch(0.23 0.02 250);
+  /* Primary dark: verde aurora brillante #00FF7F */
+  --primary: oklch(0.80 0.28 155);
+  --primary-foreground: oklch(0.10 0.02 250);
+  --secondary: oklch(0.18 0.03 250);
   --secondary-foreground: oklch(0.92 0 0);
-  --muted: oklch(0.23 0.02 250);
-  --muted-foreground: oklch(0.58 0 0);
-  --accent: oklch(0.27 0.03 220);
+  --muted: oklch(0.18 0.03 250);
+  --muted-foreground: oklch(0.60 0 0);
+  --accent: oklch(0.22 0.06 290);
   --accent-foreground: oklch(0.92 0 0);
   --destructive: oklch(0.55 0.20 25);
-  --border: oklch(0.30 0.02 250);
-  --input: oklch(0.23 0.02 250);
-  --ring: oklch(0.70 0.18 220);
-  --chart-1: oklch(0.70 0.18 220);
-  --chart-2: oklch(0.75 0.15 200);
-  --chart-3: oklch(0.65 0.15 180);
-  --chart-4: oklch(0.60 0.20 280);
-  --chart-5: oklch(0.65 0.15 160);
-  --sidebar: oklch(0.13 0.02 250);
+  --border: oklch(0.22 0.03 250);
+  --input: oklch(0.18 0.03 250);
+  --ring: oklch(0.80 0.28 155);
+  --chart-1: oklch(0.80 0.28 155);
+  --chart-2: oklch(0.75 0.20 200);
+  --chart-3: oklch(0.70 0.15 180);
+  --chart-4: oklch(0.60 0.25 300);
+  --chart-5: oklch(0.72 0.20 160);
+  --sidebar: oklch(0.08 0.02 250);
   --sidebar-foreground: oklch(0.92 0 0);
-  --sidebar-primary: oklch(0.70 0.18 220);
-  --sidebar-primary-foreground: oklch(0.15 0 0);
-  --sidebar-accent: oklch(0.25 0.03 220);
+  --sidebar-primary: oklch(0.80 0.28 155);
+  --sidebar-primary-foreground: oklch(0.10 0.02 250);
+  --sidebar-accent: oklch(0.20 0.06 290);
   --sidebar-accent-foreground: oklch(0.92 0 0);
-  --sidebar-border: oklch(0.28 0.02 250);
-  --sidebar-ring: oklch(0.70 0.18 220);
+  --sidebar-border: oklch(0.22 0.03 250);
+  --sidebar-ring: oklch(0.80 0.28 155);
 
   /* Tailwind v4: override color vars for dark */
-  --color-background: oklch(0.15 0.02 250);
+  --color-background: oklch(0.10 0.02 250);
   --color-foreground: oklch(0.92 0 0);
-  --color-card: oklch(0.19 0.02 250);
+  --color-card: oklch(0.14 0.02 250);
   --color-card-foreground: oklch(0.92 0 0);
-  --color-popover: oklch(0.19 0.02 250);
+  --color-popover: oklch(0.14 0.02 250);
   --color-popover-foreground: oklch(0.92 0 0);
-  --color-primary: oklch(0.70 0.18 220);
-  --color-primary-foreground: oklch(0.15 0 0);
-  --color-secondary: oklch(0.23 0.02 250);
+  --color-primary: oklch(0.80 0.28 155);
+  --color-primary-foreground: oklch(0.10 0.02 250);
+  --color-secondary: oklch(0.18 0.03 250);
   --color-secondary-foreground: oklch(0.92 0 0);
-  --color-muted: oklch(0.23 0.02 250);
-  --color-muted-foreground: oklch(0.58 0 0);
-  --color-accent: oklch(0.27 0.03 220);
+  --color-muted: oklch(0.18 0.03 250);
+  --color-muted-foreground: oklch(0.60 0 0);
+  --color-accent: oklch(0.22 0.06 290);
   --color-accent-foreground: oklch(0.92 0 0);
   --color-destructive: oklch(0.55 0.20 25);
-  --color-border: oklch(0.30 0.02 250);
-  --color-input: oklch(0.23 0.02 250);
-  --color-ring: oklch(0.70 0.18 220);
+  --color-border: oklch(0.22 0.03 250);
+  --color-input: oklch(0.18 0.03 250);
+  --color-ring: oklch(0.80 0.28 155);
+
+  /* Sombras con glow verde aurora */
+  --shadow-xs: 0 1px 2px 0 oklch(0.80 0.28 155 / 0.10);
+  --shadow-sm: 0 2px 4px 0 oklch(0.80 0.28 155 / 0.12);
+  --shadow-md: 0 4px 12px -1px oklch(0.80 0.28 155 / 0.15), 0 2px 4px -1px oklch(0.80 0.28 155 / 0.08);
+  --shadow-lg: 0 12px 32px -4px oklch(0.80 0.28 155 / 0.20), 0 4px 12px -3px oklch(0.80 0.28 155 / 0.10);
+  --shadow-primary: 0 4px 20px oklch(0.80 0.28 155 / 0.35);
+  --shadow-glow: 0 0 30px oklch(0.80 0.28 155 / 0.25);
 }
 
 /* Default the html element to dark (since the app starts in dark) */
@@ -175,7 +184,7 @@ html {
   color-scheme: dark;
 }
 html:not(.light) {
-  background-color: oklch(0.15 0.02 250);
+  background-color: oklch(0.08 0.02 250);
 }
 html.light {
   color-scheme: light;
@@ -565,17 +574,130 @@ html.light .scroll-thin::-webkit-scrollbar-thumb { background: oklch(0.75 0.01 2
   animation: lem-edge-gradient 6s ease infinite;
 }
 
-/* Sombra con glow azul */
+/* Sombra con glow verde aurora */
 .shadow-edge {
-  box-shadow: 0 4px 20px oklch(0.55 0.18 250 / 0.25);
+  box-shadow: 0 4px 20px oklch(0.80 0.28 155 / 0.25);
 }
 .shadow-edge-lg {
-  box-shadow: 0 8px 30px oklch(0.55 0.18 250 / 0.35);
+  box-shadow: 0 8px 30px oklch(0.80 0.28 155 / 0.35);
 }
 
-/* Animación de entrada para TODAS las páginas (no solo móvil) */
+/* Animación de entrada para TODAS las páginas */
 .anim-page-enter {
-  animation: lem-edge-slide-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: lem-edge-slide-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ===== AURORA BOREAL — Animaciones lujosas ===== */
+@keyframes lem-aurora-flow {
+  0% { transform: translateX(-10%) translateY(0) rotate(0deg); opacity: 0.3; }
+  50% { transform: translateX(10%) translateY(-5%) rotate(2deg); opacity: 0.6; }
+  100% { transform: translateX(-10%) translateY(0) rotate(0deg); opacity: 0.3; }
+}
+@keyframes lem-aurora-pulse {
+  0%, 100% { opacity: 0.4; filter: blur(40px); }
+  50% { opacity: 0.7; filter: blur(50px); }
+}
+@keyframes lem-aurora-wave {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes lem-aurora-glow {
+  0%, 100% { box-shadow: 0 0 20px oklch(0.80 0.28 155 / 0.15), 0 0 40px oklch(0.80 0.28 155 / 0.10); }
+  50% { box-shadow: 0 0 30px oklch(0.80 0.28 155 / 0.30), 0 0 60px oklch(0.80 0.28 155 / 0.20); }
+}
+@keyframes lem-aurora-shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes lem-aurora-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33% { transform: translateY(-8px) rotate(1deg); }
+  66% { transform: translateY(4px) rotate(-1deg); }
+}
+@keyframes lem-aurora-breath {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.03); opacity: 0.95; }
+}
+@keyframes lem-aurora-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Fondo aurora boreal animado */
+.aurora-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.aurora-bg::before,
+.aurora-bg::after {
+  content: '';
+  position: absolute;
+  width: 60%;
+  height: 60%;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.15;
+}
+.aurora-bg::before {
+  top: -10%;
+  left: -10%;
+  background: radial-gradient(circle, oklch(0.80 0.28 155), oklch(0.70 0.20 200));
+  animation: lem-aurora-flow 15s ease-in-out infinite;
+}
+.aurora-bg::after {
+  bottom: -10%;
+  right: -10%;
+  background: radial-gradient(circle, oklch(0.55 0.25 300), oklch(0.70 0.20 200));
+  animation: lem-aurora-flow 20s ease-in-out infinite reverse;
+}
+
+/* Clases de animación aurora */
+.anim-aurora-flow { animation: lem-aurora-flow 8s ease-in-out infinite; }
+.anim-aurora-pulse { animation: lem-aurora-pulse 4s ease-in-out infinite; }
+.anim-aurora-wave {
+  background-size: 200% 200%;
+  animation: lem-aurora-wave 6s ease infinite;
+}
+.anim-aurora-glow { animation: lem-aurora-glow 3s ease-in-out infinite; }
+.anim-aurora-shimmer {
+  background: linear-gradient(90deg, transparent, oklch(0.80 0.28 155 / 0.15), transparent);
+  background-size: 200% 100%;
+  animation: lem-aurora-shimmer 3s linear infinite;
+}
+.anim-aurora-float { animation: lem-aurora-float 6s ease-in-out infinite; }
+.anim-aurora-breath { animation: lem-aurora-breath 4s ease-in-out infinite; }
+.anim-aurora-rotate { animation: lem-aurora-rotate 20s linear infinite; }
+
+/* Gradiente aurora para elementos destacados */
+.gradient-aurora {
+  background: linear-gradient(135deg, oklch(0.80 0.28 155), oklch(0.70 0.20 200), oklch(0.55 0.25 300));
+  background-size: 200% 200%;
+  animation: lem-aurora-wave 8s ease infinite;
+}
+
+/* Texto con gradiente aurora */
+.text-aurora {
+  background: linear-gradient(135deg, oklch(0.80 0.28 155), oklch(0.70 0.20 200));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 200%;
+  animation: lem-aurora-wave 5s ease infinite;
+}
+
+/* Glow verde aurora */
+.glow-aurora {
+  box-shadow: 0 0 20px oklch(0.80 0.28 155 / 0.30), 0 0 40px oklch(0.80 0.28 155 / 0.15);
+}
+.glow-aurora-strong {
+  box-shadow: 0 0 30px oklch(0.80 0.28 155 / 0.50), 0 0 60px oklch(0.80 0.28 155 / 0.25);
 }
 
 /* ===== Glass morphism REAL (visible) ===== */
