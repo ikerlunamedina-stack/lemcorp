@@ -294,6 +294,7 @@ export interface Settings {
   tema: Tema;
   usuario: string;
   voz: boolean; // TTS (text-to-speech) para Alana
+  vozURI: string; // Nombre interno de la voz seleccionada (vacío = automático)
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -303,6 +304,7 @@ export const DEFAULT_SETTINGS: Settings = {
   tema: "oscuro",
   usuario: "Iker",
   voz: false,
+  vozURI: "",
 };
 
 export const DEFAULT_EMPRESA: InfoEmpresa = {
