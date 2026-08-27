@@ -470,7 +470,7 @@ INSTRUCCIONES DE RESPUESTA:
     // FALLBACK: Si Z.AI falla, generar respuesta con análisis de datos reales
     if (usarFallback) {
       respuesta = generarRespuestaFallback(mensaje, {
-        products: prods,
+        products: productos,
         equipos: eqs,
         despachos: desps,
         miembros: pers,
