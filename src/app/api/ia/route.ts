@@ -435,24 +435,50 @@ INSTRUCCIONES DE RESPUESTA:
 - Si el usuario pregunta por un SKU específico, busca en el inventario detallado y responde con sus datos exactos.
 - Si el usuario pregunta tu nombre, responde: "Soy Alana".`;
 
-    const zai = new ZAI({
-      baseUrl: "https://internal-api.z.ai/v1",
-      apiKey: "Z.ai",
-      chatId: "chat-4fe20023-027a-4694-803d-4bc79d019243",
-      token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMmUzOTNhNDMtYjYxZS00ODM5LWFiOGItZWZkNzc3ZmE3MDdiIiwiY2hhdF9pZCI6ImNoYXQtNGZlMjAwMjMtMDI3YS00Njk0LTgwM2QtNGJjNzlkMDE5MjQzIiwicGxhdGZvcm0iOiJ6YWkifQ.pLa1AlWgguS-P_zBBQxua5eYP64GwOxEq36czXbjtuI",
-      userId: "2e393a43-b61e-4839-ab8b-efd777fa707b",
-    });
-    const response = await zai.chat.completions.create({
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: String(mensaje ?? "") },
-      ],
-      thinking: { type: "disabled" },
-    });
+    // Intentar con Z.AI primero
+    let respuesta = "";
+    let usarFallback = false;
 
-    let respuesta =
-      response.choices[0]?.message?.content ||
-      "No pude procesar tu consulta. Por favor intenta de nuevo.";
+    try {
+      const zai = new ZAI({
+        baseUrl: "https://internal-api.z.ai/v1",
+        apiKey: "Z.ai",
+        chatId: "chat-4fe20023-027a-4694-803d-4bc79d019243",
+        token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMmUzOTNhNDMtYjYxZS00ODM5LWFiOGItZWZkNzc3ZmE3MDdiIiwiY2hhdF9pZCI6ImNoYXQtNGZlMjAwMjMtMDI3YS00Njk0LTgwM2QtNGJjNzlkMDE5MjQzIiwicGxhdGZvcm0iOiJ6YWkifQ.pLa1AlWgguS-P_zBBQxua5eYP64GwOxEq36czXbjtuI",
+        userId: "2e393a43-b61e-4839-ab8b-efd777fa707b",
+      });
+      const response = await zai.chat.completions.create({
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: String(mensaje ?? "") },
+        ],
+        thinking: { type: "disabled" },
+      });
+
+      respuesta =
+        response.choices[0]?.message?.content ||
+        "";
+      
+      if (!respuesta || respuesta.length < 5) {
+        usarFallback = true;
+      }
+    } catch (zaiError) {
+      console.error("Z.AI no disponible, usando fallback:", zaiError);
+      usarFallback = true;
+    }
+
+    // FALLBACK: Si Z.AI falla, generar respuesta con análisis de datos reales
+    if (usarFallback) {
+      respuesta = generarRespuestaFallback(mensaje, {
+        products: prods,
+        equipos: eqs,
+        despachos: desps,
+        miembros: pers,
+        empresa: emp,
+        usuario: usuarioNombre,
+        memoria: memoriaAprendida,
+      });
+    }
 
     // Extraer recordatorios del bloque [[RECORDATORIO]]...[[/RECORDATORIO]]
     const recordatorios: Array<{ texto: string; cuando: string }> = [];
@@ -519,4 +545,215 @@ INSTRUCCIONES DE RESPUESTA:
       { status: 500 }
     );
   }
+}
+
+// ===== SISTEMA DE RESPUESTAS FALLBACK (sin API externa) =====
+// Analiza los datos reales del inventario y responde de forma útil.
+
+interface FallbackData {
+  products: ProductDTO[];
+  equipos: EquipmentDTO[];
+  despachos: DespachoDTO[];
+  miembros: MiembroDTO[];
+  empresa: { nombre?: string };
+  usuario: string;
+  memoria: string[];
+}
+
+function generarRespuestaFallback(mensaje: string, data: FallbackData): string {
+  const msg = (mensaje || "").toLowerCase().trim();
+  const { products, equipos, despachos, miembros, empresa, usuario, memoria } = data;
+
+  // Saludo
+  if (/^(hola|buenas|hey|saludos|que tal|holi)/i.test(msg)) {
+    return `¡Hola${usuario ? ", " + usuario : ""}! Soy Alana, tu asistente del almacén${empresa.nombre ? " " + empresa.nombre : ""}. ¿En qué puedo ayudarte?
+
+Puedo ayudarte con:
+• Consultar el inventario y stock
+• Ver productos con bajo stock
+• Analizar despachos
+• Añadir productos, equipos, notas y más
+
+Solo dime qué necesitas.`;
+  }
+
+  // ¿Cómo estás?
+  if (/c[oó]mo est[aá]s|qu[eé] tal|c[oó]mo te va/i.test(msg)) {
+    return `Estoy muy bien, ¡gracias por preguntar! Lista para ayudarte con el almacén. ¿Qué necesitas?`;
+  }
+
+  // ¿Quién eres / tu nombre?
+  if (/qui[eé]n eres|c[oó]mo te llamas|tu nombre|qu[eé] eres/i.test(msg)) {
+    return `Soy Alana, la asistente inteligente del almacén LEMCORP. Puedo ayudarte a gestionar tu inventario, consultar stock, registrar despachos y mucho más.`;
+  }
+
+  // Bajo stock / alertas
+  if (/bajo stock|stock bajo|agotad|qu[eé] productos|que productos necesito|alerta/i.test(msg)) {
+    if (products.length === 0) {
+      return `Todavía no hay productos en el inventario. Puedes añadir productos desde la pestaña Inventario, o dime "añade [producto]" y lo registro por ti.`;
+    }
+    const bajoStock = products.filter(p => p.minStock && p.minStock > 0 && p.quantity <= p.minStock);
+    const agotados = products.filter(p => p.quantity === 0);
+    if (bajoStock.length === 0 && agotados.length === 0) {
+      return `✅ Todo el inventario está en buen estado. Tienes ${products.length} productos y ninguno está por debajo del mínimo.
+
+• Total de unidades: ${products.reduce((s, p) => s + p.quantity, 0).toLocaleString("es-PE")}
+• Productos en catálogo: ${products.length}`;
+    }
+    let resp = `🚨 Tienes ${bajoStock.length + agotados.length} producto(s) que necesitan atención:\n\n`;
+    if (agotados.length > 0) {
+      resp += `**AGOTADOS (${agotados.length}):**\n`;
+      agotados.slice(0, 5).forEach(p => {
+        resp += `• ${p.name} (SKU ${p.sku}) — 0 unidades\n`;
+      });
+    }
+    if (bajoStock.length > 0) {
+      resp += `\n**BAJO STOCK (${bajoStock.length}):**\n`;
+      bajoStock.slice(0, 5).forEach(p => {
+        resp += `• ${p.name} (SKU ${p.sku}) — ${p.quantity} und (mín: ${p.minStock})\n`;
+      });
+    }
+    resp += `\nTe recomiendo hacer un pedido urgente de estos productos.`;
+    return resp;
+  }
+
+  // Cuántos productos / inventario general
+  if (/cu[aá]ntos productos|cu[aá]nto stock|inventario|cat[aá]logo|total/i.test(msg)) {
+    const totalUnidades = products.reduce((s, p) => s + p.quantity, 0);
+    return `📊 Resumen del inventario:
+
+• Productos en catálogo: ${products.length}
+• Total de unidades: ${totalUnidades.toLocaleString("es-PE")}
+• Equipos registrados: ${equipos.length}
+• Despachos totales: ${despachos.length}
+
+${products.length > 0 ? `Productos más relevantes:\n${products.slice(0, 5).map(p => `• ${p.name} — ${p.quantity} ${p.udm || "und"}`).join("\n")}` : "No hay productos registrados todavía."}`;
+  }
+
+  // Equipos
+  if (/equipos|aver[ií]ad|reparaci[oó]n|estado de equipos/i.test(msg)) {
+    if (equipos.length === 0) {
+      return `No hay equipos registrados todavía. Puedes añadir equipos desde la pestaña Equipos, o dime "registra el equipo [serie] modelo [modelo]" y lo agrego.`;
+    }
+    const disponibles = equipos.filter(e => e.estado === "disponible").length;
+    const averiados = equipos.filter(e => e.estado === "averiado").length;
+    const reparacion = equipos.filter(e => e.estado === "en_reparacion").length;
+    return `📦 Estado de equipos:
+
+• Total: ${equipos.length}
+• Disponibles: ${disponibles}
+• Averiados: ${averiados}
+• En reparación: ${reparacion}
+
+${averiados > 0 ? `⚠️ Tienes ${averiados} equipo(s) averiado(s) que necesitan atención.` : "✅ Todos los equipos están operativos."}`;
+  }
+
+  // Despachos
+  if (/despacho|env[ií]o|entrega/i.test(msg)) {
+    return `📤 Despachos:
+
+• Total de despachos: ${despachos.length}
+• Hoy: ${despachos.filter(d => { try { return new Date(d.fecha).toDateString() === new Date().toDateString(); } catch { return false; } }).length}
+
+${despachos.length === 0 ? "No hay despachos registrados. Puedes registrar uno diciendo 'despacha [cantidad] de [SKU]'." : `Últimos despachos:\n${despachos.slice(0, 3).map(d => `• ${d.cantidad} und — ${d.producto || d.sku}`).join("\n")}`}`;
+  }
+
+  // Personal / equipo de trabajo
+  if (/personal|equipo|gente|personas|miembros/i.test(msg)) {
+    return `👥 Personal del almacén:
+
+• Total: ${miembros.length} personas
+${miembros.length > 0 ? miembros.slice(0, 5).map(m => `• ${m.nombre} — ${m.rol}`).join("\n") : "No hay personal registrado."}`;
+  }
+
+  // Añadir producto
+  if (/a[ñn]ade|agrega|crear.*producto|nuevo producto/i.test(msg)) {
+    return `Para añadir un producto, dime: "añade [cantidad] [nombre del producto], SKU [código], mínimo [número]"
+
+Ejemplo: "añade 50 conectores RJ-45, SKU CONN-RJ45, mínimo 20"`;
+  }
+
+  // Añadir nota
+  if (/anota|nota|recuerda que|apunta/i.test(msg)) {
+    // Si el mensaje contiene "anota" o "nota", crear la nota
+    const textoNota = mensaje.replace(/^(anota|nota|recuerda que|apunta)\s*/i, "").trim();
+    if (textoNota.length > 3) {
+      return `Anotado. Creé la nota: "${textoNota}"\n\n[[ACCION]]\ntipo: add_note\ntexto: ${textoNota}\n[[/ACCION]]`;
+    }
+    return `¿Qué quieres que anote? Dime "anota [texto]" y lo guardo en el bloc.`;
+  }
+
+  // Cambiar tema
+  if (/tema|blanco|claro|oscuro|negro/i.test(msg)) {
+    if (/blanco|claro/i.test(msg)) {
+      return `Cambiando el tema a claro.\n\n[[ACCION]]\ntipo: set_theme\ntema: claro\n[[/ACCION]]`;
+    }
+    if (/oscuro|negro/i.test(msg)) {
+      return `Cambiando el tema a oscuro.\n\n[[ACCION]]\ntipo: set_theme\ntema: oscuro\n[[/ACCION]]`;
+    }
+    return `Puedo cambiar el tema. Dime "pon la página en blanco" o "pon la página en oscuro".`;
+  }
+
+  // Recordatorio
+  if (/recu[eé]rdame|recuerdo|recordatorio|av[ií]same/i.test(msg)) {
+    return `Para crear un recordatorio, dime: "recuérdame [texto] en [tiempo]"
+
+Ejemplo: "recuérdame pedir conectores mañana a las 9am"`;
+  }
+
+  // Ayuda
+  if (/ayuda|qu[eé] puedes|qu[eé] haces|funciones|comandos/i.test(msg)) {
+    return `¡Claro! Esto es lo que puedo hacer:
+
+📊 **Consultas:**
+• "¿qué productos tengo?"
+• "¿qué hay con bajo stock?"
+• "¿cómo están los equipos?"
+• "¿cuántos despachos hay?"
+
+📝 **Acciones:**
+• "añade 50 conectores RJ-45, SKU CONN-RJ45"
+• "anota que hay que revisar el cable RG-6"
+• "despacha 10 conectores para Pérez"
+• "pon la página en blanco"
+
+🔔 **Recordatorios:**
+• "recuérdame pedir conectores mañana"
+
+💬 Solo pregúntame lo que necesites y te ayudo.`;
+  }
+
+  // Memoria
+  if (/memoria|qu[eé] has aprendido|recuerdas/i.test(msg)) {
+    if (memoria.length === 0) {
+      return `Todavía no he aprendido nada específico. Si me dices "recuerda que..." o "aprende que...", guardaré esa información para futuras consultas.`;
+    }
+    return `Esto es lo que he aprendido:\n\n${memoria.map((m, i) => `${i + 1}. ${m}`).join("\n")}`;
+  }
+
+  // Buscar producto por SKU o nombre
+  const productoEncontrado = products.find(p =>
+    msg.includes(p.sku.toLowerCase()) || (p.name && msg.includes(p.name.toLowerCase()))
+  );
+  if (productoEncontrado) {
+    return `📦 ${productoEncontrado.name}
+
+• SKU: ${productoEncontrado.sku}
+• Stock actual: ${productoEncontrado.quantity} ${productoEncontrado.udm || "unidades"}
+• Stock mínimo: ${productoEncontrado.minStock || "no definido"}
+${productoEncontrado.minStock && productoEncontrado.quantity <= productoEncontrado.minStock ? "🚨 ¡Está por debajo del mínimo!" : "✅ Stock en buen nivel."}`;
+  }
+
+  // Respuesta por defecto
+  return `Entiendo tu consulta. En este momento tengo acceso limitado al análisis de IA, pero puedo ayudarte con:
+
+• Consultar inventario: "¿qué productos tengo?"
+• Bajo stock: "¿qué necesita reposición?"
+• Equipos: "¿cómo están los equipos?"
+• Añadir productos: "añade 50 conectores, SKU CONN-RJ45"
+• Notas: "anota que revisar el cable RG-6"
+• Cambiar tema: "pon la página en blanco"
+• Recordatorios: "recuérdame pedir conectores mañana"
+
+¿Qué necesitas?`;
 }
