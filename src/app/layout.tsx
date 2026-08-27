@@ -47,10 +47,10 @@ export default function RootLayout({
 }>) {
   // Inline script: aplica el tema oscuro/claro antes de pintar para evitar FOUC.
   // Default es oscuro; respeta lo guardado por el usuario en localStorage.
-  const themeScript = `(function(){try{var raw=localStorage.getItem('lemcorp-v3');var tema='oscuro';if(raw){var s=JSON.parse(raw);tema=(s&&s.state&&s.state.settings&&s.state.settings.tema)||'oscuro';}var prefersDark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var isDark=tema==='oscuro'||(tema==='sistema'&&prefersDark);var root=document.documentElement;if(isDark){root.classList.add('dark');root.classList.remove('light');}else{root.classList.remove('dark');root.classList.add('light');}}catch(e){document.documentElement.classList.add('dark');}})();`;
+  const themeScript = `(function(){try{var raw=localStorage.getItem('lemcorp-v3');var tema='claro';if(raw){var s=JSON.parse(raw);tema=(s&&s.state&&s.state.settings&&s.state.settings.tema)||'claro';}var prefersDark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;var isDark=tema==='oscuro'||(tema==='sistema'&&prefersDark);var root=document.documentElement;if(isDark){root.classList.add('dark');root.classList.remove('light');}else{root.classList.remove('dark');root.classList.add('light');}}catch(e){document.documentElement.classList.add('light');}})();`;
 
   return (
-    <html lang="es" className="dark" suppressHydrationWarning>
+    <html lang="es" className="light" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>

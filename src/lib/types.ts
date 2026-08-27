@@ -301,7 +301,7 @@ export const DEFAULT_SETTINGS: Settings = {
   lowStockAlerts: true,
   pistoleoPrefijoEnabled: true,
   pistoleoPrefijo: "ZTEATV",
-  tema: "oscuro",
+  tema: "claro",
   usuario: "Iker",
   voz: false,
   vozURI: "",
