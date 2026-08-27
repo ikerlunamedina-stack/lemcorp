@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Settings as SettingsIcon,
   Database,
@@ -22,7 +22,6 @@ import {
   VolumeX,
   Square,
   LogOut,
-  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
@@ -41,7 +40,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { speak, stopSpeaking, ttsDisponible, obtenerVocesEspanol } from "@/lib/tts";
+import { speak, stopSpeaking, ttsDisponible } from "@/lib/tts";
 
 const TEMAS: { value: Tema; label: string; icon: typeof Sun }[] = [
   { value: "claro", label: "Claro", icon: Sun },
@@ -68,15 +67,8 @@ export function ConfigView() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [seedConfirm, setSeedConfirm] = useState(false);
   const [memConfirmOpen, setMemConfirmOpen] = useState(false);
-  const [vocesDisponibles, setVocesDisponibles] = useState<SpeechSynthesisVoice[]>([]);
 
   const ttsSoportado = typeof window !== "undefined" && ttsDisponible();
-
-  // Cargar voces disponibles al montar
-  useEffect(() => {
-    if (!ttsSoportado) return;
-    obtenerVocesEspanol().then((voces) => setVocesDisponibles(voces));
-  }, [ttsSoportado]);
 
   const handleSeed = () => {
     seedDemo();
