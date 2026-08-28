@@ -482,7 +482,7 @@ INSTRUCCIONES DE RESPUESTA:
 
     // FALLBACK: Generar respuesta con análisis de datos reales (instantáneo)
     if (usarFallback) {
-      respuesta = generarRespuestaFallback(mensaje, {
+      respuesta = await generarRespuestaFallback(mensaje, {
         products: productos,
         equipos: eqs,
         despachos: desps,
@@ -573,9 +573,10 @@ interface FallbackData {
   memoria: string[];
 }
 
-function generarRespuestaFallback(mensaje: string, data: FallbackData): string {
+async function generarRespuestaFallback(mensaje: string, data: FallbackData): Promise<string> {
   const msg = (mensaje || "").toLowerCase().trim();
   const { products, equipos, despachos, miembros, empresa, usuario, memoria } = data;
+  const nombre = usuario || "Iker";
 
   // Saludo
   if (/^(hola|buenas|hey|saludos|que tal|holi)/i.test(msg)) {
@@ -757,16 +758,37 @@ Ejemplo: "recuérdame pedir conectores mañana a las 9am"`;
 ${productoEncontrado.minStock && productoEncontrado.quantity <= productoEncontrado.minStock ? "🚨 ¡Está por debajo del mínimo!" : "✅ Stock en buen nivel."}`;
   }
 
-  // Respuesta por defecto
-  return `Entiendo tu consulta. En este momento tengo acceso limitado al análisis de IA, pero puedo ayudarte con:
+  // Respuesta por defecto — BUSCAR EN WIKIPEDIA PARA TODO
+  // Si no matcheó nada de lo anterior, buscar el mensaje completo en Wikipedia
+  try {
+    const wikiUrl = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(mensaje)}&format=json&utf8=1&srlimit=1`;
+    const wikiRes = await fetch(wikiUrl, {
+      headers: { "User-Agent": "Alana-LEMCORP/1.0" },
+    });
+    if (wikiRes.ok) {
+      const wikiData = await wikiRes.json();
+      const searchResults = wikiData?.query?.search;
+      if (searchResults && searchResults.length > 0) {
+        const pageTitle = searchResults[0].title;
+        const summaryUrl = `https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(pageTitle)}`;
+        const summaryRes = await fetch(summaryUrl, {
+          headers: { "User-Agent": "Alana-LEMCORP/1.0" },
+        });
+        if (summaryRes.ok) {
+          const summaryData = await summaryRes.json();
+          const extract = summaryData?.extract;
+          if (extract && extract.length > 20) {
+            let respuesta = extract;
+            if (respuesta.length > 400) {
+              respuesta = respuesta.slice(0, 400).trim() + "...";
+            }
+            return `${respuesta}\n\n(Fuente: Wikipedia)`;
+          }
+        }
+      }
+    }
+  } catch {}
 
-• Consultar inventario: "¿qué productos tengo?"
-• Bajo stock: "¿qué necesita reposición?"
-• Equipos: "¿cómo están los equipos?"
-• Añadir productos: "añade 50 conectores, SKU CONN-RJ45"
-• Notas: "anota que revisar el cable RG-6"
-• Cambiar tema: "pon la página en blanco"
-• Recordatorios: "recuérdame pedir conectores mañana"
-
-¿Qué necesitas?`;
+  // Si Wikipedia tampoco respondió
+  return `No encontré información sobre eso, ${nombre}. Prueba reformulando la pregunta. Para cosas del almacén dime "ayuda" y te muestro lo que puedo hacer.`;
 }
