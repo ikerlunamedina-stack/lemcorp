@@ -578,171 +578,167 @@ async function generarRespuestaFallback(mensaje: string, data: FallbackData): Pr
   const { products, equipos, despachos, miembros, empresa, usuario, memoria } = data;
   const nombre = usuario || "Iker";
 
-  // Saludo
-  if (/^(hola|buenas|hey|saludos|que tal|holi)/i.test(msg)) {
-    return `¡Hola${usuario ? ", " + usuario : ""}! Soy Alana, tu asistente del almacén${empresa.nombre ? " " + empresa.nombre : ""}. ¿En qué puedo ayudarte?
+  // === 1. MATEMÁTICAS (antes que todo) ===
+  // Detectar operaciones: "1+1", "5 por 3", "100 entre 5", "cuanto es 10 mas 4"
+  const mathMatch = msg.match(/(\d+(?:[.,]\d+)?)\s*(mas|\+|menos|-|por|\*|×|entre|\/|÷|dividido|multiplicado|veces)\s*(\d+(?:[.,]\d+)?)/i);
+  const mathDirect = /^(\d+(?:[.,]\d+)?)\s*([+\-*/x×÷])\s*(\d+(?:[.,]\d+)?)/.test(msg);
+  const mathCuanto = /cu[aá]nto es\s+/.test(msg);
 
-Puedo ayudarte con:
-• Consultar el inventario y stock
-• Ver productos con bajo stock
-• Analizar despachos
-• Añadir productos, equipos, notas y más
-
-Solo dime qué necesitas.`;
+  if (mathMatch || mathDirect || mathCuanto) {
+    try {
+      let expr = msg
+        .replace(/cu[aá]nto es\s*/i, "")
+        .replace(/qu[eé] es\s*/i, "")
+        .replace(/resultado de\s*/i, "")
+        .replace(/es\s*/i, "")
+        .replace(/\bmas\b/gi, "+")
+        .replace(/\bmenos\b/gi, "-")
+        .replace(/\bpor\b/gi, "*")
+        .replace(/\bveces\b/gi, "*")
+        .replace(/\bmultiplicado por\b/gi, "*")
+        .replace(/\bentre\b/gi, "/")
+        .replace(/\bdividido por\b/gi, "/")
+        .replace(/\bdividido entre\b/gi, "/")
+        .replace(/×/g, "*")
+        .replace(/÷/g, "/")
+        .replace(/x/g, "*")
+        .replace(/,/g, ".")
+        .replace(/[^\d+\-*/().\s]/g, "")
+        .trim();
+      if (expr && /^[\d+\-*/().\s]+$/.test(expr)) {
+        const resultado = Function(`"use strict"; return (${expr})`)();
+        return `${expr.replace(/\*/g, " × ").replace(/\//g, " ÷ ").replace(/\+/g, " + ").replace(/-/g, " - ")} = ${resultado}`;
+      }
+    } catch {}
   }
 
-  // ¿Cómo estás?
+  // Porcentaje: "20% de 500"
+  const pctMatch = msg.match(/(\d+(?:[.,]\d+)?)\s*%\s*de\s*(\d+(?:[.,]\d+)?)/i);
+  if (pctMatch) {
+    const pct = parseFloat(pctMatch[1].replace(",", "."));
+    const total = parseFloat(pctMatch[2].replace(",", "."));
+    return `${pct}% de ${total} = ${(pct / 100 * total).toLocaleString("es-PE")}`;
+  }
+
+  // === 2. SALUDOS Y CONVERSACIÓN ===
+  if (/^(hola|buenas|hey|saludos|que tal|holi|alana)/i.test(msg)) {
+    return `Hola ${nombre} 👋 ¿Qué necesitas? Puedo responder cualquier pregunta, hacer cálculos, o ayudarte con el almacén.`;
+  }
   if (/c[oó]mo est[aá]s|qu[eé] tal|c[oó]mo te va/i.test(msg)) {
-    return `Estoy muy bien, ¡gracias por preguntar! Lista para ayudarte con el almacén. ¿Qué necesitas?`;
+    return `Todo bien 😊 ¿Y tú? Dime qué necesitas.`;
   }
-
-  // ¿Quién eres / tu nombre?
   if (/qui[eé]n eres|c[oó]mo te llamas|tu nombre|qu[eé] eres/i.test(msg)) {
-    return `Soy Alana, la asistente inteligente del almacén LEMCORP. Puedo ayudarte a gestionar tu inventario, consultar stock, registrar despachos y mucho más.`;
+    return `Soy Alana. Te ayudo con el almacén y también puedo responder cualquier pregunta que tengas. ¿Qué necesitas?`;
+  }
+  if (/gracias|thank|genial|buen|perfecto|excelente/i.test(msg)) {
+    return `De nada, ${nombre} 👍`;
+  }
+  if (/chao|adios|adiós|hasta luego|nos vemos|bye/i.test(msg)) {
+    return `Chao ${nombre} 👋`;
+  }
+  if (/est[aá]s ah[ií]|est[aá]s disponible|me oyes/i.test(msg)) {
+    return `Sí, aquí estoy, ${nombre}. ¿Qué necesitas?`;
   }
 
-  // Bajo stock / alertas
-  if (/bajo stock|stock bajo|agotad|qu[eé] productos|que productos necesito|alerta/i.test(msg)) {
-    if (products.length === 0) {
-      return `Todavía no hay productos en el inventario. Puedes añadir productos desde la pestaña Inventario, o dime "añade [producto]" y lo registro por ti.`;
-    }
+  // === 3. FECHA Y HORA ===
+  if (/qu[eé] (d[ií]a|fecha) es|qu[eé] fecha|fecha de hoy|d[ií]a de hoy/i.test(msg)) {
+    const fecha = new Date().toLocaleDateString("es-PE", { timeZone: "America/Lima", weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    return `Hoy es ${fecha}.`;
+  }
+  if (/qu[eé] hora|qu[eé] hora es|hora actual|dime la hora/i.test(msg)) {
+    const hora = new Date().toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", hour12: true });
+    return `Son las ${hora} (hora de Lima).`;
+  }
+
+  // === 4. ALMACÉN ===
+  if (/bajo stock|stock bajo|agotad|qu[eé] falta|qu[eé] necesito|qu[eé] pedir|qu[eé] comprar|reponer|alerta/i.test(msg)) {
+    if (products.length === 0) return `No hay productos cargados todavía, ${nombre}.`;
     const bajoStock = products.filter(p => p.minStock && p.minStock > 0 && p.quantity <= p.minStock);
     const agotados = products.filter(p => p.quantity === 0);
-    if (bajoStock.length === 0 && agotados.length === 0) {
-      return `✅ Todo el inventario está en buen estado. Tienes ${products.length} productos y ninguno está por debajo del mínimo.
-
-• Total de unidades: ${products.reduce((s, p) => s + p.quantity, 0).toLocaleString("es-PE")}
-• Productos en catálogo: ${products.length}`;
-    }
-    let resp = `🚨 Tienes ${bajoStock.length + agotados.length} producto(s) que necesitan atención:\n\n`;
-    if (agotados.length > 0) {
-      resp += `**AGOTADOS (${agotados.length}):**\n`;
-      agotados.slice(0, 5).forEach(p => {
-        resp += `• ${p.name} (SKU ${p.sku}) — 0 unidades\n`;
-      });
-    }
-    if (bajoStock.length > 0) {
-      resp += `\n**BAJO STOCK (${bajoStock.length}):**\n`;
-      bajoStock.slice(0, 5).forEach(p => {
-        resp += `• ${p.name} (SKU ${p.sku}) — ${p.quantity} und (mín: ${p.minStock})\n`;
-      });
-    }
-    resp += `\nTe recomiendo hacer un pedido urgente de estos productos.`;
+    if (bajoStock.length === 0 && agotados.length === 0) return `Todo bien. ${products.length} productos, ninguno con problemas.`;
+    let resp = `Ojo con esto:\n`;
+    if (agotados.length > 0) { resp += `Sin stock (${agotados.length}):\n${agotados.slice(0, 5).map(p => `• ${p.name} (${p.sku})`).join("\n")}\n`; }
+    if (bajoStock.length > 0) { resp += `Bajo del mínimo (${bajoStock.length}):\n${bajoStock.slice(0, 5).map(p => `• ${p.name} — ${p.quantity} de ${p.minStock}`).join("\n")}\n`; }
+    resp += `Yo los pediría ya.`;
     return resp;
   }
-
-  // Cuántos productos / inventario general
-  if (/cu[aá]ntos productos|cu[aá]nto stock|inventario|cat[aá]logo|total/i.test(msg)) {
+  if (/cu[aá]ntos productos|cu[aá]nto stock|inventario|cat[aá]logo|qu[eé] productos|qu[eé] hay|qu[eé] tengo/i.test(msg)) {
+    if (products.length === 0) return `No hay productos cargados, ${nombre}.`;
     const totalUnidades = products.reduce((s, p) => s + p.quantity, 0);
-    return `📊 Resumen del inventario:
-
-• Productos en catálogo: ${products.length}
-• Total de unidades: ${totalUnidades.toLocaleString("es-PE")}
-• Equipos registrados: ${equipos.length}
-• Despachos totales: ${despachos.length}
-
-${products.length > 0 ? `Productos más relevantes:\n${products.slice(0, 5).map(p => `• ${p.name} — ${p.quantity} ${p.udm || "und"}`).join("\n")}` : "No hay productos registrados todavía."}`;
+    return `Tienes ${products.length} productos, ${totalUnidades.toLocaleString("es-PE")} unidades:\n${products.slice(0, 8).map(p => `• ${p.name} — ${p.quantity} ${p.udm || "und"}`).join("\n")}${products.length > 8 ? `\n...y ${products.length - 8} más` : ""}`;
   }
-
-  // Equipos
-  if (/equipos|aver[ií]ad|reparaci[oó]n|estado de equipos/i.test(msg)) {
-    if (equipos.length === 0) {
-      return `No hay equipos registrados todavía. Puedes añadir equipos desde la pestaña Equipos, o dime "registra el equipo [serie] modelo [modelo]" y lo agrego.`;
-    }
+  if (/equipos|aver[ií]ad|reparaci[oó]n|router|ont|decodificador/i.test(msg)) {
+    if (equipos.length === 0) return `No hay equipos cargados, ${nombre}. Puedes añadirlos desde la pestaña Equipos.`;
     const disponibles = equipos.filter(e => e.estado === "disponible").length;
     const averiados = equipos.filter(e => e.estado === "averiado").length;
-    const reparacion = equipos.filter(e => e.estado === "en_reparacion").length;
-    return `📦 Estado de equipos:
-
-• Total: ${equipos.length}
-• Disponibles: ${disponibles}
-• Averiados: ${averiados}
-• En reparación: ${reparacion}
-
-${averiados > 0 ? `⚠️ Tienes ${averiados} equipo(s) averiado(s) que necesitan atención.` : "✅ Todos los equipos están operativos."}`;
+    return `${equipos.length} equipos: ${disponibles} disponibles, ${averiados} averiados.${averiados > 0 ? ` Hay ${averiados} que necesitan revisión.` : " Todo operativo."}`;
   }
-
-  // Despachos
   if (/despacho|env[ií]o|entrega/i.test(msg)) {
-    return `📤 Despachos:
-
-• Total de despachos: ${despachos.length}
-• Hoy: ${despachos.filter(d => { try { return new Date(d.fecha).toDateString() === new Date().toDateString(); } catch { return false; } }).length}
-
-${despachos.length === 0 ? "No hay despachos registrados. Puedes registrar uno diciendo 'despacha [cantidad] de [SKU]'." : `Últimos despachos:\n${despachos.slice(0, 3).map(d => `• ${d.cantidad} und — ${d.producto || d.sku}`).join("\n")}`}`;
+    const hoy = despachos.filter(d => { try { return new Date(d.fecha).toDateString() === new Date().toDateString(); } catch { return false; } }).length;
+    return `${despachos.length} despachos en total, ${hoy} hoy.${despachos.length > 0 ? `\nÚltimos:\n${despachos.slice(0, 3).map(d => `• ${d.cantidad} und — ${d.producto || d.sku}`).join("\n")}` : ""}`;
+  }
+  if (/personal|gente|personas|miembros/i.test(msg)) {
+    return `${miembros.length} personas en el equipo${miembros.length > 0 ? `:\n${miembros.slice(0, 5).map(m => `• ${m.nombre} — ${m.rol}`).join("\n")}` : "."}`;
   }
 
-  // Personal / equipo de trabajo
-  if (/personal|equipo|gente|personas|miembros/i.test(msg)) {
-    return `👥 Personal del almacén:
-
-• Total: ${miembros.length} personas
-${miembros.length > 0 ? miembros.slice(0, 5).map(m => `• ${m.nombre} — ${m.rol}`).join("\n") : "No hay personal registrado."}`;
+  // === 5. ACCIONES DEL SISTEMA ===
+  if (/a[ñn]ade|agrega|nuevo producto/i.test(msg)) {
+    return `Dime: "añade 50 conectores RJ-45, SKU CONN-RJ45, mínimo 20" y lo cargo.`;
   }
-
-  // Añadir producto
-  if (/a[ñn]ade|agrega|crear.*producto|nuevo producto/i.test(msg)) {
-    return `Para añadir un producto, dime: "añade [cantidad] [nombre del producto], SKU [código], mínimo [número]"
-
-Ejemplo: "añade 50 conectores RJ-45, SKU CONN-RJ45, mínimo 20"`;
+  if (/anota|apunta/i.test(msg)) {
+    const textoNota = mensaje.replace(/^(anota|apunta)\s*/i, "").trim();
+    if (textoNota.length > 3) return `Anotado: "${textoNota}"\n\n[[ACCION]]\ntipo: add_note\ntexto: ${textoNota}\n[[/ACCION]]`;
+    return `¿Qué anoto? Dime "anota [texto]".`;
   }
-
-  // Añadir nota
-  if (/anota|nota|recuerda que|apunta/i.test(msg)) {
-    // Si el mensaje contiene "anota" o "nota", crear la nota
-    const textoNota = mensaje.replace(/^(anota|nota|recuerda que|apunta)\s*/i, "").trim();
-    if (textoNota.length > 3) {
-      return `Anotado. Creé la nota: "${textoNota}"\n\n[[ACCION]]\ntipo: add_note\ntexto: ${textoNota}\n[[/ACCION]]`;
-    }
-    return `¿Qué quieres que anote? Dime "anota [texto]" y lo guardo en el bloc.`;
-  }
-
-  // Cambiar tema
-  if (/tema|blanco|claro|oscuro|negro/i.test(msg)) {
-    if (/blanco|claro/i.test(msg)) {
-      return `Cambiando el tema a claro.\n\n[[ACCION]]\ntipo: set_theme\ntema: claro\n[[/ACCION]]`;
-    }
-    if (/oscuro|negro/i.test(msg)) {
-      return `Cambiando el tema a oscuro.\n\n[[ACCION]]\ntipo: set_theme\ntema: oscuro\n[[/ACCION]]`;
-    }
-    return `Puedo cambiar el tema. Dime "pon la página en blanco" o "pon la página en oscuro".`;
-  }
+  if (/pon.*blanco|pon.*claro|modo claro/i.test(msg)) return `Listo.\n\n[[ACCION]]\ntipo: set_theme\ntema: claro\n[[/ACCION]]`;
+  if (/pon.*oscuro|pon.*negro|modo oscuro/i.test(msg)) return `Listo.\n\n[[ACCION]]\ntipo: set_theme\ntema: oscuro\n[[/ACCION]]`;
 
   // Recordatorio
-  if (/recu[eé]rdame|recuerdo|recordatorio|av[ií]same/i.test(msg)) {
-    return `Para crear un recordatorio, dime: "recuérdame [texto] en [tiempo]"
-
-Ejemplo: "recuérdame pedir conectores mañana a las 9am"`;
-  }
-
-  // Ayuda
-  if (/ayuda|qu[eé] puedes|qu[eé] haces|funciones|comandos/i.test(msg)) {
-    return `¡Claro! Esto es lo que puedo hacer:
-
-📊 **Consultas:**
-• "¿qué productos tengo?"
-• "¿qué hay con bajo stock?"
-• "¿cómo están los equipos?"
-• "¿cuántos despachos hay?"
-
-📝 **Acciones:**
-• "añade 50 conectores RJ-45, SKU CONN-RJ45"
-• "anota que hay que revisar el cable RG-6"
-• "despacha 10 conectores para Pérez"
-• "pon la página en blanco"
-
-🔔 **Recordatorios:**
-• "recuérdame pedir conectores mañana"
-
-💬 Solo pregúntame lo que necesites y te ayudo.`;
+  if (/recu[eé]rdame|recuerdo|recordatorio|av[ií]same|hazme recordar/i.test(msg)) {
+    let textoRec = mensaje.replace(/^(recuérdame|recuerdame|recuerda que|recordatorio|avísame|avisame|hazme recordar|crea un recordatorio)\s*/i, "").replace(/^(que|de|para)\s+/i, "").trim();
+    if (textoRec.length < 3) return `¿Qué quieres que te recuerde? Ej: "recuérdame pedir conectores mañana a las 9".`;
+    const ahora = new Date();
+    let cuando = new Date(ahora);
+    if (/mañana|manana/i.test(msg)) cuando.setDate(cuando.getDate() + 1);
+    const matchHoras = msg.match(/en\s+(\d+)\s+horas?/i);
+    if (matchHoras) cuando = new Date(ahora.getTime() + parseInt(matchHoras[1]) * 3600000);
+    const matchMinutos = msg.match(/en\s+(\d+)\s+minutos?/i);
+    if (matchMinutos) cuando = new Date(ahora.getTime() + parseInt(matchMinutos[1]) * 60000);
+    const matchHora = msg.match(/a\s*las?\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+    if (matchHora) {
+      let horas = parseInt(matchHora[1]);
+      const minutos = matchHora[2] ? parseInt(matchHora[2]) : 0;
+      const ampm = matchHora[3]?.toLowerCase();
+      if (ampm === "pm" && horas < 12) horas += 12;
+      if (ampm === "am" && horas === 12) horas = 0;
+      cuando.setUTCHours(horas + 5, minutos, 0, 0);
+      if (cuando <= ahora && !/mañana|manana/i.test(msg)) cuando.setDate(cuando.getDate() + 1);
+    }
+    if (!matchHora && !matchHoras && !matchMinutos) cuando = new Date(ahora.getTime() + 3600000);
+    const cuandoTexto = cuando.toLocaleString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: true });
+    textoRec = textoRec.replace(/mañana\s+a\s*las?\s*\d{1,2}(?::\d{2})?\s*(am|pm)?/i, "").replace(/a\s*las?\s*\d{1,2}(?::\d{2})?\s*(am|pm)?/i, "").replace(/en\s+\d+\s+(horas|minutos)/i, "").replace(/\s+/g, " ").trim();
+    if (textoRec.length < 3) textoRec = "Recordatorio";
+    return `Listo, te aviso el ${cuandoTexto}.\n\n[[RECORDATORIO]]\ntexto: ${textoRec}\ncuando: ${cuando.toISOString()}\n[[/RECORDATORIO]]`;
   }
 
   // Memoria
-  if (/memoria|qu[eé] has aprendido|recuerdas/i.test(msg)) {
-    if (memoria.length === 0) {
-      return `Todavía no he aprendido nada específico. Si me dices "recuerda que..." o "aprende que...", guardaré esa información para futuras consultas.`;
-    }
-    return `Esto es lo que he aprendido:\n\n${memoria.map((m, i) => `${i + 1}. ${m}`).join("\n")}`;
+  if (/recuerda que|aprende que|ten en cuenta que/i.test(msg)) {
+    const textoMemo = mensaje.replace(/^(recuerda que|aprende que|ten en cuenta que)\s*/i, "").trim();
+    if (textoMemo.length > 3) return `Entendido, lo recuerdo.\n\n[[MEMORIA]]\ntexto: ${textoMemo}\n[[/MEMORIA]]`;
+  }
+
+  // Ayuda
+  if (/ayuda|qu[eé] puedes|qu[eé] haces|funciones/i.test(msg)) {
+    return `Puedo hacer mucho, ${nombre}:
+
+Preguntas: pregúntame lo que sea — geografía, ciencia, historia, matemáticas.
+Almacén: "qué productos tengo", "qué falta", "cómo están los equipos".
+Acciones: "añade 50 conectores SKU X", "anota revisar cable", "pon la página en blanco".
+Recordatorios: "recuérdame pedir conectores mañana a las 9".
+Memoria: "recuerda que el técnico Pérez viene los lunes".
+Matemáticas: "cuánto es 5 por 3", "20% de 500", "100 entre 5".
+
+Dime qué necesitas.`;
   }
 
   // Buscar producto por SKU o nombre
@@ -750,45 +746,42 @@ Ejemplo: "recuérdame pedir conectores mañana a las 9am"`;
     msg.includes(p.sku.toLowerCase()) || (p.name && msg.includes(p.name.toLowerCase()))
   );
   if (productoEncontrado) {
-    return `📦 ${productoEncontrado.name}
-
-• SKU: ${productoEncontrado.sku}
-• Stock actual: ${productoEncontrado.quantity} ${productoEncontrado.udm || "unidades"}
-• Stock mínimo: ${productoEncontrado.minStock || "no definido"}
-${productoEncontrado.minStock && productoEncontrado.quantity <= productoEncontrado.minStock ? "🚨 ¡Está por debajo del mínimo!" : "✅ Stock en buen nivel."}`;
+    return `${productoEncontrado.name}\nSKU: ${productoEncontrado.sku}\nStock: ${productoEncontrado.quantity} ${productoEncontrado.udm || "und"}\n${productoEncontrado.minStock && productoEncontrado.quantity <= productoEncontrado.minStock ? "Está bajo del mínimo." : "Stock bien."}`;
   }
 
-  // Respuesta por defecto — BUSCAR EN WIKIPEDIA PARA TODO
-  // Si no matcheó nada de lo anterior, buscar el mensaje completo en Wikipedia
-  try {
-    const wikiUrl = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(mensaje)}&format=json&utf8=1&srlimit=1`;
-    const wikiRes = await fetch(wikiUrl, {
-      headers: { "User-Agent": "Alana-LEMCORP/1.0" },
-    });
-    if (wikiRes.ok) {
-      const wikiData = await wikiRes.json();
-      const searchResults = wikiData?.query?.search;
-      if (searchResults && searchResults.length > 0) {
-        const pageTitle = searchResults[0].title;
-        const summaryUrl = `https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(pageTitle)}`;
-        const summaryRes = await fetch(summaryUrl, {
-          headers: { "User-Agent": "Alana-LEMCORP/1.0" },
-        });
-        if (summaryRes.ok) {
-          const summaryData = await summaryRes.json();
-          const extract = summaryData?.extract;
-          if (extract && extract.length > 20) {
-            let respuesta = extract;
-            if (respuesta.length > 400) {
-              respuesta = respuesta.slice(0, 400).trim() + "...";
+  // === 6. WIKIPEDIA — BUSCAR PARA TODAS LAS PREGUNTAS ===
+  // Extraer el tema de búsqueda limpiando palabras de pregunta
+  let temaBusqueda = msg
+    .replace(/^(qu[eé] es|qu[eé] son|qu[eé] significa|qu[ié]n es|qu[ié]n fue|quien es|quien fue|qu[ié]nes son|d[ií]me|dime qu[eé] es|dime sobre|h[aá]blame de|cu[eé]ntame de|cu[eé]ntame sobre|informaci[oó]n sobre|s[aá]bes de|s[aá]bes sobre|qu[eé] sabes de|qu[eé] sabes sobre|cu[aá]l es la|cu[aá]l es el|d[oó]nde est[aá]|c[oó]mo se|por qu[eé]|cu[aá]ndo|hay)\s*/i, "")
+    .replace(/\?/g, "")
+    .replace(/^(la|el|los|las|un|una|de|del|al|es|en)\s+/i, "")
+    .trim();
+
+  if (temaBusqueda.length > 2) {
+    try {
+      const wikiUrl = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(temaBusqueda)}&format=json&utf8=1&srlimit=1`;
+      const wikiRes = await fetch(wikiUrl, { headers: { "User-Agent": "Alana-LEMCORP/1.0" } });
+      if (wikiRes.ok) {
+        const wikiData = await wikiRes.json();
+        const searchResults = wikiData?.query?.search;
+        if (searchResults && searchResults.length > 0) {
+          const pageTitle = searchResults[0].title;
+          const summaryUrl = `https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(pageTitle)}`;
+          const summaryRes = await fetch(summaryUrl, { headers: { "User-Agent": "Alana-LEMCORP/1.0" } });
+          if (summaryRes.ok) {
+            const summaryData = await summaryRes.json();
+            const extract = summaryData?.extract;
+            if (extract && extract.length > 20) {
+              let respuesta = extract;
+              if (respuesta.length > 400) respuesta = respuesta.slice(0, 400).trim() + "...";
+              return `${respuesta}\n\n(Fuente: Wikipedia)`;
             }
-            return `${respuesta}\n\n(Fuente: Wikipedia)`;
           }
         }
       }
-    }
-  } catch {}
+    } catch {}
+  }
 
-  // Si Wikipedia tampoco respondió
-  return `No encontré información sobre eso, ${nombre}. Prueba reformulando la pregunta. Para cosas del almacén dime "ayuda" y te muestro lo que puedo hacer.`;
+  // === 7. RESPUESTA FINAL ===
+  return `No encontré información exacta sobre eso, ${nombre}. ¿Puedes reformular la pregunta? También puedo ayudarte con matemáticas ("cuánto es 5 por 3"), el almacén ("qué productos tengo"), o dime "ayuda".`;
 }
