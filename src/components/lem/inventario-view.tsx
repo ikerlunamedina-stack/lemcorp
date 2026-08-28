@@ -54,15 +54,17 @@ export function InventarioView() {
   const [importResult, setImportResult] = useState<{ ok: number; nuevos: number; actualizados: number; msg: string } | null>(null);
   const importFileRef = useRef<HTMLInputElement>(null);
 
-  const filtered = [...products]
-    .sort((a, b) => a.sku.localeCompare(b.sku, undefined, { numeric: true }))
-    .filter((p) => {
-      const q = query.toLowerCase().trim();
-      if (!q) return true;
-      return p.sku.toLowerCase().includes(q) || p.name.toLowerCase().includes(q);
-    });
+  const filtered = useMemo(() => {
+    const q = query.toLowerCase().trim();
+    return [...products]
+      .sort((a, b) => a.sku.localeCompare(b.sku, undefined, { numeric: true }))
+      .filter((p) => {
+        if (!q) return true;
+        return p.sku.toLowerCase().includes(q) || p.name.toLowerCase().includes(q);
+      });
+  }, [products, query]);
 
-  const totalUnidades = products.reduce((s, p) => s + p.quantity, 0);
+  const totalUnidades = useMemo(() => products.reduce((s, p) => s + p.quantity, 0), [products]);
 
   const openCreate = () => {
     setEditing(null);

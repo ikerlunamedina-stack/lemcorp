@@ -133,6 +133,8 @@ export function PistolearView() {
   const [showDuplicadosModal, setShowDuplicadosModal] = useState(false);
   /** Resultado de la última confirmación */
   const [lastConfirmResult, setLastConfirmResult] = useState<{ ok: boolean; msg: string; duplicados?: string[] } | null>(null);
+  /** Cuántas filas renderizar (paginación para listas grandes) */
+  const [visibleCount, setVisibleCount] = useState(100);
 
   // Setter que actualiza el store (persiste al refrescar)
   const setModeloSeleccionado = (v: string) => setPistoleoConfig({ pistoleoModeloSeleccionado: v });
@@ -165,6 +167,13 @@ export function PistolearView() {
   const handleScan = (raw: string) => {
     const v = raw.trim();
     if (!v) return;
+
+    // Límite de 1000 series por lote
+    if (pistoleoFilas.length >= 1000) {
+      pushFeedback(false, "Límite alcanzado: 1000 series por lote. Guarda primero.");
+      setValor("");
+      return;
+    }
 
     const idxEnFila = parcial.length;
     const esSerie = idxEnFila === 0;
@@ -256,9 +265,6 @@ export function PistolearView() {
 
   const startEdit = (id: string, valores: string[], modeloSel?: string) => {
     setEditingId(id);
-    setEditingValores([...valores]);
-    // Rellenar con strings vacíos hasta completar camposEsperados
-    while (editingValores.length < camposEsperados) editingValores.push("");
     setEditingValores([...valores, ...Array(Math.max(0, camposEsperados - valores.length)).fill("")]);
     setEditingModelo(modeloSel ?? "");
   };
@@ -285,6 +291,37 @@ export function PistolearView() {
 
   const hayParcial = parcial.length > 0;
   const feedbackVisible = feedback && Date.now() - feedback.ts < 4000;
+
+  // Auto-ocultar feedback después de 4 segundos
+  useEffect(() => {
+    if (!feedback) return;
+    const id = setTimeout(() => setFeedback(null), 4000);
+    return () => clearTimeout(id);
+  }, [feedback]);
+
+  // Set de series existentes para lookup O(1) (evita O(n²) en render de tabla)
+  const seriesExistentesSet = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of equipos) {
+      const s = e.serie.trim().toLowerCase();
+      if (s) set.add(s);
+    }
+    return set;
+  }, [equipos]);
+
+  // Set de duplicados en lote para lookup O(1)
+  const duplicadosEnLoteSet = useMemo(() => {
+    const set = new Set<string>();
+    for (const d of duplicadosEnLote) set.add(d.toUpperCase());
+    return set;
+  }, [duplicadosEnLote]);
+
+  // Filas visibles (paginación para listas grandes)
+  const filasVisibles = useMemo(
+    () => pistoleoFilas.slice(0, visibleCount),
+    [pistoleoFilas, visibleCount]
+  );
+  const hayMasFilas = pistoleoFilas.length > visibleCount;
 
   // Catálogo de productos para seleccionar el equipo/modelo
   const productosUnicos = useMemo(() => {
@@ -595,6 +632,17 @@ export function PistolearView() {
         </span>
       </div>
 
+      {/* Aviso de límite */}
+      {pistoleoFilas.length >= 900 && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-[12px] text-amber-700 dark:text-amber-300">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>
+            Límite: {pistoleoFilas.length}/1000 series por lote. {1000 - pistoleoFilas.length} restantes.
+            Guarda el lote actual antes de seguir capturando.
+          </span>
+        </div>
+      )}
+
       {/* Tabla de capturas */}
       <div className="anim-fade-up overflow-hidden rounded-2xl border border-border bg-card">
         <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
@@ -629,7 +677,7 @@ export function PistolearView() {
                 </tr>
               </thead>
               <tbody>
-                {pistoleoFilas.map((f, i) => {
+                {filasVisibles.map((f, i) => {
                   const serie = f.valores[0] ?? "";
                   const mac = f.valores[1] ?? "";
                   const cmMac = f.valores[2] ?? "";
@@ -638,8 +686,8 @@ export function PistolearView() {
                     || pistoleoModelo.trim()
                     || detectarModelo(serie, settings.pistoleoPrefijoEnabled)
                     || "SIN MODELO";
-                  const yaEnSistema = !!findEquipmentBySerie(serie);
-                  const dupEnLote = duplicadosEnLote.some((d) => d.toUpperCase() === serie.toUpperCase());
+                  const yaEnSistema = seriesExistentesSet.has(serie.trim().toLowerCase());
+                  const dupEnLote = duplicadosEnLoteSet.has(serie.toUpperCase());
 
                   if (editingId === f.id) {
                     return (
@@ -817,6 +865,16 @@ export function PistolearView() {
                 })}
               </tbody>
             </table>
+            {hayMasFilas && (
+              <div className="border-t border-border/60 bg-muted/40 px-4 py-3 text-center">
+                <button
+                  onClick={() => setVisibleCount((c) => c + 100)}
+                  className="press rounded-xl border border-border bg-card px-4 py-2 text-[12px] font-semibold text-foreground hover:bg-accent"
+                >
+                  Cargar 100 más (mostrando {filasVisibles.length} de {pistoleoFilas.length})
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -885,7 +943,7 @@ export function PistolearView() {
                     const serie = f.valores[0] ?? "";
                     const mac = f.valores[1] ?? "";
                     const cmMac = f.valores[2] ?? "";
-                    const yaEnSistema = !!findEquipmentBySerie(serie);
+                    const yaEnSistema = seriesExistentesSet.has(serie.trim().toLowerCase());
                     return (
                       <tr
                         key={f.id}

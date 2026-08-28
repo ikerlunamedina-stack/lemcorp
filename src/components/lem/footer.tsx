@@ -11,7 +11,19 @@ export function Footer() {
   const [now, setNow] = useState("");
 
   useEffect(() => {
-    const tick = () => setNow(new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }));
+    const tick = () => {
+      try {
+        // Usar zona horaria de Lima para consistencia con el sub-header
+        setNow(new Date().toLocaleTimeString("es-PE", {
+          timeZone: "America/Lima",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }));
+      } catch {
+        setNow(new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false }));
+      }
+    };
     tick();
     const id = setInterval(tick, 30000);
     return () => clearInterval(id);
@@ -21,7 +33,7 @@ export function Footer() {
 
   return (
     <footer
-      className="glass-topbar flex h-9 shrink-0 items-center gap-4 border-t border-border/60 px-4 text-[11px] text-muted-foreground sm:px-6"
+      className="glass-topbar flex min-h-9 shrink-0 items-center gap-4 border-t border-border/60 px-4 text-[11px] text-muted-foreground sm:px-6"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <span className="flex items-center gap-1.5">

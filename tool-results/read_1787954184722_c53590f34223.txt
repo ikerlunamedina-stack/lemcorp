@@ -1,0 +1,1279 @@
+     1→// Store global LEMCORP WMS — Zustand + persist (localStorage)
+     2→// Premium build — REBUILD-1
+     3→
+     4→import { create } from "zustand";
+     5→import { persist } from "zustand/middleware";
+     6→import type {
+     7→  ActiveView,
+     8→  Despacho,
+     9→  Equipment,
+    10→  Entrada,
+    11→  EstadoEquipo,
+    12→  FilaPistoleo,
+    13→  Horario,
+    14→  InfoEmpresa,
+    15→  MiembroEquipo,
+    16→  Nota,
+    17→  Notificacion,
+    18→  Permiso,
+    19→  PistoleoCampo,
+    20→  Product,
+    21→  Recordatorio,
+    22→  Rol,
+    23→  Settings,
+    24→} from "./types";
+    25→import {
+    26→  DEFAULT_EMPRESA,
+    27→  DEFAULT_SETTINGS,
+    28→  PERMISOS_POR_ROL,
+    29→  REGLAS_PREFIJO,
+    30→  uid,
+    31→} from "./types";
+    32→
+    33→interface StoreState {
+    34→  // Datos
+    35→  products: Product[];
+    36→  equipos: Equipment[];
+    37→  entradas: Entrada[];
+    38→  despachos: Despacho[];
+    39→  notas: Nota[];
+    40→  recordatorios: Recordatorio[];
+    41→  notificaciones: Notificacion[];
+    42→  miembros: MiembroEquipo[];
+    43→  empresa: InfoEmpresa;
+    44→  settings: Settings;
+    45→
+    46→  // Horario de almacén
+    47→  horario: Horario[];
+    48→
+    49→  // Memoria de aprendizaje de Alana (cosas que ha aprendido del usuario)
+    50→  memoriaIA: string[];
+    51→
+    52→  // Cuenta de productos en bajo stock que el usuario ya vio
+    53→  // (para que el badge de la campana desaparezca al visitar /notificaciones)
+    54→  bajoStockVisto: number;
+    55→
+    56→  // Sesión: ID del miembro del equipo que está usando el sistema ahora.
+    57→  // Si es null, se asume modo ADMIN (dueño del sistema) para compatibilidad.
+    58→  sesionUsuarioId: string | null;
+    59→
+    60→  // UI / sesión
+    61→  activeView: ActiveView;
+    62→
+    63→  // Pistoleo
+    64→  pistoleoCampo: PistoleoCampo;
+    65→  pistoleoModelo: string;
+    66→  pistoleoEstado: EstadoEquipo;
+    67→  pistoleoFilas: FilaPistoleo[];
+    68→  /** Equipo del inventario seleccionado para aplicar a nuevas capturas */
+    69→  pistoleoModeloSeleccionado: string;
+    70→
+    71→  // ─── Acciones: navegación ───
+    72→  setActiveView: (v: ActiveView) => void;
+    73→
+    74→  // ─── Acciones: notificaciones ───
+    75→  marcarBajoStockVisto: (count: number) => void;
+    76→
+    77→  // ─── Acciones: pistoleo ───
+    78→  setPistoleoConfig: (patch: Partial<{
+    79→    pistoleoCampo: PistoleoCampo;
+    80→    pistoleoModelo: string;
+    81→    pistoleoEstado: EstadoEquipo;
+    82→    pistoleoModeloSeleccionado: string;
+    83→  }>) => void;
+    84→  addPistoleoFila: (valores: string[], modeloSeleccionado?: string) => void;
+    85→  updatePistoleoFila: (id: string, valores: string[], modeloSeleccionado?: string) => void;
+    86→  deletePistoleoFila: (id: string) => void;
+    87→  clearPistoleoFilas: () => void;
+    88→  confirmarPistoleo: () => { ok: boolean; msg: string; count: number; duplicados?: string[] };
+    89→
+    90→  // ─── Acciones: inventario ───
+    91→  addProduct: (sku: string, name: string, quantity: number, minStock?: number, udm?: string) => string | null;
+    92→  updateProduct: (id: string, data: Partial<Omit<Product, "id" | "createdAt">>) => void;
+    93→  deleteProduct: (id: string) => void;
+    94→  findProductBySku: (sku: string) => Product | null;
+    95→  importProductsBulk: (items: { sku: string; name: string; quantity: number; minStock?: number; udm?: string }[]) => { ok: number; dup: number };
+    96→
+    97→  // ─── Acciones: entradas ───
+    98→  registrarEntrada: (input: string) => { ok: boolean; msg: string; count: number };
+    99→  deleteEntrada: (id: string) => void;
+   100→
+   101→  // ─── Acciones: despachos ───
+   102→  registrarDespacho: (input: {
+   103→    sku: string;
+   104→    cantidad: number;
+   105→    tecnico?: string;
+   106→    destino?: string;
+   107→    observacion?: string;
+   108→    fecha?: number;
+   109→  }) => { ok: boolean; msg: string };
+   110→  registrarDespachosBulk: (despachos: Array<{
+   111→    sku: string;
+   112→    cantidad: number;
+   113→    tecnico?: string;
+   114→    destino?: string;
+   115→    observacion?: string;
+   116→    fecha?: number;
+   117→  }>) => { ok: number; fail: number; fails: string[]; totalUnidades: number };
+   118→  deleteDespacho: (id: string) => void;
+   119→
+   120→  // ─── Acciones: equipos ───
+   121→  addEquipment: (e: Omit<Equipment, "id" | "createdAt" | "updatedAt">) => string | null;
+   122→  addEquipmentBulk: (input: {
+   123→    series: string[];
+   124→    modelo: string;
+   125→    estado: EstadoEquipo;
+   126→    ubicacion?: string;
+   127→    observacion?: string;
+   128→  }) => { ok: number; dup: number };
+   129→  updateEquipment: (id: string, data: Partial<Omit<Equipment, "id" | "createdAt">>) => void;
+   130→  deleteEquipment: (id: string) => void;
+   131→  findEquipmentBySerie: (serie: string) => Equipment | null;
+   132→  deleteEquipmentBulk: (ids: string[]) => void;
+   133→
+   134→  // ─── Acciones: bloc ───
+   135→  addNota: (texto: string) => void;
+   136→  togglePinNota: (id: string) => void;
+   137→  deleteNota: (id: string) => void;
+   138→
+   139→  // ─── Acciones: horario ───
+   140→  addHorarioItem: (item: Omit<Horario, "id">) => void;
+   141→  updateHorarioItem: (id: string, data: Partial<Omit<Horario, "id">>) => void;
+   142→  deleteHorarioItem: (id: string) => void;
+   143→  marcarHorarioDisparado: (id: string, fechaISO: string) => void;
+   144→  checkHorario: () => Horario[];
+   145→
+   146→  // ─── Acciones: memoria IA ───
+   147→  addMemoria: (texto: string) => void;
+   148→  deleteMemoria: (index: number) => void;
+   149→  clearMemoria: () => void;
+   150→
+   151→  // ─── Acciones: recordatorios (IA) ───
+   152→  addRecordatorio: (texto: string, cuando: number, origen?: "ia" | "manual") => string;
+   153→  deleteRecordatorio: (id: string) => void;
+   154→  marcarRecordatorioDisparado: (id: string) => void;
+   155→  checkRecordatorios: () => Recordatorio[];
+   156→
+   157→  // ─── Acciones: notificaciones (estilo iPhone) ───
+   158→  addNotificacion: (titulo: string, cuerpo: string, tipo?: Notificacion["tipo"]) => string;
+   159→  markNotificacionLeida: (id: string) => void;
+   160→  clearNotificaciones: () => void;
+   161→  clearNotificacionesLeidas: () => void;
+   162→
+   163→  // ─── Acciones: empresa / miembros ───
+   164→  updateEmpresa: (data: Partial<InfoEmpresa>) => void;
+   165→  addMiembro: (nombre: string, rol: Rol, correo?: string, telefono?: string) => void;
+   166→  updateMiembro: (id: string, data: Partial<Omit<MiembroEquipo, "id">>) => void;
+   167→  deleteMiembro: (id: string) => void;
+   168→
+   169→  // ─── Acciones: sesión y permisos ───
+   170→  iniciarSesion: (miembroId: string) => void;
+   171→  cerrarSesion: () => void;
+   172→  tienePermiso: (permiso: Permiso) => boolean;
+   173→  setPermisosMiembro: (id: string, permisosExtra: Permiso[], permisosRevocados: Permiso[]) => void;
+   174→
+   175→  // ─── Export ───
+   176→  exportInventarioExcel: () => void;
+   177→
+   178→  // ─── Config ───
+   179→  setSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
+   180→  clearAllData: () => void;
+   181→  seedDemo: () => void;
+   182→}
+   183→
+   184→function normalizaSerie(s: string): string {
+   185→  return s.trim();
+   186→}
+   187→
+   188→function detectarModeloPorPrefijo(serie: string): string | null {
+   189→  const s = serie.trim().toUpperCase();
+   190→  if (!s) return null;
+   191→  for (const regla of REGLAS_PREFIJO) {
+   192→    if (s.startsWith(regla.prefijo.toUpperCase())) return regla.modelo;
+   193→  }
+   194→  return null;
+   195→}
+   196→
+   197→export const useStore = create<StoreState>()(
+   198→  persist(
+   199→    (set, get) => ({
+   200→      products: [],
+   201→      equipos: [],
+   202→      entradas: [],
+   203→      despachos: [],
+   204→      notas: [],
+   205→      recordatorios: [],
+   206→      notificaciones: [],
+   207→      miembros: [],
+   208→      empresa: { ...DEFAULT_EMPRESA },
+   209→      settings: { ...DEFAULT_SETTINGS },
+   210→
+   211→      horario: [],
+   212→      memoriaIA: [],
+   213→
+   214→      bajoStockVisto: 0,
+   215→
+   216→      sesionUsuarioId: null,
+   217→
+   218→      activeView: "dashboard",
+   219→
+   220→      // pistoleo
+   221→      pistoleoCampo: "serie",
+   222→      pistoleoModelo: "",
+   223→      pistoleoEstado: "disponible",
+   224→      pistoleoFilas: [],
+   225→      pistoleoModeloSeleccionado: "",
+   226→
+   227→      // ─── Navegación ───
+   228→      setActiveView: (v) => set({ activeView: v }),
+   229→
+   230→      // ─── Notificaciones ───
+   231→      marcarBajoStockVisto: (count) => set({ bajoStockVisto: count }),
+   232→
+   233→      // ─── Sesión y permisos ───
+   234→      iniciarSesion: (miembroId) => set({ sesionUsuarioId: miembroId }),
+   235→      cerrarSesion: () => set({ sesionUsuarioId: null }),
+   236→      tienePermiso: (permiso) => {
+   237→        const state = get();
+   238→        const userId = state.sesionUsuarioId;
+   239→        // Si no hay sesión iniciada, modo ADMIN (dueño) — todos los permisos
+   240→        if (!userId) return true;
+   241→        const miembro = state.miembros.find((m) => m.id === userId);
+   242→        if (!miembro) return true; // fallback admin
+   243→        // Admin tiene todo
+   244→        if (miembro.rol === "administrador") return true;
+   245→        // Permisos del rol
+   246→        const permisosRol = PERMISOS_POR_ROL[miembro.rol] ?? [];
+   247→        const extra = miembro.permisosExtra ?? [];
+   248→        const revocados = miembro.permisosRevocados ?? [];
+   249→        const efectivos = new Set([...permisosRol, ...extra]);
+   250→        for (const r of revocados) efectivos.delete(r);
+   251→        return efectivos.has(permiso);
+   252→      },
+   253→      setPermisosMiembro: (id, permisosExtra, permisosRevocados) =>
+   254→        set({
+   255→          miembros: get().miembros.map((m) =>
+   256→            m.id === id ? { ...m, permisosExtra, permisosRevocados } : m
+   257→          ),
+   258→        }),
+   259→
+   260→      // ─── Pistoleo ───
+   261→      setPistoleoConfig: (patch) => set({ ...patch }),
+   262→      addPistoleoFila: (valores, modeloSeleccionado) =>
+   263→        set({
+   264→          pistoleoFilas: [
+   265→            {
+   266→              id: uid(),
+   267→              valores: valores.map((v) => v.trim()),
+   268→              timestamp: Date.now(),
+   269→              modeloSeleccionado,
+   270→            },
+   271→            ...get().pistoleoFilas,
+   272→          ],
+   273→        }),
+   274→      updatePistoleoFila: (id, valores, modeloSeleccionado) =>
+   275→        set({
+   276→          pistoleoFilas: get().pistoleoFilas.map((f) =>
+   277→            f.id === id
+   278→              ? {
+   279→                  ...f,
+   280→                  valores: valores.map((v) => v.trim()),
+   281→                  modeloSeleccionado: modeloSeleccionado ?? f.modeloSeleccionado,
+   282→                }
+   283→              : f
+   284→          ),
+   285→        }),
+   286→      deletePistoleoFila: (id) =>
+   287→        set({ pistoleoFilas: get().pistoleoFilas.filter((f) => f.id !== id) }),
+   288→      clearPistoleoFilas: () => set({ pistoleoFilas: [] }),
+   289→
+   290→      confirmarPistoleo: () => {
+   291→        const filas = get().pistoleoFilas;
+   292→        if (filas.length === 0) return { ok: false, msg: "No hay series para guardar.", count: 0 };
+   293→        const { pistoleoModelo, pistoleoEstado, pistoleoCampo } = get();
+   294→        let count = 0;
+   295→        const nuevos: Equipment[] = [];
+   296→        const existentes = new Set(get().equipos.map((e) => e.serie.trim().toLowerCase()));
+   297→        const duplicadosNoGuardados: string[] = [];
+   298→        const fechasNow = Date.now();
+   299→        for (const f of filas) {
+   300→          const serie = (f.valores[0] ?? "").trim();
+   301→          if (!serie) continue;
+   302→          if (existentes.has(serie.toLowerCase())) {
+   303→            duplicadosNoGuardados.push(serie);
+   304→            continue;
+   305→          }
+   306→          // MAC es valores[1] cuando el modo es serie_mac o serie_mac_cm
+   307→          // CM MAC es valores[2] cuando el modo es serie_mac_cm
+   308→          const mac = pistoleoCampo === "serie_mac" || pistoleoCampo === "serie_mac_cm"
+   309→            ? (f.valores[1] ?? "").trim() || undefined
+   310→            : undefined;
+   311→          const cmMac = pistoleoCampo === "serie_mac_cm"
+   312→            ? (f.valores[2] ?? "").trim() || undefined
+   313→            : undefined;
+   314→          const modelo = f.modeloSeleccionado?.trim()
+   315→            || pistoleoModelo.trim()
+   316→            || detectarModeloPorPrefijo(serie)
+   317→            || "SIN MODELO";
+   318→          nuevos.push({
+   319→            id: uid(),
+   320→            serie,
+   321→            modelo,
+   322→            estado: pistoleoEstado,
+   323→            ubicacion: "Almacén HUB",
+   324→            mac,
+   325→            cmMac,
+   326→            createdAt: fechasNow,
+   327→            updatedAt: fechasNow,
+   328→          });
+   329→          existentes.add(serie.toLowerCase());
+   330→          count++;
+   331→        }
+   332→        if (count === 0) {
+   333→          return {
+   334→            ok: false,
+   335→            msg: `Las ${duplicadosNoGuardados.length} serie(s) ya estaban registradas en el sistema.`,
+   336→            count: 0,
+   337→            duplicados: duplicadosNoGuardados,
+   338→          };
+   339→        }
+   340→        set({ equipos: [...nuevos, ...get().equipos], pistoleoFilas: [] });
+   341→        return {
+   342→          ok: true,
+   343→          msg: duplicadosNoGuardados.length > 0
+   344→            ? `${count} equipo(s) guardado(s). ${duplicadosNoGuardados.length} ya estaban registradas.`
+   345→            : `${count} equipo(s) guardado(s) correctamente.`,
+   346→          count,
+   347→          duplicados: duplicadosNoGuardados.length > 0 ? duplicadosNoGuardados : undefined,
+   348→        };
+   349→      },
+   350→
+   351→      // ─── Inventario ───
+   352→      findProductBySku: (sku) => {
+   353→        const norm = sku.trim().toLowerCase();
+   354→        return get().products.find((p) => p.sku.trim().toLowerCase() === norm) ?? null;
+   355→      },
+   356→
+   357→      addProduct: (sku, name, quantity, minStock, udm) => {
+   358→        const skuTrim = sku.trim();
+   359→        if (!skuTrim || !name.trim()) return null;
+   360→        if (get().findProductBySku(skuTrim)) return null;
+   361→        const p: Product = {
+   362→          id: uid(),
+   363→          sku: skuTrim,
+   364→          name: name.trim(),
+   365→          quantity: quantity || 0,
+   366→          minStock,
+   367→          udm,
+   368→          createdAt: Date.now(),
+   369→          updatedAt: Date.now(),
+   370→        };
+   371→        set({ products: [...get().products, p] });
+   372→        return p.id;
+   373→      },
+   374→
+   375→      updateProduct: (id, data) =>
+   376→        set({
+   377→          products: get().products.map((p) =>
+   378→            p.id === id ? { ...p, ...data, updatedAt: Date.now() } : p
+   379→          ),
+   380→        }),
+   381→
+   382→      deleteProduct: (id) =>
+   383→        set({ products: get().products.filter((p) => p.id !== id) }),
+   384→
+   385→      importProductsBulk: (items) => {
+   386→        let ok = 0;
+   387→        let dup = 0;
+   388→        const nuevos: Product[] = [];
+   389→        const existSkus = new Set(get().products.map((p) => p.sku.trim().toLowerCase()));
+   390→        for (const it of items) {
+   391→          const sku = it.sku.trim();
+   392→          if (!sku || !it.name.trim()) continue;
+   393→          if (existSkus.has(sku.toLowerCase())) { dup++; continue; }
+   394→          existSkus.add(sku.toLowerCase());
+   395→          nuevos.push({
+   396→            id: uid(),
+   397→            sku,
+   398→            name: it.name.trim(),
+   399→            quantity: it.quantity || 0,
+   400→            minStock: it.minStock,
+   401→            udm: it.udm,
+   402→            createdAt: Date.now(),
+   403→            updatedAt: Date.now(),
+   404→          });
+   405→          ok++;
+   406→        }
+   407→        if (nuevos.length > 0) set({ products: [...get().products, ...nuevos] });
+   408→        return { ok, dup };
+   409→      },
+   410→
+   411→      // ─── Entradas (formato SKU*cantidad por línea) ───
+   412→      registrarEntrada: (input) => {
+   413→        const lines = input.split("\n").filter((l) => l.trim());
+   414→        let count = 0;
+   415→        const newEntradas: Entrada[] = [];
+   416→        for (const line of lines) {
+   417→          const parts = line.trim().split("*");
+   418→          if (parts.length < 2) continue;
+   419→          const sku = parts[0].trim();
+   420→          const cantidad = parseInt(parts[1].trim(), 10);
+   421→          if (!sku || isNaN(cantidad) || cantidad <= 0) continue;
+   422→          const product = get().findProductBySku(sku);
+   423→          if (product) {
+   424→            set({
+   425→              products: get().products.map((p) =>
+   426→                p.id === product.id
+   427→                  ? { ...p, quantity: p.quantity + cantidad, updatedAt: Date.now() }
+   428→                  : p
+   429→              ),
+   430→            });
+   431→          }
+   432→          newEntradas.push({
+   433→            id: uid(),
+   434→            fecha: Date.now(),
+   435→            sku,
+   436→            producto: product?.name ?? sku,
+   437→            cantidad,
+   438→          });
+   439→          count++;
+   440→        }
+   441→        if (count > 0) set({ entradas: [...newEntradas, ...get().entradas] });
+   442→        return {
+   443→          ok: count > 0,
+   444→          msg: count > 0
+   445→            ? `${count} entrada(s) registrada(s)`
+   446→            : "Formato incorrecto. Usa: SKU*cantidad (ej: 1066990*100)",
+   447→          count,
+   448→        };
+   449→      },
+   450→
+   451→      deleteEntrada: (id) => {
+   452→        const ent = get().entradas.find((e) => e.id === id);
+   453→        if (!ent) return;
+   454→        const product = get().findProductBySku(ent.sku);
+   455→        if (product) {
+   456→          set({
+   457→            products: get().products.map((p) =>
+   458→              p.id === product.id
+   459→                ? { ...p, quantity: Math.max(0, p.quantity - ent.cantidad), updatedAt: Date.now() }
+   460→                : p
+   461→            ),
+   462→          });
+   463→        }
+   464→        set({ entradas: get().entradas.filter((e) => e.id !== id) });
+   465→      },
+   466→
+   467→      // ─── Despachos (valida SKU y stock, descuenta inventario) ───
+   468→      registrarDespacho: ({ sku, cantidad, tecnico, destino, observacion, fecha }) => {
+   469→        const skuTrim = sku.trim();
+   470→        const product = get().findProductBySku(skuTrim);
+   471→        if (!product) {
+   472→          return { ok: false, msg: `SKU "${skuTrim}" no encontrado en el catálogo.` };
+   473→        }
+   474→        if (!Number.isFinite(cantidad) || cantidad <= 0) {
+   475→          return { ok: false, msg: "La cantidad debe ser mayor a 0." };
+   476→        }
+   477→        if (product.quantity < cantidad) {
+   478→          return {
+   479→            ok: false,
+   480→            msg: `Stock insuficiente. Disponible: ${product.quantity}, solicitado: ${cantidad}.`,
+   481→          };
+   482→        }
+   483→        const d: Despacho = {
+   484→          id: uid(),
+   485→          fecha: fecha || Date.now(),
+   486→          sku: product.sku,
+   487→          producto: product.name,
+   488→          cantidad,
+   489→          tecnico: tecnico?.trim() || undefined,
+   490→          destino: destino?.trim() || undefined,
+   491→          observacion: observacion?.trim() || undefined,
+   492→        };
+   493→        set({
+   494→          despachos: [d, ...get().despachos],
+   495→          products: get().products.map((p) =>
+   496→            p.id === product.id
+   497→              ? { ...p, quantity: p.quantity - cantidad, updatedAt: Date.now() }
+   498→              : p
+   499→          ),
+   500→        });
+   501→        return {
+   502→          ok: true,
+   503→          msg: `Despacho registrado: ${cantidad} × ${product.name} → stock: ${product.quantity - cantidad}`,
+   504→        };
+   505→      },
+   506→
+   507→      // Registro masivo de despachos (para Excel importado)
+   508→      registrarDespachosBulk: (inputDespachos) => {
+   509→        let ok = 0;
+   510→        let fail = 0;
+   511→        let totalUnidades = 0;
+   512→        const fails: string[] = [];
+   513→        const nuevosDespachos: Despacho[] = [];
+   514→        const productosActualizados = new Map<string, number>();
+   515→
+   516→        for (const item of inputDespachos) {
+   517→          const skuTrim = item.sku.trim();
+   518→          const product = get().findProductBySku(skuTrim);
+   519→          if (!product) {
+   520→            fail++;
+   521→            fails.push(`SKU "${skuTrim}" no encontrado`);
+   522→            continue;
+   523→          }
+   524→          if (!Number.isFinite(item.cantidad) || item.cantidad <= 0) {
+   525→            fail++;
+   526→            fails.push(`Cantidad inválida para ${skuTrim}`);
+   527→            continue;
+   528→          }
+   529→          // Calcular stock disponible considerando despachos anteriores del mismo bulk
+   530→          const stockActual = productosActualizados.get(product.id) ?? product.quantity;
+   531→          if (stockActual < item.cantidad) {
+   532→            fail++;
+   533→            fails.push(`Stock insuficiente para ${product.name} (disp: ${stockActual}, solicitado: ${item.cantidad})`);
+   534→            continue;
+   535→          }
+   536→          productosActualizados.set(product.id, stockActual - item.cantidad);
+   537→          nuevosDespachos.push({
+   538→            id: uid(),
+   539→            fecha: item.fecha || Date.now(),
+   540→            sku: product.sku,
+   541→            producto: product.name,
+   542→            cantidad: item.cantidad,
+   543→            tecnico: item.tecnico?.trim() || undefined,
+   544→            destino: item.destino?.trim() || undefined,
+   545→            observacion: item.observacion?.trim() || undefined,
+   546→          });
+   547→          ok++;
+   548→          totalUnidades += item.cantidad;
+   549→        }
+   550→
+   551→        if (nuevosDespachos.length > 0) {
+   552→          // Ordenar por fecha (más reciente primero)
+   553→          nuevosDespachos.sort((a, b) => b.fecha - a.fecha);
+   554→          set({
+   555→            despachos: [...nuevosDespachos, ...get().despachos],
+   556→            products: get().products.map((p) => {
+   557→              const newQty = productosActualizados.get(p.id);
+   558→              return newQty !== undefined ? { ...p, quantity: newQty, updatedAt: Date.now() } : p;
+   559→            }),
+   560→          });
+   561→        }
+   562→        return { ok, fail, fails, totalUnidades };
+   563→      },
+   564→
+   565→      deleteDespacho: (id) => {
+   566→        const d = get().despachos.find((x) => x.id === id);
+   567→        if (!d) return;
+   568→        const product = get().findProductBySku(d.sku);
+   569→        if (product) {
+   570→          set({
+   571→            products: get().products.map((p) =>
+   572→              p.id === product.id
+   573→                ? { ...p, quantity: p.quantity + d.cantidad, updatedAt: Date.now() }
+   574→                : p
+   575→            ),
+   576→          });
+   577→        }
+   578→        set({ despachos: get().despachos.filter((x) => x.id !== id) });
+   579→      },
+   580→
+   581→      // ─── Equipos ───
+   582→      findEquipmentBySerie: (serie) => {
+   583→        const norm = serie.trim().toLowerCase();
+   584→        return get().equipos.find((e) => e.serie.trim().toLowerCase() === norm) ?? null;
+   585→      },
+   586→
+   587→      addEquipment: (e) => {
+   588→        const serieTrim = e.serie.trim();
+   589→        const modeloTrim = e.modelo.trim();
+   590→        if (!serieTrim || !modeloTrim) return null;
+   591→        if (get().findEquipmentBySerie(serieTrim)) return null;
+   592→        const eq: Equipment = {
+   593→          id: uid(),
+   594→          ...e,
+   595→          serie: serieTrim,
+   596→          modelo: modeloTrim,
+   597→          createdAt: Date.now(),
+   598→          updatedAt: Date.now(),
+   599→        };
+   600→        set({ equipos: [eq, ...get().equipos] });
+   601→        return eq.id;
+   602→      },
+   603→
+   604→      addEquipmentBulk: ({ series, modelo, estado, ubicacion, observacion }) => {
+   605→        const modeloTrim = modelo.trim();
+   606→        let ok = 0;
+   607→        let dup = 0;
+   608→        const nuevos: Equipment[] = [];
+   609→        const existentes = new Set(get().equipos.map((e) => e.serie.trim().toLowerCase()));
+   610→        const ts = Date.now();
+   611→        for (const raw of series) {
+   612→          const s = normalizaSerie(raw);
+   613→          if (!s) continue;
+   614→          if (existentes.has(s.toLowerCase())) { dup++; continue; }
+   615→          existentes.add(s.toLowerCase());
+   616→          nuevos.push({
+   617→            id: uid(),
+   618→            serie: s,
+   619→            modelo: modeloTrim,
+   620→            estado,
+   621→            ubicacion,
+   622→            observacion,
+   623→            createdAt: ts,
+   624→            updatedAt: ts,
+   625→          });
+   626→          ok++;
+   627→        }
+   628→        if (nuevos.length > 0) set({ equipos: [...nuevos, ...get().equipos] });
+   629→        return { ok, dup };
+   630→      },
+   631→
+   632→      updateEquipment: (id, data) =>
+   633→        set({
+   634→          equipos: get().equipos.map((e) =>
+   635→            e.id === id ? { ...e, ...data, updatedAt: Date.now() } : e
+   636→          ),
+   637→        }),
+   638→
+   639→      deleteEquipment: (id) =>
+   640→        set({ equipos: get().equipos.filter((e) => e.id !== id) }),
+   641→
+   642→      deleteEquipmentBulk: (ids) =>
+   643→        set({ equipos: get().equipos.filter((e) => !ids.includes(e.id)) }),
+   644→
+   645→      // ─── Bloc ───
+   646→      addNota: (texto) =>
+   647→        set({
+   648→          notas: [
+   649→            { id: uid(), texto: texto.trim(), fecha: Date.now(), pinned: false },
+   650→            ...get().notas,
+   651→          ],
+   652→        }),
+   653→      togglePinNota: (id) =>
+   654→        set({
+   655→          notas: get().notas.map((n) => (n.id === id ? { ...n, pinned: !n.pinned } : n)),
+   656→        }),
+   657→      deleteNota: (id) => set({ notas: get().notas.filter((n) => n.id !== id) }),
+   658→
+   659→      // ─── Horario de almacén ───
+   660→      addHorarioItem: (item) =>
+   661→        set({
+   662→          horario: [
+   663→            ...get().horario,
+   664→            {
+   665→              id: uid(),
+   666→              dia: item.dia,
+   667→              horaInicio: item.horaInicio,
+   668→              horaFin: item.horaFin,
+   669→              actividad: item.actividad.trim(),
+   670→              tipo: item.tipo,
+   671→            },
+   672→          ],
+   673→        }),
+   674→      updateHorarioItem: (id, data) =>
+   675→        set({
+   676→          horario: get().horario.map((h) =>
+   677→            h.id === id
+   678→              ? {
+   679→                  ...h,
+   680→                  ...data,
+   681→                  actividad: data.actividad !== undefined ? data.actividad.trim() : h.actividad,
+   682→                }
+   683→              : h
+   684→          ),
+   685→        }),
+   686→      deleteHorarioItem: (id) =>
+   687→        set({ horario: get().horario.filter((h) => h.id !== id) }),
+   688→      marcarHorarioDisparado: (id, fechaISO) =>
+   689→        set({
+   690→          horario: get().horario.map((h) =>
+   691→            h.id === id ? { ...h, ultimoDisparo: fechaISO } : h
+   692→          ),
+   693→        }),
+   694→      checkHorario: () => {
+   695→        const ahora = new Date();
+   696→        const dias = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
+   697→        const diaHoy = dias[ahora.getDay()] as Horario["dia"];
+   698→        const hh = ahora.getHours().toString().padStart(2, "0");
+   699→        const mm = ahora.getMinutes().toString().padStart(2, "0");
+   700→        const ahoraStr = `${hh}:${mm}`;
+   701→        // Usar fecha local (YYYY-MM-DD) en lugar de UTC para evitar desfases horarios
+   702→        const fechaISO = `${ahora.getFullYear()}-${(ahora.getMonth() + 1)
+   703→          .toString()
+   704→          .padStart(2, "0")}-${ahora.getDate().toString().padStart(2, "0")}`;
+   705→        return get().horario.filter(
+   706→          (h) => h.dia === diaHoy && h.horaInicio === ahoraStr && h.ultimoDisparo !== fechaISO
+   707→        );
+   708→      },
+   709→
+   710→      // ─── Memoria de aprendizaje de Alana ───
+   711→      addMemoria: (texto) => {
+   712→        const t = texto.trim();
+   713→        if (!t) return;
+   714→        const existente = get().memoriaIA.find(
+   715→          (x) => x.trim().toLowerCase() === t.toLowerCase()
+   716→        );
+   717→        if (existente) return;
+   718→        // máximo 50 aprendizajes
+   719→        const nuevas = [...get().memoriaIA, t].slice(-50);
+   720→        set({ memoriaIA: nuevas });
+   721→      },
+   722→      deleteMemoria: (index) =>
+   723→        set({ memoriaIA: get().memoriaIA.filter((_, i) => i !== index) }),
+   724→      clearMemoria: () => set({ memoriaIA: [] }),
+   725→
+   726→      // ─── Recordatorios (controlados por la IA) ───
+   727→      addRecordatorio: (texto, cuando, origen = "ia") => {
+   728→        const id = uid();
+   729→        const nuevo: Recordatorio = {
+   730→          id,
+   731→          texto: texto.trim(),
+   732→          fecha: Date.now(),
+   733→          cuando,
+   734→          disparado: false,
+   735→          origen,
+   736→        };
+   737→        set({ recordatorios: [...get().recordatorios, nuevo] });
+   738→        return id;
+   739→      },
+   740→      deleteRecordatorio: (id) =>
+   741→        set({ recordatorios: get().recordatorios.filter((r) => r.id !== id) }),
+   742→      marcarRecordatorioDisparado: (id) =>
+   743→        set({
+   744→          recordatorios: get().recordatorios.map((r) =>
+   745→            r.id === id ? { ...r, disparado: true } : r
+   746→          ),
+   747→        }),
+   748→      checkRecordatorios: () => {
+   749→        const ahora = Date.now();
+   750→        const pendientes = get().recordatorios.filter(
+   751→          (r) => !r.disparado && r.cuando <= ahora
+   752→        );
+   753→        return pendientes;
+   754→      },
+   755→
+   756→      // ─── Notificaciones (estilo iPhone) ───
+   757→      addNotificacion: (titulo, cuerpo, tipo = "info") => {
+   758→        const id = uid();
+   759→        const nueva: Notificacion = {
+   760→          id,
+   761→          titulo,
+   762→          cuerpo,
+   763→          tipo,
+   764→          fecha: Date.now(),
+   765→          leida: false,
+   766→        };
+   767→        // Mantener máximo 20 notificaciones
+   768→        const todas = [nueva, ...get().notificaciones].slice(0, 20);
+   769→        set({ notificaciones: todas });
+   770→        return id;
+   771→      },
+   772→      markNotificacionLeida: (id) =>
+   773→        set({
+   774→          notificaciones: get().notificaciones.map((n) =>
+   775→            n.id === id ? { ...n, leida: true } : n
+   776→          ),
+   777→        }),
+   778→      clearNotificaciones: () => set({ notificaciones: [] }),
+   779→      clearNotificacionesLeidas: () =>
+   780→        set({ notificaciones: get().notificaciones.filter((n) => !n.leida) }),
+   781→
+   782→      // ─── Empresa / miembros ───
+   783→      updateEmpresa: (data) => set({ empresa: { ...get().empresa, ...data } }),
+   784→
+   785→      addMiembro: (nombre, rol, correo, telefono) =>
+   786→        set({
+   787→          miembros: [
+   788→            ...get().miembros,
+   789→            {
+   790→              id: uid(),
+   791→              nombre: nombre.trim(),
+   792→              rol,
+   793→              correo: correo?.trim() || undefined,
+   794→              telefono: telefono?.trim() || undefined,
+   795→              activo: true,
+   796→            },
+   797→          ],
+   798→        }),
+   799→      updateMiembro: (id, data) =>
+   800→        set({
+   801→          miembros: get().miembros.map((m) => (m.id === id ? { ...m, ...data } : m)),
+   802→        }),
+   803→      deleteMiembro: (id) =>
+   804→        set({ miembros: get().miembros.filter((m) => m.id !== id) }),
+   805→
+   806→      // ─── Export ───
+   807→      exportInventarioExcel: () => {
+   808→        import("xlsx-js-style").then((XLSX: any) => {
+   809→          const productos = get().products;
+   810→          const empresa = get().empresa;
+   811→          const settings = get().settings;
+   812→          const usuario = settings.usuario || "Iker";
+   813→          const ahora = new Date();
+   814→          const fechaStr = ahora.toLocaleDateString("es-PE", { timeZone: "America/Lima" });
+   815→          const horaStr = ahora.toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit" });
+   816→
+   817→          // Paleta corporativa (gris mate, sin morado/neón)
+   818→          const C = {
+   819→            headerBg: "1F1F1F",       // casi negro
+   820→            headerFg: "FFFFFF",
+   821→            subBg: "2A2A2A",
+   822→            subFg: "E5E5E5",
+   823→            infoLabelBg: "EFEFEF",
+   824→            infoLabelFg: "1A1A1A",
+   825→            infoValueBg: "FFFFFF",
+   826→            infoValueFg: "1A1A1A",
+   827→            tableHeaderBg: "3A3A3A",
+   828→            tableHeaderFg: "FFFFFF",
+   829→            rowAlt: "F5F5F5",
+   830→            rowNormal: "FFFFFF",
+   831→            dangerBg: "FCE4E4",
+   832→            dangerFg: "9B1C1C",
+   833→            warnBg: "FFF4D6",
+   834→            warnFg: "92500A",
+   835→            okBg: "DCFCE7",
+   836→            okFg: "166534",
+   837→            border: "B0B0B0",
+   838→          };
+   839→
+   840→          const borderAll = {
+   841→            top: { style: "thin", color: { rgb: C.border } },
+   842→            bottom: { style: "thin", color: { rgb: C.border } },
+   843→            left: { style: "thin", color: { rgb: C.border } },
+   844→            right: { style: "thin", color: { rgb: C.border } },
+   845→          };
+   846→
+   847→          // ─── Cálculos ───
+   848→          const totalUnidades = productos.reduce((s, p) => s + p.quantity, 0);
+   849→          const bajoStock = productos.filter((p) => p.minStock && p.minStock > 0 && p.quantity <= p.minStock);
+   850→          const bajoCount = bajoStock.length;
+   851→          const udmMap: Record<string, number> = {};
+   852→          for (const p of productos) {
+   853→            const k = p.udm ?? "Sin UDM";
+   854→            udmMap[k] = (udmMap[k] ?? 0) + p.quantity;
+   855→          }
+   856→
+   857→          // ─── Construir filas (aoa) ───
+   858→          const ncols = 9;
+   859→          const rows: any[][] = [];
+   860→
+   861→          // Fila 1: Título principal
+   862→          rows.push(["INVENTARIO LEMCORP", "", "", "", "", "", "", "", ""]);
+   863→          // Fila 2: subtítulo empresa
+   864→          rows.push([empresa.nombre || "Lemcorp", "", "", "", "", "", "", "", ""]);
+   865→          // Fila 3: vacía
+   866→          rows.push(Array(ncols).fill(""));
+   867→          // Fila 4-7: bloque info
+   868→          rows.push(["Exportado por:", usuario, "", "Fecha:", fechaStr, "", "Hora:", horaStr, ""]);
+   869→          rows.push(["Productos en catálogo:", productos.length, "", "Unidades totales:", totalUnidades.toLocaleString("es-PE"), "", "Productos en bajo stock:", bajoCount, ""]);
+   870→          rows.push(["Empresa:", empresa.nombre || "Lemcorp", "", "RUC:", empresa.ruc || "—", "", "Teléfono:", empresa.telefono || "—", ""]);
+   871→          rows.push(["Dirección:", empresa.direccion || "—", "", "Correo:", empresa.correo || "—", "", "", "", ""]);
+   872→          // Fila 8: vacía
+   873→          rows.push(Array(ncols).fill(""));
+   874→          // Fila 9: encabezado de tabla
+   875→          rows.push(["SKU", "PRODUCTO", "STOCK ACTUAL", "STOCK MÍNIMO", "UDM", "ESTADO", "VALOR UNIT. (S/)", "VALOR TOTAL (S/)", "OBSERVACIONES"]);
+   876→          // Filas de datos
+   877→          for (const p of productos) {
+   878→            const estado = !p.minStock || p.minStock === 0
+   879→              ? "Sin mínimo"
+   880→              : p.quantity <= p.minStock
+   881→              ? "BAJO STOCK"
+   882→              : p.quantity <= p.minStock * 1.5
+   883→              ? "Por agotarse"
+   884→              : "OK";
+   885→            rows.push([
+   886→              p.sku,
+   887→              p.name,
+   888→              p.quantity,
+   889→              p.minStock ?? "",
+   890→              p.udm ?? "",
+   891→              estado,
+   892→              "", // valor unitario (lo llena el usuario)
+   893→              "", // valor total (lo llena el usuario)
+   894→              "",
+   895→            ]);
+   896→          }
+   897→          // Fila vacía
+   898→          rows.push(Array(ncols).fill(""));
+   899→          // Fila de totales
+   900→          rows.push(["TOTALES", "", totalUnidades, "", "", `${bajoCount} bajo stock`, "", "", ""]);
+   901→
+   902→          const ws = XLSX.utils.aoa_to_sheet(rows);
+   903→
+   904→          // ─── Merges ───
+   905→          ws["!merges"] = [
+   906→            { s: { r: 0, c: 0 }, e: { r: 0, c: ncols - 1 } }, // título
+   907→            { s: { r: 1, c: 0 }, e: { r: 1, c: ncols - 1 } }, // subtítulo empresa
+   908→            { s: { r: 3, c: 1 }, e: { r: 3, c: 2 } },
+   909→            { s: { r: 3, c: 4 }, e: { r: 3, c: 5 } },
+   910→            { s: { r: 3, c: 7 }, e: { r: 3, c: 8 } },
+   911→            { s: { r: 4, c: 1 }, e: { r: 4, c: 2 } },
+   912→            { s: { r: 4, c: 4 }, e: { r: 4, c: 5 } },
+   913→            { s: { r: 4, c: 7 }, e: { r: 4, c: 8 } },
+   914→            { s: { r: 5, c: 1 }, e: { r: 5, c: 2 } },
+   915→            { s: { r: 5, c: 4 }, e: { r: 5, c: 5 } },
+   916→            { s: { r: 5, c: 7 }, e: { r: 5, c: 8 } },
+   917→            { s: { r: 6, c: 1 }, e: { r: 6, c: 2 } },
+   918→            { s: { r: 6, c: 4 }, e: { r: 6, c: 5 } },
+   919→            { s: { r: 6, c: 7 }, e: { r: 6, c: 8 } },
+   920→            { s: { r: rows.length - 1, c: 1 }, e: { r: rows.length - 1, c: 2 } },
+   921→            { s: { r: rows.length - 1, c: 3 }, e: { r: rows.length - 1, c: 4 } },
+   922→            { s: { r: rows.length - 1, c: 5 }, e: { r: rows.length - 1, c: 8 } },
+   923→          ];
+   924→
+   925→          // ─── Ancho de columnas ───
+   926→          ws["!cols"] = [
+   927→            { wch: 14 },  // SKU
+   928→            { wch: 42 },  // PRODUCTO
+   929→            { wch: 14 },  // STOCK
+   930→            { wch: 14 },  // MÍN
+   931→            { wch: 12 },  // UDM
+   932→            { wch: 14 },  // ESTADO
+   933→            { wch: 16 },  // VALOR UNIT
+   934→            { wch: 16 },  // VALOR TOTAL
+   935→            { wch: 28 },  // OBSERVACIONES
+   936→          ];
+   937→
+   938→          // ─── Alto de filas ───
+   939→          ws["!rows"] = [];
+   940→          ws["!rows"][0] = { hpt: 32 };
+   941→          ws["!rows"][1] = { hpt: 20 };
+   942→          ws["!rows"][8] = { hpt: 26 };
+   943→
+   944→          // ─── Aplicar estilos ───
+   945→          const setStyle = (addr: string, style: any) => {
+   946→            if (!ws[addr]) ws[addr] = { t: "s", v: "" };
+   947→            ws[addr].s = { ...(ws[addr].s || {}), ...style };
+   948→          };
+   949→
+   950→          // Fila 1: título
+   951→          setStyle("A1", {
+   952→            font: { name: "Calibri", sz: 22, bold: true, color: { rgb: C.headerFg } },
+   953→            fill: { fgColor: { rgb: C.headerBg } },
+   954→            alignment: { horizontal: "center", vertical: "center" },
+   955→          });
+   956→          // Fila 2: subtítulo empresa
+   957→          setStyle("A2", {
+   958→            font: { name: "Calibri", sz: 12, bold: true, color: { rgb: C.subFg } },
+   959→            fill: { fgColor: { rgb: C.subBg } },
+   960→            alignment: { horizontal: "center", vertical: "center" },
+   961→          });
+   962→
+   963→          // Bloque info (filas 4-7, índices 3-6)
+   964→          const infoLabelCells = ["A4", "D4", "G4", "A5", "D5", "G5", "A6", "D6", "G6", "A7", "D7"];
+   965→          const infoValueCells = ["B4", "E4", "H4", "B5", "E5", "H5", "B6", "E6", "H6", "B7", "E7"];
+   966→          for (const c of infoLabelCells) {
+   967→            setStyle(c, {
+   968→              font: { name: "Calibri", sz: 10, bold: true, color: { rgb: C.infoLabelFg } },
+   969→              fill: { fgColor: { rgb: C.infoLabelBg } },
+   970→              alignment: { horizontal: "left", vertical: "center", indent: 1 },
+   971→              border: borderAll,
+   972→            });
+   973→          }
+   974→          for (const c of infoValueCells) {
+   975→            setStyle(c, {
+   976→              font: { name: "Calibri", sz: 10, color: { rgb: C.infoValueFg } },
+   977→              fill: { fgColor: { rgb: C.infoValueBg } },
+   978→              alignment: { horizontal: "left", vertical: "center", indent: 1 },
+   979→              border: borderAll,
+   980→            });
+   981→          }
+   982→
+   983→          // Encabezado de tabla (fila 9, índice 8)
+   984→          const headerCols = ["A", "B", "C", "D", "E", "F", "G", "H", "I"];
+   985→          for (const col of headerCols) {
+   986→            setStyle(`${col}9`, {
+   987→              font: { name: "Calibri", sz: 11, bold: true, color: { rgb: C.tableHeaderFg } },
+   988→              fill: { fgColor: { rgb: C.tableHeaderBg } },
+   989→              alignment: { horizontal: "center", vertical: "center", wrapText: true },
+   990→              border: borderAll,
+   991→            });
+   992→          }
+   993→
+   994→          // Filas de datos (empiezan en fila 10, índice 9)
+   995→          const dataStartRow = 9;
+   996→          for (let i = 0; i < productos.length; i++) {
+   997→            const rowIdx = dataStartRow + i;
+   998→            const excelRow = rowIdx + 1;
+   999→            const isAlt = i % 2 === 1;
+  1000→            const rowBg = isAlt ? C.rowAlt : C.rowNormal;
+  1001→
+  1002→            const p = productos[i];
+  1003→            const isBajo = !!(p.minStock && p.minStock > 0 && p.quantity <= p.minStock);
+  1004→            const isWarn = !!(p.minStock && p.minStock > 0 && p.quantity > p.minStock && p.quantity <= p.minStock * 1.5);
+  1005→            const estadoBg = isBajo ? C.dangerBg : isWarn ? C.warnBg : C.okBg;
+  1006→            const estadoFg = isBajo ? C.dangerFg : isWarn ? C.warnFg : C.okFg;
+  1007→
+  1008→            for (let c = 0; c < ncols; c++) {
+  1009→              const addr = `${headerCols[c]}${excelRow}`;
+  1010→              const isEstadoCol = c === 5;
+  1011→              const isNumberCol = c === 2 || c === 3;
+  1012→              const isMoneyCol = c === 6 || c === 7;
+  1013→              setStyle(addr, {
+  1014→                font: {
+  1015→                  name: "Calibri",
+  1016→                  sz: 10,
+  1017→                  bold: isEstadoCol,
+  1018→                  color: { rgb: isEstadoCol ? estadoFg : "1A1A1A" },
+  1019→                },
+  1020→                fill: { fgColor: { rgb: isEstadoCol ? estadoBg : rowBg } },
+  1021→                alignment: {
+  1022→                  horizontal: isEstadoCol || isNumberCol || isMoneyCol ? "center" : "left",
+  1023→                  vertical: "center",
+  1024→                  indent: isNumberCol || isMoneyCol || isEstadoCol ? 0 : 1,
+  1025→                },
+  1026→                border: borderAll,
+  1027→                numFmt: isMoneyCol ? '"S/" #,##0.00' : isNumberCol ? "#,##0" : undefined,
+  1028→              });
+  1029→            }
+  1030→          }
+  1031→
+  1032→          // Fila de totales
+  1033→          const totalRowIdx = rows.length - 1;
+  1034→          const totalExcelRow = totalRowIdx + 1;
+  1035→          for (let c = 0; c < ncols; c++) {
+  1036→            const addr = `${headerCols[c]}${totalExcelRow}`;
+  1037→            setStyle(addr, {
+  1038→              font: { name: "Calibri", sz: 11, bold: true, color: { rgb: "FFFFFF" } },
+  1039→              fill: { fgColor: { rgb: C.headerBg } },
+  1040→              alignment: { horizontal: c === 0 || c === 2 || c === 5 ? "center" : "left", vertical: "center" },
+  1041→              border: borderAll,
+  1042→            });
+  1043→          }
+  1044→
+  1045→          // ─── Hoja 2: Resumen por UDM ───
+  1046→          const resumenRows: any[][] = [
+  1047→            ["RESUMEN POR UNIDAD DE MEDIDA", "", ""],
+  1048→            ["", "", ""],
+  1049→            ["UDM", "UNIDADES TOTALES", "% DEL TOTAL"],
+  1050→          ];
+  1051→          const udmEntries = Object.entries(udmMap).sort((a, b) => b[1] - a[1]);
+  1052→          for (const [udm, count] of udmEntries) {
+  1053→            const pct = totalUnidades > 0 ? (count / totalUnidades) * 100 : 0;
+  1054→            resumenRows.push([udm, count, `${pct.toFixed(1)}%`]);
+  1055→          }
+  1056→          resumenRows.push(["", "", ""]);
+  1057→          resumenRows.push(["TOTAL", totalUnidades, "100%"]);
+  1058→
+  1059→          const ws2 = XLSX.utils.aoa_to_sheet(resumenRows);
+  1060→          ws2["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }];
+  1061→          ws2["!cols"] = [{ wch: 24 }, { wch: 22 }, { wch: 16 }];
+  1062→          ws2["!rows"] = [{ hpt: 28 }];
+  1063→
+  1064→          const setStyle2 = (addr: string, style: any) => {
+  1065→            if (!ws2[addr]) ws2[addr] = { t: "s", v: "" };
+  1066→            ws2[addr].s = { ...(ws2[addr].s || {}), ...style };
+  1067→          };
+  1068→          setStyle2("A1", {
+  1069→            font: { name: "Calibri", sz: 16, bold: true, color: { rgb: C.headerFg } },
+  1070→            fill: { fgColor: { rgb: C.headerBg } },
+  1071→            alignment: { horizontal: "center", vertical: "center" },
+  1072→          });
+  1073→          for (const col of ["A", "B", "C"]) {
+  1074→            setStyle2(`${col}3`, {
+  1075→              font: { name: "Calibri", sz: 11, bold: true, color: { rgb: C.tableHeaderFg } },
+  1076→              fill: { fgColor: { rgb: C.tableHeaderBg } },
+  1077→              alignment: { horizontal: "center", vertical: "center" },
+  1078→              border: borderAll,
+  1079→            });
+  1080→          }
+  1081→          for (let i = 0; i < udmEntries.length; i++) {
+  1082→            const excelRow = 4 + i;
+  1083→            const isAlt = i % 2 === 1;
+  1084→            const rowBg = isAlt ? C.rowAlt : C.rowNormal;
+  1085→            for (const col of ["A", "B", "C"]) {
+  1086→              setStyle2(`${col}${excelRow}`, {
+  1087→                font: { name: "Calibri", sz: 10, color: { rgb: "1A1A1A" } },
+  1088→                fill: { fgColor: { rgb: rowBg } },
+  1089→                alignment: { horizontal: col === "A" ? "left" : "center", vertical: "center", indent: col === "A" ? 1 : 0 },
+  1090→                border: borderAll,
+  1091→              });
+  1092→            }
+  1093→          }
+  1094→          const totalResRow = 4 + udmEntries.length + 1;
+  1095→          for (const col of ["A", "B", "C"]) {
+  1096→            setStyle2(`${col}${totalResRow}`, {
+  1097→              font: { name: "Calibri", sz: 11, bold: true, color: { rgb: "FFFFFF" } },
+  1098→              fill: { fgColor: { rgb: C.headerBg } },
+  1099→              alignment: { horizontal: "center", vertical: "center" },
+  1100→              border: borderAll,
+  1101→            });
+  1102→          }
+  1103→
+  1104→          const wb = XLSX.utils.book_new();
+  1105→          XLSX.utils.book_append_sheet(wb, ws, "Inventario");
+  1106→          XLSX.utils.book_append_sheet(wb, ws2, "Resumen por UDM");
+  1107→          XLSX.writeFile(wb, `Inventario_LEMCORP_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  1108→        });
+  1109→      },
+  1110→
+  1111→      // ─── Config ───
+  1112→      setSetting: (key, value) =>
+  1113→        set({ settings: { ...get().settings, [key]: value } }),
+  1114→
+  1115→      clearAllData: () =>
+  1116→        set({
+  1117→          products: [],
+  1118→          equipos: [],
+  1119→          entradas: [],
+  1120→          despachos: [],
+  1121→          notas: [],
+  1122→          recordatorios: [],
+  1123→          notificaciones: [],
+  1124→          miembros: [],
+  1125→          empresa: { ...DEFAULT_EMPRESA },
+  1126→          settings: { ...DEFAULT_SETTINGS },
+  1127→          activeView: "dashboard",
+  1128→          pistoleoFilas: [],
+  1129→          pistoleoCampo: "serie",
+  1130→          pistoleoModelo: "",
+  1131→          pistoleoEstado: "disponible",
+  1132→          pistoleoModeloSeleccionado: "",
+  1133→          horario: [],
+  1134→          memoriaIA: [],
+  1135→          bajoStockVisto: 0,
+  1136→          sesionUsuarioId: null,
+  1137→        }),
+  1138→
+  1139→      // ─── Demo data (siempre limpia y carga) ───
+  1140→      seedDemo: () => {
+  1141→        // Limpiar primero
+  1142→        set({
+  1143→          products: [],
+  1144→          equipos: [],
+  1145→          entradas: [],
+  1146→          despachos: [],
+  1147→          notas: [],
+  1148→          recordatorios: [],
+  1149→          notificaciones: [],
+  1150→          miembros: [],
+  1151→          pistoleoFilas: [],
+  1152→          pistoleoModeloSeleccionado: "",
+  1153→          horario: [],
+  1154→        });
+  1155→
+  1156→        // Horario demo (Lunes-Viernes)
+  1157→        const horarioDemo: Array<Omit<Horario, "id">> = [
+  1158→          { dia: "lunes", horaInicio: "08:00", horaFin: "09:00", actividad: "Despacho matutino", tipo: "despacho" },
+  1159→          { dia: "lunes", horaInicio: "13:00", horaFin: "14:00", actividad: "Almuerzo", tipo: "almuerzo" },
+  1160→          { dia: "lunes", horaInicio: "15:00", horaFin: "16:00", actividad: "Reunión de coordinación", tipo: "reunion" },
+  1161→          { dia: "martes", horaInicio: "08:00", horaFin: "09:00", actividad: "Despacho matutino", tipo: "despacho" },
+  1162→          { dia: "martes", horaInicio: "13:00", horaFin: "14:00", actividad: "Almuerzo", tipo: "almuerzo" },
+  1163→          { dia: "miercoles", horaInicio: "08:00", horaFin: "09:00", actividad: "Despacho matutino", tipo: "despacho" },
+  1164→          { dia: "miercoles", horaInicio: "10:00", horaFin: "11:00", actividad: "Inventario físico semanal", tipo: "otro" },
+  1165→          { dia: "jueves", horaInicio: "08:00", horaFin: "09:00", actividad: "Despacho matutino", tipo: "despacho" },
+  1166→          { dia: "viernes", horaInicio: "08:00", horaFin: "09:00", actividad: "Despacho matutino", tipo: "despacho" },
+  1167→          { dia: "viernes", horaInicio: "16:00", horaFin: "17:00", actividad: "Cierre semanal", tipo: "reunion" },
+  1168→        ];
+  1169→        for (const h of horarioDemo) get().addHorarioItem(h);
+  1170→
+  1171→        // 10 productos
+  1172→        const demo: [string, string, number, number?, string?][] = [
+  1173→          ["1066990", "CONECTOR FIBRA OPTICA FTTH PPC", 41, 10, "UNIDADES"],
+  1174→          ["1002900", "CONECTOR PLUG RJ-45", 2768, 100, "UNIDADES"],
+  1175→          ["1002950", "ATADOR DE IDENTIFICACION DE ABONADO", 1475, 50, "UNIDADES"],
+  1176→          ["1003101", "CABLE COAXIAL RG-6 AUTOSOPORTADO", 6794, 200, "METROS"],
+  1177→          ["1004705", "CABLE COAXIAL BLANCO RG-6 S/MENSAJERO", 3121, 100, "METROS"],
+  1178→          ["1004692", "CABLE UTP CAT5E FTP 4PR/24AWG", 15921, 500, "METROS"],
+  1179→          ["4076358", "ROUTER ONT HG8145X6-13 50088770 HUAWEI", 29, 5, "UNIDADES"],
+  1180→          ["4048528", "MODEM ARRIS TG2482 24X8 3.0 S/BAT", 12, 3, "UNIDADES"],
+  1181→          ["4073653", "ROUTER K562E-10 50087708 HUAWEI", 16, 3, "UNIDADES"],
+  1182→          ["4072704", "DECODIFICADOR IPTV ZXVAB B866V2-H ZTE", 67, 5, "UNIDADES"],
+  1183→        ];
+  1184→        for (const [sku, name, qty, min, udm] of demo) get().addProduct(sku, name, qty, min, udm);
+  1185→
+  1186→        // 7 equipos
+  1187→        const demoEq: [string, string, EstadoEquipo, string?][] = [
+  1188→          ["48575443365E42B7", "ROUTER ONT HG8145X6-13 HUAWEI", "disponible", "Almacén HUB"],
+  1189→          ["48575443365E42C8", "ROUTER ONT HG8145X6-13 HUAWEI", "disponible", "Almacén HUB"],
+  1190→          ["48575443365E42D1", "ROUTER ONT HG8145X6-13 HUAWEI", "averiado", "Taller"],
+  1191→          ["SN10002ABC", "DECODIFICADOR IPTV ZXVAB B866V2-H ZTE", "disponible", "Almacén HUB"],
+  1192→          ["SN10003DEF", "DECODIFICADOR IPTV ZXVAB B866V2-H ZTE", "en_retiro", "Taller"],
+  1193→          ["MACA0B1C2D3E", "REPETIDOR ZXHN H3601P ZTE", "disponible", "Almacén HUB"],
+  1194→          ["MACA0B1C2D3F", "REPETIDOR ZXHN H3601P ZTE", "en_reparacion", "Taller"],
+  1195→        ];
+  1196→        for (const [serie, modelo, estado, ubi] of demoEq)
+  1197→          get().addEquipment({ serie, modelo, estado, ubicacion: ubi });
+  1198→
+  1199→        // 3 notas
+  1200→        get().addNota("Traer 50 conectores FTTH para mañana - pedido urgente del personal Pérez");
+  1201→        get().addNota("Router con serie 48575443365E42D1 no enciende - llevar a taller");
+  1202→        get().addNota("Verificar stock de cable RG-6, parece bajo");
+  1203→
+  1204→        // Personal: solo el admin por defecto (el resto lo añade el admin)
+  1205→        get().addMiembro("Iker", "administrador", "iker@lemcorp.com", undefined);
+  1206→      },
+  1207→    }),
+  1208→    {
+  1209→      name: "lemcorp-v3",
+  1210→      partialize: (s) => ({
+  1211→        products: s.products,
+  1212→        equipos: s.equipos,
+  1213→        entradas: s.entradas,
+  1214→        despachos: s.despachos,
+  1215→        notas: s.notas,
+  1216→        recordatorios: s.recordatorios,
+  1217→        notificaciones: s.notificaciones,
+  1218→        miembros: s.miembros,
+  1219→        empresa: s.empresa,
+  1220→        settings: s.settings,
+  1221→        activeView: s.activeView,
+  1222→        pistoleoCampo: s.pistoleoCampo,
+  1223→        pistoleoModelo: s.pistoleoModelo,
+  1224→        pistoleoEstado: s.pistoleoEstado,
+  1225→        pistoleoFilas: s.pistoleoFilas,
+  1226→        pistoleoModeloSeleccionado: s.pistoleoModeloSeleccionado,
+  1227→        horario: s.horario,
+  1228→        memoriaIA: s.memoriaIA,
+  1229→        bajoStockVisto: s.bajoStockVisto,
+  1230→        sesionUsuarioId: s.sesionUsuarioId,
+  1231→      }),
+  1232→      onRehydrateStorage: () => (state) => {
+  1233→        if (state) {
+  1234→          // Mark as hydrated so the SyncProvider knows it can pull.
+  1235→          (state as any)._hasHydrated = true;
+  1236→        }
+  1237→      },
+  1238→      migrate: (p: any) => {
+  1239→        if (!p) return p;
+  1240→        if (!Array.isArray(p.products)) p.products = [];
+  1241→        if (!Array.isArray(p.equipos)) p.equipos = [];
+  1242→        if (!Array.isArray(p.entradas)) p.entradas = [];
+  1243→        if (!Array.isArray(p.despachos)) p.despachos = [];
+  1244→        if (!Array.isArray(p.notas)) p.notas = [];
+  1245→        if (!Array.isArray(p.recordatorios)) p.recordatorios = [];
+  1246→        if (!Array.isArray(p.notificaciones)) p.notificaciones = [];
+  1247→        if (!Array.isArray(p.miembros)) p.miembros = [];
+  1248→        if (!Array.isArray(p.pistoleoFilas)) p.pistoleoFilas = [];
+  1249→        if (!Array.isArray(p.horario)) p.horario = [];
+  1250→        if (!Array.isArray(p.memoriaIA)) p.memoriaIA = [];
+  1251→        if (!p.empresa) p.empresa = { ...DEFAULT_EMPRESA };
+  1252→        // Migrar empresa: si era "LEMCORP" o vacío, cambiar a "Lemcorp"
+  1253→        if (!p.empresa.nombre || p.empresa.nombre === "LEMCORP") {
+  1254→          p.empresa = { ...DEFAULT_EMPRESA, ...p.empresa, nombre: "Lemcorp" };
+  1255→        }
+  1256→        // Mergear settings con defaults (para añadir campos nuevos)
+  1257→        const mergedSettings = { ...DEFAULT_SETTINGS, ...(p.settings || {}) };
+  1258→        // Forzar tema oscuro en migración
+  1259→        mergedSettings.tema = "oscuro";
+  1260→        // Migrar usuario "Admin" → "Iker" (si era el default anterior)
+  1261→        if (mergedSettings.usuario === "Admin" || !mergedSettings.usuario) {
+  1262→          mergedSettings.usuario = "Iker";
+  1263→        }
+  1264→        p.settings = mergedSettings;
+  1265→        if (!p.pistoleoCampo) p.pistoleoCampo = "serie";
+  1266→        if (!p.pistoleoModelo) p.pistoleoModelo = "";
+  1267→        if (!p.pistoleoEstado) p.pistoleoEstado = "disponible";
+  1268→        // Normalizar products.quantity
+  1269→        p.products = p.products.map((x: any) => ({
+  1270→          ...x,
+  1271→          quantity: typeof x.quantity === "number" ? x.quantity : 0,
+  1272→        }));
+  1273→        return p;
+  1274→      },
+  1275→      version: 11,
+  1276→    }
+  1277→  )
+  1278→);
+  1279→

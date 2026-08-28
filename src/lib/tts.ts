@@ -25,10 +25,12 @@ async function cargarVoces(): Promise<SpeechSynthesisVoice[]> {
   if (voces.length === 0) {
     await new Promise<void>((resolve) => {
       const timeout = setTimeout(resolve, 1000);
-      window.speechSynthesis.onvoiceschanged = () => {
+      const handler = () => {
         clearTimeout(timeout);
         resolve();
       };
+      // addEventListener permite múltiples listeners (a diferencia de onvoiceschanged)
+      window.speechSynthesis.addEventListener("voiceschanged", handler, { once: true });
     });
     voces = window.speechSynthesis.getVoices();
   }
@@ -89,21 +91,29 @@ export function speak(text: string, opts?: { lang?: string }): void {
   utter.pitch = 1.1;
   utter.volume = 1.0;
 
+  // Flag para evitar doble reproducción (race condition entre .then y fallback)
+  let hablado = false;
+  const hablarAhora = () => {
+    if (hablado) return;
+    hablado = true;
+    try {
+      window.speechSynthesis.speak(utter);
+    } catch {
+      /* noop */
+    }
+  };
+
   cargarVoces().then((voces) => {
     const voz = buscarVozAlana(voces);
     if (voz) {
       utter.voice = voz;
       utter.lang = voz.lang;
     }
-    window.speechSynthesis.speak(utter);
+    hablarAhora();
   });
 
-  // Fallback: si las voces tardan mucho, hablar igualmente después de 200ms
-  setTimeout(() => {
-    if (!window.speechSynthesis.speaking) {
-      window.speechSynthesis.speak(utter);
-    }
-  }, 200);
+  // Fallback: si las voces tardan mucho, hablar igualmente después de 250ms
+  setTimeout(hablarAhora, 250);
 }
 
 /** Detiene cualquier voz en curso. */

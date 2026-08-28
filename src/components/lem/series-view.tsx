@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Hash, Search, Cpu, FileText, ArrowRight } from "lucide-react";
 import { useStore } from "@/lib/store";
@@ -11,30 +11,39 @@ import { Input } from "@/components/ui/input";
 import { EstadoIcon } from "@/components/lem/estado-icon";
 
 const ESTADOS: EstadoEquipo[] = ["disponible", "averiado", "en_retiro", "en_reparacion"];
+const SERIES_POR_MODELO_INICIAL = 50;
 
 export function SeriesView() {
   const equipos = useStore((s) => s.equipos);
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [estadoFilter, setEstadoFilter] = useState("todos");
+  const [expandido, setExpandido] = useState<Record<string, boolean>>({});
 
-  const filtered = equipos.filter((e) => {
-    if (estadoFilter !== "todos" && e.estado !== estadoFilter) return false;
+  const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
-    if (!q) return true;
-    return e.serie.toLowerCase().includes(q)
-      || e.modelo.toLowerCase().includes(q)
-      || (e.mac ?? "").toLowerCase().includes(q)
-      || (e.cmMac ?? "").toLowerCase().includes(q);
-  });
+    return equipos.filter((e) => {
+      if (estadoFilter !== "todos" && e.estado !== estadoFilter) return false;
+      if (!q) return true;
+      return e.serie.toLowerCase().includes(q)
+        || e.modelo.toLowerCase().includes(q)
+        || (e.mac ?? "").toLowerCase().includes(q)
+        || (e.cmMac ?? "").toLowerCase().includes(q);
+    });
+  }, [equipos, query, estadoFilter]);
 
-  const byModel: Record<string, typeof equipos> = {};
-  for (const e of filtered) {
-    const k = e.modelo || "Sin modelo";
-    if (!byModel[k]) byModel[k] = [];
-    byModel[k].push(e);
-  }
-  const models = Object.entries(byModel).sort((a, b) => b[1].length - a[1].length);
+  const models = useMemo(() => {
+    const byModel: Record<string, typeof equipos> = {};
+    for (const e of filtered) {
+      const k = e.modelo || "Sin modelo";
+      if (!byModel[k]) byModel[k] = [];
+      byModel[k].push(e);
+    }
+    return Object.entries(byModel).sort((a, b) => b[1].length - a[1].length);
+  }, [filtered]);
+
+  const toggleExpandido = (modelo: string) =>
+    setExpandido((p) => ({ ...p, [modelo]: !p[modelo] }));
 
   return (
     <div className="px-6 py-6">
@@ -71,7 +80,10 @@ export function SeriesView() {
         </div>
       ) : (
         <div className="space-y-4">
-          {models.map(([modelo, items], i) => (
+          {models.map(([modelo, items], i) => {
+            const mostrarTodas = expandido[modelo] || items.length <= SERIES_POR_MODELO_INICIAL;
+            const itemsVisibles = mostrarTodas ? items : items.slice(0, SERIES_POR_MODELO_INICIAL);
+            return (
             <div key={modelo} className="anim-fade-up rounded-3xl border border-border bg-card p-5 shadow-sm" style={{ animationDelay: `${i * 40}ms` }}>
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -94,7 +106,7 @@ export function SeriesView() {
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((e, idx) => (
+                    {itemsVisibles.map((e, idx) => (
                       <tr key={e.id} className="border-b border-border/50 last:border-0 hover:bg-accent/30 transition-colors">
                         <td className="py-2 pr-3 text-[11px] text-muted-foreground tabular-nums">{idx + 1}</td>
                         <td className="py-2 pr-3"><span className="font-mono text-[12px] font-semibold">{e.serie}</span></td>
@@ -115,8 +127,16 @@ export function SeriesView() {
                   </tbody>
                 </table>
               </div>
+              {!mostrarTodas && (
+                <div className="mt-3 text-center">
+                  <Button variant="outline" size="sm" onClick={() => toggleExpandido(modelo)} className="press rounded-xl">
+                    Ver las {items.length - SERIES_POR_MODELO_INICIAL} restantes de {modelo}
+                  </Button>
+                </div>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

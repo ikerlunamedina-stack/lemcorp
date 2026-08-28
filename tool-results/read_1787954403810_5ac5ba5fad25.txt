@@ -1,0 +1,667 @@
+     1→"use client";
+     2→
+     3→import { useRef, useEffect, useState } from "react";
+     4→import {
+     5→  Send, User, Trash2,
+     6→  TrendingDown, Package, AlertTriangle, Cpu, Users,
+     7→  BarChart3, ShoppingCart, Zap, BellRing, Clock,
+     8→  Volume2, Square, Brain,
+     9→  Check, X as XIcon, FileText, PackagePlus, ClipboardList,
+    10→} from "lucide-react";
+    11→import { useStore } from "@/lib/store";
+    12→import { cn } from "@/lib/utils";
+    13→import { speak, stopSpeaking } from "@/lib/tts";
+    14→import { AlanaAvatar } from "@/components/lem/alana-avatar";
+    15→
+    16→interface ChatMsg {
+    17→  role: "user" | "assistant";
+    18→  content: string;
+    19→  ts: number;
+    20→  recordatorio?: { texto: string; cuando: number };
+    21→  aprendido?: string[]; // lista de memorias guardadas desde este mensaje
+    22→  accionesEjecutadas?: AccionEjecutada[]; // acciones del sistema ejecutadas
+    23→}
+    24→
+    25→interface AccionEjecutada {
+    26→  tipo: string;
+    27→  descripcion: string;
+    28→  ok: boolean;
+    29→  error?: string;
+    30→}
+    31→
+    32→const SUGERENCIAS: { text: string; icon: typeof TrendingDown; color: string }[] = [
+    33→  { text: "¿Qué productos necesito pedir urgentemente?", icon: AlertTriangle, color: "text-rose-400" },
+    34→  { text: "Calcula el consumo mensual de routers ONT con 3 personas", icon: TrendingDown, color: "text-foreground" },
+    35→  { text: "¿Cuántos conectores FTTH debo pedir para 30 días?", icon: ShoppingCart, color: "text-foreground" },
+    36→  { text: "Dame un reporte ejecutivo del estado del almacén", icon: BarChart3, color: "text-foreground" },
+    37→  { text: "¿Qué equipos están averiados o en reparación?", icon: Cpu, color: "text-amber-400" },
+    38→  { text: "Recomienda cantidades a comprar para cable RG-6", icon: Package, color: "text-foreground" },
+    39→  { text: "Recuérdame pedir conectores en 1 minuto", icon: BellRing, color: "text-primary" },
+    40→  { text: "Recuerda que el personal Pérez trabaja solo de lunes a miércoles", icon: Brain, color: "text-emerald-400" },
+    41→  { text: "¿Cómo está el equipo del almacén hoy?", icon: Users, color: "text-foreground" },
+    42→  { text: "Añade 50 conectores RJ-45, SKU CONN-RJ45, mínimo 20", icon: PackagePlus, color: "text-primary" },
+    43→  { text: "Anota que hay que revisar el cable RG-6 el viernes", icon: FileText, color: "text-foreground" },
+    44→];
+    45→
+    46→const STORAGE_KEY = "nuclon-ia-chat-v2";
+    47→const CINCO_HORAS = 5 * 60 * 60 * 1000; // 5 horas en ms
+    48→
+    49→function loadChat(): ChatMsg[] {
+    50→  try {
+    51→    const raw = localStorage.getItem(STORAGE_KEY);
+    52→    if (!raw) return [];
+    53→    const parsed = JSON.parse(raw);
+    54→    if (!parsed || typeof parsed.timestamp !== "number") return [];
+    55→    // Auto-clear después de 5 horas
+    56→    if (Date.now() - parsed.timestamp > CINCO_HORAS) {
+    57→      localStorage.removeItem(STORAGE_KEY);
+    58→      return [];
+    59→    }
+    60→    if (Array.isArray(parsed.messages)) return parsed.messages;
+    61→    return [];
+    62→  } catch {
+    63→    return [];
+    64→  }
+    65→}
+    66→
+    67→function saveChat(msgs: ChatMsg[]) {
+    68→  try {
+    69→    const toSave = msgs.slice(-60);
+    70→    localStorage.setItem(STORAGE_KEY, JSON.stringify({ timestamp: Date.now(), messages: toSave }));
+    71→  } catch {
+    72→    /* ignore */
+    73→  }
+    74→}
+    75→
+    76→function timeAgo(ts: number): string {
+    77→  const diff = Date.now() - ts;
+    78→  const mins = Math.floor(diff / 60000);
+    79→  if (mins < 1) return "ahora";
+    80→  if (mins < 60) return `hace ${mins}m`;
+    81→  const hrs = Math.floor(mins / 60);
+    82→  if (hrs < 24) return `hace ${hrs}h`;
+    83→  return new Date(ts).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit" });
+    84→}
+    85→
+    86→export function IAView() {
+    87→  const products = useStore((s) => s.products);
+    88→  const equipos = useStore((s) => s.equipos);
+    89→  const miembros = useStore((s) => s.miembros);
+    90→  const despachos = useStore((s) => s.despachos);
+    91→  const empresa = useStore((s) => s.empresa);
+    92→  const usuario = useStore((s) => s.settings.usuario);
+    93→  const vozEnabled = useStore((s) => s.settings.voz);
+    94→  const memoriaIA = useStore((s) => s.memoriaIA);
+    95→  const addRecordatorio = useStore((s) => s.addRecordatorio);
+    96→  const addNotificacion = useStore((s) => s.addNotificacion);
+    97→  const addMemoria = useStore((s) => s.addMemoria);
+    98→  // Acciones del sistema (control total de Alana)
+    99→  const addProduct = useStore((s) => s.addProduct);
+   100→  const updateProduct = useStore((s) => s.updateProduct);
+   101→  const findProductBySku = useStore((s) => s.findProductBySku);
+   102→  const addEquipment = useStore((s) => s.addEquipment);
+   103→  const registrarDespacho = useStore((s) => s.registrarDespacho);
+   104→  const addNota = useStore((s) => s.addNota);
+   105→  const addMiembro = useStore((s) => s.addMiembro);
+   106→  const setSetting = useStore((s) => s.setSetting);
+   107→
+   108→  const [messages, setMessages] = useState<ChatMsg[]>([]);
+   109→  const [input, setInput] = useState("");
+   110→  const [loading, setLoading] = useState(false);
+   111→  const [showHistory, setShowHistory] = useState(false);
+   112→  const [speakingId, setSpeakingId] = useState<string | null>(null);
+   113→  const scrollRef = useRef<HTMLDivElement>(null);
+   114→
+   115→  useEffect(() => {
+   116→    const historial = loadChat();
+   117→    if (historial.length > 0) {
+   118→      setMessages(historial);
+   119→    } else {
+   120→      const bienvenida: ChatMsg[] = [
+   121→        {
+   122→          role: "assistant",
+   123→          content: `¡Hola${usuario ? " " + usuario : ""}! 👋 Soy Alana, asistente del almacén Lemcorp.\n\nPuedo analizar tu inventario, recomendar compras, calcular consumos, **crear recordatorios** que te avisarán en el momento indicado, y **aprender** datos nuevos que me digas para recordarlos siempre.\n\n¿Qué necesitas hoy?`,
+   124→          ts: Date.now(),
+   125→        },
+   126→      ];
+   127→      setMessages(bienvenida);
+   128→      saveChat(bienvenida);
+   129→    }
+   130→  }, [usuario]);
+   131→
+   132→  useEffect(() => {
+   133→    if (messages.length > 0) saveChat(messages);
+   134→  }, [messages]);
+   135→
+   136→  useEffect(() => {
+   137→    if (scrollRef.current) {
+   138→      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+   139→    }
+   140→  }, [messages, loading]);
+   141→
+   142→  // Cargar voces TTS si hace falta (algunos navegadores las cargan async)
+   143→  useEffect(() => {
+   144→    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+   145→    const load = () => window.speechSynthesis.getVoices();
+   146→    load();
+   147→    window.speechSynthesis.onvoiceschanged = load;
+   148→    return () => {
+   149→      window.speechSynthesis.onvoiceschanged = null;
+   150→    };
+   151→  }, []);
+   152→
+   153→  const hablar = (texto: string, msgId: string) => {
+   154→    if (speakingId === msgId) {
+   155→      stopSpeaking();
+   156→      setSpeakingId(null);
+   157→      return;
+   158→    }
+   159→    setSpeakingId(msgId);
+   160→    speak(texto);
+   161→    // Resetear el estado cuando termine (aproximado, no hay hook fácil aquí)
+   162→    const words = texto.split(/\s+/).length;
+   163→    const duracion = Math.max(2500, (words / 2.5) * 1000);
+   164→    setTimeout(() => {
+   165→      setSpeakingId((cur) => (cur === msgId ? null : cur));
+   166→    }, duracion);
+   167→  };
+   168→
+   169→  const enviar = async (texto?: string) => {
+   170→    const msg = (texto ?? input).trim();
+   171→    if (!msg || loading) return;
+   172→
+   173→    const userMsg: ChatMsg = { role: "user", content: msg, ts: Date.now() };
+   174→    const newMessages = [...messages, userMsg];
+   175→    setMessages(newMessages);
+   176→    setInput("");
+   177→    setLoading(true);
+   178→
+   179→    try {
+   180→      const res = await fetch("/api/ia", {
+   181→        method: "POST",
+   182→        headers: { "Content-Type": "application/json" },
+   183→        body: JSON.stringify({
+   184→          mensaje: msg,
+   185→          inventario: products,
+   186→          equipos,
+   187→          miembros,
+   188→          despachos,
+   189→          empresa,
+   190→          usuario,
+   191→          memoria: memoriaIA,
+   192→        }),
+   193→      });
+   194→      const data = await res.json();
+   195→      const respuesta = data.ok && data.respuesta
+   196→        ? data.respuesta
+   197→        : "Lo siento, hubo un error al procesar tu consulta.";
+   198→
+   199→      const assistantMsg: ChatMsg = { role: "assistant", content: respuesta, ts: Date.now() };
+   200→
+   201→      // Procesar recordatorios de la IA
+   202→      if (data.ok && Array.isArray(data.recordatorios) && data.recordatorios.length > 0) {
+   203→        for (const r of data.recordatorios) {
+   204→          const cuando = new Date(r.cuando).getTime();
+   205→          if (!isNaN(cuando)) {
+   206→            addRecordatorio(r.texto, cuando, "ia");
+   207→            assistantMsg.recordatorio = { texto: r.texto, cuando };
+   208→          }
+   209→        }
+   210→      }
+   211→
+   212→      // Procesar memoria (cosas aprendidas) de la IA
+   213→      if (data.ok && Array.isArray(data.memorias) && data.memorias.length > 0) {
+   214→        for (const m of data.memorias) {
+   215→          if (typeof m === "string" && m.trim()) {
+   216→            addMemoria(m.trim());
+   217→          }
+   218→        }
+   219→        assistantMsg.aprendido = data.memorias.filter(
+   220→          (m: unknown) => typeof m === "string" && (m as string).trim()
+   221→        );
+   222→      }
+   223→
+   224→      // Procesar ACCIONES del sistema (control total)
+   225→      if (data.ok && Array.isArray(data.acciones) && data.acciones.length > 0) {
+   226→        const ejecutadas: AccionEjecutada[] = [];
+   227→        for (const a of data.acciones) {
+   228→          const tipo = a.tipo;
+   229→          try {
+   230→            if (tipo === "add_product") {
+   231→              const sku = (a.sku || "").trim();
+   232→              const nombre = (a.nombre || "").trim();
+   233→              const cantidad = parseInt(a.cantidad || "0", 10) || 0;
+   234→              const minimo = a.minimo ? parseInt(a.minimo, 10) : undefined;
+   235→              const udm = a.udm || undefined;
+   236→              if (!sku || !nombre) {
+   237→                ejecutadas.push({ tipo, descripcion: `Añadir producto ${sku || "(sin SKU)"}`, ok: false, error: "Faltan datos (SKU o nombre)" });
+   238→                continue;
+   239→              }
+   240→              const existente = findProductBySku(sku);
+   241→              if (existente) {
+   242→                // Si ya existe, sumar la cantidad
+   243→                updateProduct(existente.id, { quantity: existente.quantity + cantidad });
+   244→                ejecutadas.push({ tipo, descripcion: `Sumé ${cantidad} a "${existente.name}" (SKU ${sku})`, ok: true });
+   245→              } else {
+   246→                const id = addProduct(sku, nombre, cantidad, minimo, udm);
+   247→                if (id) {
+   248→                  ejecutadas.push({ tipo, descripcion: `Añadí producto "${nombre}" (SKU ${sku}) con ${cantidad} unidades`, ok: true });
+   249→                } else {
+   250→                  ejecutadas.push({ tipo, descripcion: `Añadir producto ${sku}`, ok: false, error: "Ya existe un producto con ese SKU" });
+   251→                }
+   252→              }
+   253→            } else if (tipo === "update_stock") {
+   254→              const sku = (a.sku || "").trim();
+   255→              const delta = parseInt(a.delta || "0", 10);
+   256→              if (!sku) {
+   257→                ejecutadas.push({ tipo, descripcion: "Actualizar stock", ok: false, error: "Falta el SKU" });
+   258→                continue;
+   259→              }
+   260→              const p = findProductBySku(sku);
+   261→              if (!p) {
+   262→                ejecutadas.push({ tipo, descripcion: `Actualizar stock de ${sku}`, ok: false, error: "El producto no existe" });
+   263→                continue;
+   264→              }
+   265→              const nuevaCant = Math.max(0, p.quantity + delta);
+   266→              updateProduct(p.id, { quantity: nuevaCant });
+   267→              ejecutadas.push({ tipo, descripcion: `Actualicé stock de "${p.name}": ${p.quantity} → ${nuevaCant} (${delta > 0 ? "+" : ""}${delta})`, ok: true });
+   268→            } else if (tipo === "add_equipment") {
+   269→              const serie = (a.serie || "").trim();
+   270→              const modelo = (a.modelo || "").trim();
+   271→              const estado = (a.estado || "disponible") as "disponible" | "averiado" | "en_retiro" | "en_reparacion";
+   272→              const ubicacion = a.ubicacion || undefined;
+   273→              if (!serie || !modelo) {
+   274→                ejecutadas.push({ tipo, descripcion: "Añadir equipo", ok: false, error: "Faltan datos (serie o modelo)" });
+   275→                continue;
+   276→              }
+   277→              const id = addEquipment({ serie, modelo, estado, ubicacion });
+   278→              if (id) {
+   279→                ejecutadas.push({ tipo, descripcion: `Registré equipo ${serie} (${modelo})`, ok: true });
+   280→              } else {
+   281→                ejecutadas.push({ tipo, descripcion: `Añadir equipo ${serie}`, ok: false, error: "Ya existe un equipo con esa serie" });
+   282→              }
+   283→            } else if (tipo === "add_despacho") {
+   284→              const sku = (a.sku || "").trim();
+   285→              const cantidad = parseInt(a.cantidad || "0", 10) || 0;
+   286→              const destinatario = a.destinatario || undefined;
+   287→              const destino = a.destino || undefined;
+   288→              const observacion = a.observacion || undefined;
+   289→              if (!sku || cantidad <= 0) {
+   290→                ejecutadas.push({ tipo, descripcion: "Registrar despacho", ok: false, error: "Faltan datos (SKU o cantidad)" });
+   291→                continue;
+   292→              }
+   293→              const r = registrarDespacho({ sku, cantidad, tecnico: destinatario, destino, observacion });
+   294→              if (r.ok) {
+   295→                ejecutadas.push({ tipo, descripcion: `Despachadas ${cantidad} unidades de ${sku}${destinatario ? ` para ${destinatario}` : ""}`, ok: true });
+   296→              } else {
+   297→                ejecutadas.push({ tipo, descripcion: `Despachar ${cantidad} de ${sku}`, ok: false, error: r.msg });
+   298→              }
+   299→            } else if (tipo === "add_note") {
+   300→              const texto = (a.texto || "").trim();
+   301→              if (!texto) {
+   302→                ejecutadas.push({ tipo, descripcion: "Añadir nota", ok: false, error: "Falta el texto" });
+   303→                continue;
+   304→              }
+   305→              addNota(texto);
+   306→              ejecutadas.push({ tipo, descripcion: `Nota creada: "${texto.slice(0, 40)}${texto.length > 40 ? "…" : ""}"`, ok: true });
+   307→            } else if (tipo === "add_member") {
+   308→              const nombre = (a.nombre || "").trim();
+   309→              const rol = (a.rol || "almacenero") as "almacenero" | "supervisor" | "jefe_operaciones" | "administrador";
+   310→              const correo = a.correo || undefined;
+   311→              const telefono = a.telefono || undefined;
+   312→              if (!nombre) {
+   313→                ejecutadas.push({ tipo, descripcion: "Añadir miembro", ok: false, error: "Falta el nombre" });
+   314→                continue;
+   315→              }
+   316→              addMiembro(nombre, rol, correo, telefono);
+   317→              ejecutadas.push({ tipo, descripcion: `Añadí a "${nombre}" como ${rol}`, ok: true });
+   318→            } else if (tipo === "set_theme") {
+   319→              const tema = (a.tema || "oscuro") as "claro" | "oscuro" | "sistema";
+   320→              setSetting("tema", tema);
+   321→              ejecutadas.push({ tipo, descripcion: `Tema cambiado a "${tema}"`, ok: true });
+   322→            } else {
+   323→              ejecutadas.push({ tipo, descripcion: `Acción desconocida: ${tipo}`, ok: false, error: "Tipo no reconocido" });
+   324→            }
+   325→          } catch (err: any) {
+   326→            ejecutadas.push({ tipo, descripcion: `Ejecutar ${tipo}`, ok: false, error: err?.message || "Error" });
+   327→          }
+   328→        }
+   329→        if (ejecutadas.length > 0) {
+   330→          assistantMsg.accionesEjecutadas = ejecutadas;
+   331→        }
+   332→      }
+   333→
+   334→      const finalMessages = [...newMessages, assistantMsg];
+   335→      setMessages(finalMessages);
+   336→      saveChat(finalMessages);
+   337→
+   338→      // Si la voz está activada, leer la respuesta automáticamente
+   339→      if (vozEnabled) {
+   340→        const lastIdx = finalMessages.length - 1;
+   341→        const autoMsgId = `ts-${assistantMsg.ts}-${lastIdx}`;
+   342→        speak(respuesta);
+   343→        setSpeakingId(autoMsgId);
+   344→        const words = respuesta.split(/\s+/).length;
+   345→        const duracion = Math.max(2500, (words / 2.5) * 1000);
+   346→        setTimeout(() => {
+   347→          setSpeakingId((cur) => (cur === autoMsgId ? null : cur));
+   348→        }, duracion);
+   349→      }
+   350→    } catch {
+   351→      const errorMsg: ChatMsg = {
+   352→        role: "assistant",
+   353→        content: "No pude conectar con el servidor. Verifica tu conexión e intenta de nuevo.",
+   354→        ts: Date.now(),
+   355→      };
+   356→      const finalMessages = [...newMessages, errorMsg];
+   357→      setMessages(finalMessages);
+   358→      saveChat(finalMessages);
+   359→    } finally {
+   360→      setLoading(false);
+   361→    }
+   362→  };
+   363→
+   364→  const limpiarHistorial = () => {
+   365→    localStorage.removeItem(STORAGE_KEY);
+   366→    const bienvenida: ChatMsg[] = [
+   367→      {
+   368→        role: "assistant",
+   369→        content: `Historial borrado. Soy Alana. ¿En qué puedo ayudarte${usuario ? ", " + usuario : ""}?`,
+   370→        ts: Date.now(),
+   371→      },
+   372→    ];
+   373→    setMessages(bienvenida);
+   374→    saveChat(bienvenida);
+   375→  };
+   376→
+   377→  return (
+   378→    <div className="flex h-full flex-col">
+   379→      {/* Header compacto */}
+   380→      <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2.5 sm:px-4 lg:px-6">
+   381→        <div className="flex min-w-0 items-center gap-2.5">
+   382→          <AlanaAvatar size={36} glow />
+   383→          <div className="min-w-0">
+   384→            <h1 className="flex items-center gap-1.5 text-[15px] font-bold tracking-tight">
+   385→              <span className="truncate">Alana</span>
+   386→              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400">
+   387→                <span className="relative flex h-1.5 w-1.5">
+   388→                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+   389→                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+   390→                </span>
+   391→                <span className="hidden sm:inline">ACTIVO</span>
+   392→              </span>
+   393→              {vozEnabled && (
+   394→                <span
+   395→                  className="hidden items-center gap-0.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold text-primary sm:inline-flex"
+   396→                  title="Voz activada — Alana leerá sus respuestas en voz alta"
+   397→                >
+   398→                  <Volume2 className="h-2.5 w-2.5" /> VOZ
+   399→                </span>
+   400→              )}
+   401→            </h1>
+   402→            <p className="hidden text-[10px] text-muted-foreground sm:block">
+   403→              {messages.length} mensaje(s) · se borra en 5h · {memoriaIA.length} aprendizajes
+   404→            </p>
+   405→          </div>
+   406→        </div>
+   407→        <div className="flex shrink-0 items-center gap-1">
+   408→          <button
+   409→            onClick={() => setShowHistory(!showHistory)}
+   410→            className={cn(
+   411→              "press flex h-9 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-medium transition-colors sm:px-3",
+   412→              showHistory ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-accent"
+   413→            )}
+   414→            title="Ver conversaciones anteriores"
+   415→          >
+   416→            <Clock className="h-4 w-4" />
+   417→            <span className="hidden sm:inline">Historial</span>
+   418→          </button>
+   419→          {messages.length > 1 && (
+   420→            <button
+   421→              onClick={() => {
+   422→                stopSpeaking();
+   423→                setSpeakingId(null);
+   424→                limpiarHistorial();
+   425→              }}
+   426→              className="press flex h-9 items-center justify-center rounded-lg border border-border bg-card px-2.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+   427→              title="Borrar conversación"
+   428→            >
+   429→              <Trash2 className="h-4 w-4" />
+   430→            </button>
+   431→          )}
+   432→        </div>
+   433→      </div>
+   434→
+   435→      {/* Chat - llena el espacio disponible con scroll interno */}
+   436→      <div className="relative flex-1 overflow-hidden">
+   437→        <div
+   438→          ref={scrollRef}
+   439→          className="h-full overflow-y-auto scroll-thin px-4 py-4 lg:px-6"
+   440→        >
+   441→          <div className="mx-auto max-w-3xl space-y-3">
+   442→            {messages.map((m, i) => {
+   443→              const msgId = `ts-${m.ts}-${i}`;
+   444→              const isSpeaking = speakingId === msgId;
+   445→              return (
+   446→                <div
+   447→                  key={i}
+   448→                  className={cn("flex gap-3 anim-fade-in", m.role === "user" && "flex-row-reverse")}
+   449→                >
+   450→                  {m.role === "assistant"
+   451→                    ? <AlanaAvatar size={32} className="shadow-sm" />
+   452→                    : (
+   453→                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground shadow-sm">
+   454→                        <User className="h-4 w-4" />
+   455→                      </div>
+   456→                    )
+   457→                  }
+   458→                  <div className={cn("flex max-w-[85%] flex-col", m.role === "user" && "items-end")}>
+   459→                    <div
+   460→                      className={cn(
+   461→                        "rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap break-words shadow-sm",
+   462→                        m.role === "assistant"
+   463→                          ? "rounded-tl-sm bg-card border border-border text-foreground"
+   464→                          : "rounded-tr-sm bg-primary text-primary-foreground"
+   465→                      )}
+   466→                    >
+   467→                      {m.content}
+   468→                      {/* Botón de TTS solo en mensajes de la IA */}
+   469→                      {m.role === "assistant" && (
+   470→                        <button
+   471→                          onClick={() => hablar(m.content, msgId)}
+   472→                          className={cn(
+   473→                            "press ml-2 inline-flex h-6 w-6 items-center justify-center rounded-md border border-border align-middle text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+   474→                            isSpeaking && "border-primary text-primary bg-primary/10"
+   475→                          )}
+   476→                          title={isSpeaking ? "Detener voz" : "Leer en voz alta"}
+   477→                        >
+   478→                          {isSpeaking ? <Square className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+   479→                        </button>
+   480→                      )}
+   481→                    </div>
+   482→                    {/* Badge de recordatorio creado */}
+   483→                    {m.recordatorio && (
+   484→                      <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-primary/30 bg-muted px-2.5 py-1.5 text-[10px]">
+   485→                        <BellRing className="h-3 w-3 text-primary" />
+   486→                        <span className="font-semibold text-primary">Recordatorio creado:</span>
+   487→                        <span className="text-muted-foreground">{m.recordatorio.texto}</span>
+   488→                        <span className="ml-auto text-primary">
+   489→                          {new Date(m.recordatorio.cuando).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+   490→                        </span>
+   491→                      </div>
+   492→                    )}
+   493→                    {/* Badge de aprendido */}
+   494→                    {m.aprendido && m.aprendido.length > 0 && (
+   495→                      <div className="mt-1.5 flex flex-col gap-1">
+   496→                        {m.aprendido.map((ap, idx) => (
+   497→                          <div
+   498→                            key={idx}
+   499→                            className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-[10px]"
+   500→                          >
+   501→                            <Brain className="h-3 w-3 text-emerald-500" />
+   502→                            <span className="font-semibold text-emerald-500">Aprendido ✓</span>
+   503→                            <span className="text-foreground">{ap}</span>
+   504→                          </div>
+   505→                        ))}
+   506→                      </div>
+   507→                    )}
+   508→                    {/* Acciones del sistema ejecutadas */}
+   509→                    {m.accionesEjecutadas && m.accionesEjecutadas.length > 0 && (
+   510→                      <div className="mt-1.5 flex flex-col gap-1">
+   511→                        <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wide text-primary">
+   512→                          <ClipboardList className="h-2.5 w-2.5" />
+   513→                          Acciones ejecutadas
+   514→                        </div>
+   515→                        {m.accionesEjecutadas.map((a, idx) => {
+   516→                          const iconoAccion =
+   517→                            a.tipo === "add_product" ? PackagePlus :
+   518→                            a.tipo === "update_stock" ? Package :
+   519→                            a.tipo === "add_equipment" ? Cpu :
+   520→                            a.tipo === "add_despacho" ? Send :
+   521→                            a.tipo === "add_note" ? FileText :
+   522→                            a.tipo === "add_member" ? Users :
+   523→                            a.tipo === "set_theme" ? Sun :
+   524→                            ClipboardList;
+   525→                          const Icon = iconoAccion;
+   526→                          return (
+   527→                            <div
+   528→                              key={idx}
+   529→                              className={cn(
+   530→                                "flex items-start gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px]",
+   531→                                a.ok
+   532→                                  ? "border-primary/30 bg-primary/5"
+   533→                                  : "border-red-500/30 bg-red-500/5"
+   534→                              )}
+   535→                            >
+   536→                              <Icon className="mt-0.5 h-3 w-3 shrink-0 text-primary" />
+   537→                              <div className="min-w-0 flex-1">
+   538→                                <p className="text-foreground">{a.descripcion}</p>
+   539→                                {a.error && (
+   540→                                  <p className="text-red-400">⚠ {a.error}</p>
+   541→                                )}
+   542→                              </div>
+   543→                              {a.ok ? (
+   544→                                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+   545→                                  <Check className="h-2.5 w-2.5" />
+   546→                                </span>
+   547→                              ) : (
+   548→                                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-red-500 text-white">
+   549→                                  <XIcon className="h-2.5 w-2.5" />
+   550→                                </span>
+   551→                              )}
+   552→                            </div>
+   553→                          );
+   554→                        })}
+   555→                      </div>
+   556→                    )}
+   557→                    <span className="mt-1 px-1 text-[9px] text-muted-foreground/60">
+   558→                      {timeAgo(m.ts)}
+   559→                    </span>
+   560→                  </div>
+   561→                </div>
+   562→              );
+   563→            })}
+   564→            {loading && (
+   565→              <div className="flex gap-3">
+   566→                <AlanaAvatar size={32} className="shadow-sm" />
+   567→                <div className="flex items-center gap-2 rounded-2xl rounded-tl-sm border border-border bg-card px-4 py-3 shadow-sm">
+   568→                  <span className="flex gap-1">
+   569→                    <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "0ms", animationDuration: "0.8s" }} />
+   570→                    <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "150ms", animationDuration: "0.8s" }} />
+   571→                    <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "300ms", animationDuration: "0.8s" }} />
+   572→                  </span>
+   573→                  <span className="text-[13px] text-muted-foreground">Pensando…</span>
+   574→                </div>
+   575→              </div>
+   576→            )}
+   577→          </div>
+   578→        </div>
+   579→
+   580→        {/* Panel de historial (overlay lateral) */}
+   581→        {showHistory && (
+   582→          <div className="absolute right-0 top-0 h-full w-72 border-l border-border bg-card/95 backdrop-blur-xl anim-fade-in">
+   583→            <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
+   584→              <p className="flex items-center gap-1.5 text-[12px] font-bold">
+   585→                <Clock className="h-3.5 w-3.5 text-primary" /> Historial
+   586→              </p>
+   587→              <button onClick={() => setShowHistory(false)} className="press text-muted-foreground hover:text-foreground">
+   588→                <Trash2 className="h-3.5 w-3.5" />
+   589→              </button>
+   590→            </div>
+   591→            <div className="max-h-[calc(100%-3rem)] overflow-y-auto scroll-thin p-2">
+   592→              {messages.length === 0 ? (
+   593→                <p className="py-6 text-center text-[11px] text-muted-foreground">Sin conversaciones</p>
+   594→              ) : (
+   595→                messages.filter((m) => m.role === "user").slice().reverse().map((m, i) => (
+   596→                  <button
+   597→                    key={i}
+   598→                    onClick={() => {
+   599→                      setShowHistory(false);
+   600→                      setInput(m.content);
+   601→                    }}
+   602→                    className="press mb-1 block w-full rounded-lg border border-transparent px-2.5 py-2 text-left text-[11px] transition-colors hover:border-border hover:bg-accent"
+   603→                  >
+   604→                    <p className="line-clamp-2 text-foreground">{m.content}</p>
+   605→                    <p className="mt-0.5 text-[9px] text-muted-foreground">{timeAgo(m.ts)}</p>
+   606→                  </button>
+   607→                ))
+   608→              )}
+   609→            </div>
+   610→          </div>
+   611→        )}
+   612→      </div>
+   613→
+   614→      {/* Sugerencias - siempre visibles, compactas */}
+   615→      <div className="border-t border-border bg-card/50 px-3 py-2 sm:px-4 lg:px-6">
+   616→        <div className="mx-auto flex max-w-3xl flex-wrap gap-1.5">
+   617→          {SUGERENCIAS.slice(0, 6).map((s) => {
+   618→            const Icon = s.icon;
+   619→            return (
+   620→              <button
+   621→                key={s.text}
+   622→                onClick={() => enviar(s.text)}
+   623→                disabled={loading}
+   624→                className="press flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground transition-all hover:border-primary/40 hover:bg-muted hover:text-foreground disabled:opacity-50"
+   625→              >
+   626→                <Icon className={cn("h-3.5 w-3.5 shrink-0", s.color)} />
+   627→                <span className="max-w-[200px] truncate sm:max-w-[160px]">{s.text}</span>
+   628→              </button>
+   629→            );
+   630→          })}
+   631→        </div>
+   632→      </div>
+   633→
+   634→      {/* Input fijo abajo — con safe-area para que la barra del celular no lo tape */}
+   635→      <div
+   636→        className="border-t border-border bg-card px-3 py-3 sm:px-4 lg:px-6"
+   637→        style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 12px)" }}
+   638→      >
+   639→        <div className="mx-auto flex max-w-3xl items-end gap-2">
+   640→          <textarea
+   641→            value={input}
+   642→            onChange={(e) => setInput(e.target.value)}
+   643→            onKeyDown={(e) => {
+   644→              if (e.key === "Enter" && !e.shiftKey) {
+   645→                e.preventDefault();
+   646→                enviar();
+   647→              }
+   648→            }}
+   649→            placeholder="Pregúntame, pídeme algo o dime qué recordar…"
+   650→            className="h-12 min-h-[48px] flex-1 resize-none rounded-xl border border-border bg-background px-4 py-3 text-[15px] outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
+   651→            disabled={loading}
+   652→            rows={1}
+   653→          />
+   654→          <button
+   655→            onClick={() => enviar()}
+   656→            disabled={!input.trim() || loading}
+   657→            className="btn-spacecom flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+   658→            aria-label="Enviar"
+   659→          >
+   660→            <Send className="h-5 w-5" />
+   661→          </button>
+   662→        </div>
+   663→      </div>
+   664→    </div>
+   665→  );
+   666→}
+   667→

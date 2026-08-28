@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import {
@@ -40,24 +41,30 @@ export function DashboardView() {
 
   const go = (v: ActiveView) => () => router.push(VIEW_PATH[v]);
 
-  const totalUnidades = products.reduce((s, p) => s + p.quantity, 0);
-  const bajoStock = products.filter((p) => p.minStock && p.minStock > 0 && p.quantity <= p.minStock);
-  const equiposDisponibles = equipos.filter((e) => e.estado === "disponible").length;
+  const stats = useMemo(() => {
+    const totalUnidades = products.reduce((s, p) => s + p.quantity, 0);
+    const bajoStock = products.filter((p) => p.minStock && p.minStock > 0 && p.quantity <= p.minStock);
+    const equiposDisponibles = equipos.filter((e) => e.estado === "disponible").length;
+
+    const catMap: Record<string, number> = {};
+    for (const p of products) {
+      const k = p.udm ?? "Sin UDM";
+      catMap[k] = (catMap[k] ?? 0) + p.quantity;
+    }
+    const categorias = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    const maxCat = categorias[0]?.[1] ?? 1;
+
+    const topBajoStock = [...products].sort((a, b) => {
+      const aPct = a.minStock ? a.quantity / a.minStock : 999;
+      const bPct = b.minStock ? b.quantity / b.minStock : 999;
+      return aPct - bPct;
+    }).slice(0, 5);
+
+    return { totalUnidades, bajoStock, equiposDisponibles, categorias, maxCat, topBajoStock };
+  }, [products, equipos]);
+
+  const { totalUnidades, bajoStock, equiposDisponibles, categorias, maxCat, topBajoStock } = stats;
   const numPersonal = miembros.length;
-
-  const catMap: Record<string, number> = {};
-  for (const p of products) {
-    const k = p.udm ?? "Sin UDM";
-    catMap[k] = (catMap[k] ?? 0) + p.quantity;
-  }
-  const categorias = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 6);
-  const maxCat = categorias[0]?.[1] ?? 1;
-
-  const topBajoStock = [...products].sort((a, b) => {
-    const aPct = a.minStock ? a.quantity / a.minStock : 999;
-    const bPct = b.minStock ? b.quantity / b.minStock : 999;
-    return aPct - bPct;
-  }).slice(0, 5);
 
   const estadoBarColor = (est: EstadoEquipo) => {
     const t = ESTADO_META[est].tone;

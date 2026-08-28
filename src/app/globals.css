@@ -221,26 +221,15 @@ html.light {
     -webkit-user-select: none;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
-    border-radius: 0.75rem !important;
-    transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1) !important;
-  }
-  button:hover, [role="button"]:hover {
-    transform: translateY(-1px);
+    transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
   }
   button:active, [role="button"]:active {
     transform: scale(0.97);
   }
 
-  /* Cards redondeadas */
-  [class*="rounded"]:not([class*="rounded-none"]) {
-    border-radius: 1rem;
-  }
-
-  /* Inputs redondeados */
+  /* Inputs: font-size 16px previene zoom en iOS */
   input, textarea, select {
     font-size: 16px;
-    border-radius: 0.75rem !important;
-    transition: all 0.2s ease !important;
   }
   input:focus, textarea:focus, select:focus {
     box-shadow: 0 0 0 3px oklch(0.55 0.18 250 / 0.15);
@@ -701,8 +690,8 @@ html.light .scroll-thin::-webkit-scrollbar-thumb { background: oklch(0.75 0.01 2
 }
 
 /* ===== ANIMACIONES GLOBALES PARA TODO ===== */
-/* Todas las cards se animan al entrar */
-div[class*="rounded"][class*="border"][class*="bg-card"] {
+/* Animación de respiración solo para elementos con clase explícita */
+.lem-breathe {
   animation: lem-aurora-breath 6s ease-in-out infinite;
 }
 

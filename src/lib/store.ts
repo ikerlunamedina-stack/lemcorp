@@ -259,7 +259,12 @@ export const useStore = create<StoreState>()(
 
       // ─── Pistoleo ───
       setPistoleoConfig: (patch) => set({ ...patch }),
-      addPistoleoFila: (valores, modeloSeleccionado) =>
+      addPistoleoFila: (valores, modeloSeleccionado) => {
+        const current = get().pistoleoFilas;
+        // Límite duro de 1000 series por lote (rendimiento + cuota localStorage)
+        if (current.length >= 1000) {
+          return;
+        }
         set({
           pistoleoFilas: [
             {
@@ -268,9 +273,10 @@ export const useStore = create<StoreState>()(
               timestamp: Date.now(),
               modeloSeleccionado,
             },
-            ...get().pistoleoFilas,
+            ...current,
           ],
-        }),
+        });
+      },
       updatePistoleoFila: (id, valores, modeloSeleccionado) =>
         set({
           pistoleoFilas: get().pistoleoFilas.map((f) =>
@@ -702,8 +708,14 @@ export const useStore = create<StoreState>()(
         const fechaISO = `${ahora.getFullYear()}-${(ahora.getMonth() + 1)
           .toString()
           .padStart(2, "0")}-${ahora.getDate().toString().padStart(2, "0")}`;
+        // Disparamos si la hora actual está dentro del rango [horaInicio, horaFin)
+        // y no se disparó hoy todavía. Así no dependemos de coincidencia exacta de minuto.
         return get().horario.filter(
-          (h) => h.dia === diaHoy && h.horaInicio === ahoraStr && h.ultimoDisparo !== fechaISO
+          (h) =>
+            h.dia === diaHoy &&
+            h.horaInicio <= ahoraStr &&
+            ahoraStr < h.horaFin &&
+            h.ultimoDisparo !== fechaISO
         );
       },
 
@@ -1255,8 +1267,6 @@ export const useStore = create<StoreState>()(
         }
         // Mergear settings con defaults (para añadir campos nuevos)
         const mergedSettings = { ...DEFAULT_SETTINGS, ...(p.settings || {}) };
-        // Forzar tema oscuro en migración
-        mergedSettings.tema = "oscuro";
         // Migrar usuario "Admin" → "Iker" (si era el default anterior)
         if (mergedSettings.usuario === "Admin" || !mergedSettings.usuario) {
           mergedSettings.usuario = "Iker";
@@ -1270,6 +1280,18 @@ export const useStore = create<StoreState>()(
           ...x,
           quantity: typeof x.quantity === "number" ? x.quantity : 0,
         }));
+        // Si el usuario ya tiene datos (productos o equipos), marcar onboarding como hecho
+        // para no obligarlo a pasar por el wizard de configuración inicial.
+        try {
+          if (
+            (Array.isArray(p.products) && p.products.length > 0) ||
+            (Array.isArray(p.equipos) && p.equipos.length > 0)
+          ) {
+            localStorage.setItem("lemcorp-onboarding-done-v1", "1");
+          }
+        } catch {
+          /* localStorage puede no estar disponible */
+        }
         return p;
       },
       version: 11,

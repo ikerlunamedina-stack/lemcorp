@@ -7,6 +7,7 @@ import {
   BarChart3, ShoppingCart, Zap, BellRing, Clock,
   Volume2, Square, Brain,
   Check, X as XIcon, FileText, PackagePlus, ClipboardList,
+  Sun,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";

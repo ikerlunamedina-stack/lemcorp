@@ -100,7 +100,7 @@ export function NotificationStack() {
     return () => clearInterval(id);
   }, [checkRecordatorios, marcarRecordatorioDisparado, addNotificacion, dispararFull]);
 
-  // Check horario cada 2 minutos (reducido para ahorrar memoria)
+  // Check horario cada 30 segundos (rango-based, no requiere minuto exacto)
   useEffect(() => {
     const check = () => {
       const matches = checkHorario();
@@ -124,7 +124,7 @@ export function NotificationStack() {
       }
     };
     check();
-    const id = setInterval(check, 300000);
+    const id = setInterval(check, 30000);
     return () => clearInterval(id);
   }, [checkHorario, marcarHorarioDisparado, addNotificacion, dispararFull]);
 

@@ -265,11 +265,7 @@ export function Navbar() {
                     )}
                     style={{ animationDelay: `${idx * 30}ms` }}
                   >
-                    {item.imageSrc ? (
-                      <img src={item.imageSrc} alt={item.label} className="h-5 w-5 rounded-full object-cover" />
-                    ) : (
-                      <Icon className="h-5 w-5" />
-                    )}
+                    <Icon className="h-5 w-5" />
                     <span>{item.label}</span>
                     {active && (
                       <span className="ml-auto h-2 w-2 rounded-full bg-primary" />

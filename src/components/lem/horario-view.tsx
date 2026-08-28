@@ -221,7 +221,6 @@ export function HorarioView() {
               </p>
               <p className="mt-1 text-3xl font-bold tabular-nums text-foreground sm:text-4xl">
                 {a12h(ahora24h().slice(0, 5) + ":00").replace(":00 ", " ")}
-                <span className="ml-2 text-lg text-primary">{ahora.slice(0, 5).split(":")[1] >= "30" ? "PM" : "AM"}</span>
               </p>
             </div>
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 sm:h-16 sm:w-16">
