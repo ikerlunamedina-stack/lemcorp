@@ -105,7 +105,7 @@ function proyectarNecesidades(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { mensaje, inventario, equipos, miembros, despachos, empresa, usuario, memoria } = body;
+    const { mensaje, historial, inventario, equipos, miembros, despachos, empresa, usuario, memoria } = body;
 
     const productos: ProductDTO[] = Array.isArray(inventario) ? inventario : [];
     const eqs: EquipmentDTO[] = Array.isArray(equipos) ? equipos : [];
@@ -114,6 +114,10 @@ export async function POST(req: NextRequest) {
     const emp = typeof empresa === "object" && empresa ? (empresa as any) : {};
     const usuarioNombre = typeof usuario === "string" && usuario ? usuario : "operador";
     const memoriaAprendida: string[] = Array.isArray(memoria) ? memoria.filter((m: any) => typeof m === "string" && m.trim()) : [];
+    // Historial de conversación (para contexto)
+    const historialMsgs: Array<{ role: string; content: string }> = Array.isArray(historial)
+      ? historial.filter((m: any) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+      : [];
 
     // ─── Análisis en tiempo real ───
     const bajoStock = productos.filter(
@@ -422,62 +426,70 @@ ${productosTxt}${bajoStockTxt}${agotadoTxt}${criticosTxt}${equiposTxt}${miembros
 ═══════════════════════════════════════
 INSTRUCCIONES DE RESPUESTA:
 ═══════════════════════════════════════
+- Eres Alana, una IA MUY INTELIGENTE, como ChatGPT. Puedes responder CUALQUIER pregunta, no solo del almacén.
 - Responde SIEMPRE en español peruano, claro y directo.
+- Si el usuario te pregunta CUALQUIER cosa (ciencia, historia, geografía, tecnología, vida cotidiana, consejos, opiniones, explicaciones), RESPONDE con conocimiento completo y útil. NUNCA digas "no sé" o "no tengo información" — siempre da tu mejor respuesta.
+- Si te piden matemáticas, CALCULA el resultado exacto. Ej: "15 * 23 + 100" → "345 + 100 = 445".
 - Usa viñetas (•) y emojis con moderación para mejorar la legibilidad.
 - Cuando recomiendes una compra, incluye: SKU del producto, cantidad sugerida, y justificación basada en datos reales del inventario.
 - Sé específico con números: no digas "varios", di exactamente cuántos.
 - Si detectas un problema urgente (stock crítico, agotado), márcalo con 🚨 al inicio de la línea.
-- Si el operador te saluda, salúdalo por su nombre (${usuarioNombre}) y presenta como Alana: "Soy Alana, asistente del almacén Lemcorp".
+- REGLA CRÍTICA DE PRESENTACIÓN: NUNCA digas "Hola, soy Alana" al inicio de cada respuesta. SOLO preséntate si el usuario te PREGUNTA EXPLÍCITAMENTE tu nombre.
+  * INCORRECTO: "Hola Iker, soy Alana. El stock de conectores es..."
+  * CORRECTO: "El stock de conectores es 1500 unidades."
 - Para preguntas de "¿cuánto pedir para X días?", usa la fórmula: consumoDiario × días + stockMínimo - stockActual. Redondea hacia arriba.
 - Para reportes ejecutivos, estructura la respuesta en secciones: 📊 Estado, 📈 Tendencias, 🚨 Alertas, ✅ Acciones.
 - Mantén un tono profesional pero cercano. Eres un colega experto, no un robot.
-- Si no tienes datos suficientes, pídelos. No inventes cantidades.
+- Si no tienes datos suficientes del almacén, pídelos. Pero para preguntas GENERALES, responde con todo tu conocimiento.
 - Si el usuario pregunta por un SKU específico, busca en el inventario detallado y responde con sus datos exactos.
-- Si el usuario pregunta tu nombre, responde: "Soy Alana".`;
+- Mantén el CONTEXTO de la conversación. Si el usuario dice "y ese?", refiérete al último tema del que hablaron.
+- Sé concisa pero completa. No respondas con 1 palabra, pero tampoco escribas un ensayo si no es necesario.`;
 
-    // Usar directamente el sistema de respuestas local (rápido, sin esperar API externa)
-    // Si Z.AI está disponible (sandbox local), lo intentamos con un timeout corto de 3s
+    // Usar Z.AI (GLM) como motor principal de inteligencia — funciona en sandbox y en Vercel
     let respuesta = "";
     let usarFallback = true;
 
-    // Solo intentar Z.AI si estamos en el sandbox local (no en Vercel)
-    if (process.env.VERCEL !== "1") {
-      try {
-        const zai = new ZAI({
-          baseUrl: "https://internal-api.z.ai/v1",
-          apiKey: "Z.ai",
-          chatId: "chat-4fe20023-027a-4694-803d-4bc79d019243",
-          token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMmUzOTNhNDMtYjYxZS00ODM5LWFiOGItZWZkNzc3ZmE3MDdiIiwiY2hhdF9pZCI6ImNoYXQtNGZlMjAwMjMtMDI3YS00Njk0LTgwM2QtNGJjNzlkMDE5MjQzIiwicGxhdGZvcm0iOiJ6YWkifQ.pLa1AlWgguS-P_zBBQxua5eYP64GwOxEq36czXbjtuI",
-          userId: "2e393a43-b61e-4839-ab8b-efd777fa707b",
+    try {
+      const zai = new ZAI({
+        baseUrl: "https://internal-api.z.ai/v1",
+        apiKey: "Z.ai",
+        chatId: "chat-4fe20023-027a-4694-803d-4bc79d019243",
+        token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMmUzOTNhNDMtYjYxZS00ODM5LWFiOGItZWZkNzc3ZmE3MDdiIiwiY2hhdF9pZCI6ImNoYXQtNGZlMjAwMjMtMDI3YS00Njk0LTgwM2QtNGJjNzlkMDE5MjQzIiwicGxhdGZvcm0iOiJ6YWkifQ.pLa1AlWgguS-P_zBBQxua5eYP64GwOxEq36czXbjtuI",
+        userId: "2e393a43-b61e-4839-ab8b-efd777fa707b",
+      });
+
+      // Construir mensajes con historial para que Alana tenga contexto de la conversación
+      const mensajesZAI: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
+        { role: "system", content: systemPrompt },
+      ];
+      // Añadir historial (excluyendo el último mensaje que es el actual)
+      for (const m of historialMsgs.slice(0, -1)) {
+        mensajesZAI.push({
+          role: m.role === "user" ? "user" : "assistant",
+          content: m.content,
         });
-
-        // Timeout de 3 segundos — si Z.AI no responde rápido, usar fallback
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 3000);
-
-        const response = await Promise.race([
-          zai.chat.completions.create({
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: String(mensaje ?? "") },
-            ],
-            thinking: { type: "disabled" },
-          }),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("timeout")), 3000)
-          ),
-        ]);
-
-        clearTimeout(timeout);
-
-        respuesta = response.choices[0]?.message?.content || "";
-        if (respuesta && respuesta.length >= 5) {
-          usarFallback = false;
-        }
-      } catch (zaiError) {
-        // Z.AI falló o tardó mucho — usar fallback inmediatamente
-        usarFallback = true;
       }
+      // Añadir el mensaje actual
+      mensajesZAI.push({ role: "user", content: String(mensaje ?? "") });
+
+      // Timeout de 15 segundos — tiempo suficiente para respuestas inteligentes
+      const response = await Promise.race([
+        zai.chat.completions.create({
+          messages: mensajesZAI,
+          thinking: { type: "disabled" },
+        }),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("timeout")), 15000)
+        ),
+      ]);
+
+      respuesta = response.choices[0]?.message?.content || "";
+      if (respuesta && respuesta.length >= 5) {
+        usarFallback = false;
+      }
+    } catch (zaiError) {
+      // Z.AI falló o tardó mucho — usar fallback
+      usarFallback = true;
     }
 
     // FALLBACK: Generar respuesta con análisis de datos reales (instantáneo)
@@ -749,7 +761,63 @@ Dime qué necesitas.`;
     return `${productoEncontrado.name}\nSKU: ${productoEncontrado.sku}\nStock: ${productoEncontrado.quantity} ${productoEncontrado.udm || "und"}\n${productoEncontrado.minStock && productoEncontrado.quantity <= productoEncontrado.minStock ? "Está bajo del mínimo." : "Stock bien."}`;
   }
 
-  // === 6. WIKIPEDIA — BUSCAR PARA TODAS LAS PREGUNTAS ===
+  // === 7. CONVERSACIÓN GENERAL (cuando no es almacén ni matemáticas ni Wikipedia) ===
+  // Respuestas inteligentes para preguntas comunes de conversación
+  
+  // Chistes
+  if (/chiste|broma|h[aá]zme re[ií]r|divierte/i.test(msg)) {
+    const chistes = [
+      "¿Por qué los pájaros no usan Facebook? Porque ya tienen Twitter. 😄",
+      "¿Qué le dice un jaguar a otro jaguar? ¡Jaguar you! 🐆",
+      "¿Por qué el libro de matemáticas estaba triste? Porque tenía muchos problemas. 📚",
+      "¿Qué hace una abeja en el gimnasio? ¡Zum-ba! 🐝",
+      "¿Por qué los esqueletos no pelean entre ellos? Porque no tienen agallas. 💀",
+    ];
+    return chistes[Math.floor(Math.random() * chistes.length)];
+  }
+
+  // ¿Cómo estás?
+  if (/c[oó]mo est[aá]s|qu[eé] tal|c[oó]mo te va|qu[eé] hay de nuevo/i.test(msg)) {
+    return `Todo bien, ${nombre} 😊 Listo para ayudarte con lo que necesites. ¿Preguntas del almacén o de algo más?`;
+  }
+
+  // ¿Quién eres?
+  if (/qui[eé]n eres|c[oó]mo te llamas|tu nombre|qu[eé] eres|qu[eé] eres tú/i.test(msg)) {
+    return `Soy Alana, la asistente del almacén Lemcorp. Pero puedo responder cualquier pregunta que tengas, no solo del almacén. ¿Qué necesitas?`;
+  }
+
+  // Opinion / consejo
+  if (/qu[eé] piensas|tu opini[oó]n|qu[eé] crees|consejo|recomienda|sugiere/i.test(msg)) {
+    // Si menciona un producto del almacén, dar opinión basada en datos
+    const prodMencionado = products.find(p => msg.includes(p.name.toLowerCase()) || msg.includes(p.sku.toLowerCase()));
+    if (prodMencionado) {
+      const estado = prodMencionado.minStock && prodMencionado.quantity <= prodMencionado.minStock ? "crítico" : "saludable";
+      return `Mi opinión sobre ${prodMencionado.name}: el stock está ${estado} (${prodMencionado.quantity} ${prodMencionado.udm || "und"}). ${prodMencionado.minStock && prodMencionado.quantity <= prodMencionado.minStock ? "Recomendaría reponer pronto." : "Por ahora va bien."}`;
+    }
+    return `Depende del contexto, ${nombre}. ¿Sobre qué específicamente quieres mi opinión? Mientras más detalle me des, mejor te puedo aconsejar.`;
+  }
+
+  // Explicación / definición corta (sin ir a Wikipedia aún)
+  if (/expl[ií]came|qu[eé] significa|c[oó]mo funciona|por qu[eé] pasa/i.test(msg)) {
+    // Dejar que Wikipedia lo maneje abajo
+  }
+
+  // Saludos adicionales
+  if (/buenos d[ií]as|buen d[ií]a/i.test(msg)) {
+    const hora = new Date().getHours();
+    if (hora >= 5 && hora < 12) {
+      return `¡Buenos días, ${nombre}! ☀️ ¿Qué planes para hoy?`;
+    }
+    return `Hola, ${nombre}. Son las ${new Date().toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit" })}. ¿Qué necesitas?`;
+  }
+  if (/buenas tardes|buena tarde/i.test(msg)) {
+    return `¡Buenas tardes, ${nombre}! 👋 ¿Qué hay?`;
+  }
+  if (/buenas noches|buena noche/i.test(msg)) {
+    return `¡Buenas noches, ${nombre}! 🌙 ¿Algo en lo que pueda ayudar?`;
+  }
+
+  // === 8. WIKIPEDIA — BUSCAR PARA TODAS LAS PREGUNTAS DE CONOCIMIENTO ===
   // Extraer el tema de búsqueda limpiando palabras de pregunta
   let temaBusqueda = msg
     .replace(/^(qu[eé] es|qu[eé] son|qu[eé] significa|qu[ié]n es|qu[ié]n fue|quien es|quien fue|qu[ié]nes son|d[ií]me|dime qu[eé] es|dime sobre|h[aá]blame de|cu[eé]ntame de|cu[eé]ntame sobre|informaci[oó]n sobre|s[aá]bes de|s[aá]bes sobre|qu[eé] sabes de|qu[eé] sabes sobre|cu[aá]l es la|cu[aá]l es el|d[oó]nde est[aá]|c[oó]mo se|por qu[eé]|cu[aá]ndo|hay)\s*/i, "")
@@ -782,6 +850,14 @@ Dime qué necesitas.`;
     } catch {}
   }
 
-  // === 7. RESPUESTA FINAL ===
-  return `No encontré información exacta sobre eso, ${nombre}. ¿Puedes reformular la pregunta? También puedo ayudarte con matemáticas ("cuánto es 5 por 3"), el almacén ("qué productos tengo"), o dime "ayuda".`;
+  // === 9. RESPUESTA FINAL ===
+  return `Mmm, no tengo información exacta sobre eso, ${nombre}. Pero puedo ayudarte con:
+
+• Matemáticas: "cuánto es 5 por 3", "20% de 500"
+• Almacén: "qué productos tengo", "qué falta", "cómo están los equipos"
+• Conocimiento: "qué es un router", "quién fue Einstein", "dónde está París"
+• Acciones: "añade 50 conectores", "anota revisar cable", "pon la página en blanco"
+• Recordatorios: "recuérdame pedir conectores mañana a las 9"
+
+¿Qué necesitas exactamente?`;
 }

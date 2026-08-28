@@ -2414,3 +2414,56 @@ Stage Summary:
 - Light mode: azul corporativo sobre blanco ✓
 - Dark mode: azul brillante sobre navy ✓
 - Verificado visualmente con VLM en 4 pantallas ✓
+
+---
+Task ID: IA-INTELIGENTE-100
+Agent: main
+Task: Hacer que Alana sea inteligente de verdad (como ChatGPT), responda cualquier cosa, haga matemáticas, tenga contexto de conversación
+
+Work Log:
+- DIAGNÓSTICO: Encontré 3 problemas críticos en la IA:
+  1. Z.AI estaba DESACTIVADO en Vercel (process.env.VERCEL !== "1") → en producción solo usaba el fallback limitado (Wikipedia)
+  2. Timeout de solo 3 segundos → muy corto para respuestas inteligentes
+  3. NO se pasaba el historial de conversación → Alana no tenía contexto
+
+- FIX 1: Frontend (ia-view.tsx)
+  * Ahora envía los últimos 10 mensajes como "historial" para que Alana tenga contexto
+  * body incluye: historial: [{role, content}, ...]
+
+- FIX 2: Backend (api/ia/route.ts)
+  * Quitada la restricción process.env.VERCEL !== "1" → Z.AI funciona en TODOS los ambientes (sandbox + Vercel)
+  * Timeout aumentado de 3s a 15s → tiempo suficiente para respuestas inteligentes
+  * Z.AI ahora recibe el historial completo: [system, ...historial, mensaje_actual]
+  * Así Alana puede entender "y ese?" refiriéndose al tema anterior
+
+- FIX 3: System prompt mejorado
+  * "Eres Alana, una IA MUY INTELIGENTE, como ChatGPT"
+  * "Puedes responder CUALQUIER pregunta, no solo del almacén"
+  * "NUNCA digas 'no sé' — siempre da tu mejor respuesta"
+  * "Mantén el CONTEXTO de la conversación"
+  * Regla crítica de presentación reforzada
+
+- FIX 4: Fallback mejorado para conversación general
+  * Chistes (5 respuestas random)
+  * Saludos por hora del día (buenos días/tardes/noches)
+  * Opinion/consejo con datos del inventario
+  * Respuesta final más útil con ejemplos
+
+- VERIFICACIÓN (4 pruebas reales):
+  * Math "15 * 23 + 100" → "345 + 100 = 445" ✅
+  * Knowledge "quien fue Albert Einstein?" → respuesta completa (relatividad, E=mc², Nobel, etc) ✅
+  * Context "cuantos años tenia cuando murio?" → "Albert Einstein... 76 años" (entendió que era Einstein por contexto) ✅
+  * General "cual es la capital de Japon?" → "Tokio..." ✅
+
+- VLM verificó visualmente:
+  * Tema azul corporativo: 0% verde, 17.1% azul ✅
+  * IA responde con detalles completos ✅
+  * IA mantiene contexto multi-turno ✅
+
+Stage Summary:
+- Alana ahora es inteligente como ChatGPT: responde matemáticas, conocimiento general, conversación casual ✅
+- Mantiene contexto de conversación (entiende "y ese?" = tema anterior) ✅
+- Funciona en sandbox Y en Vercel (sin restricción) ✅
+- Timeout de 15s para respuestas completas ✅
+- Fallback mejorado para cuando Z.AI falla ✅
+- Lint: 0 errores ✅

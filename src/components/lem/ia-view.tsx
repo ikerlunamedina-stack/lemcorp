@@ -178,11 +178,17 @@ export function IAView() {
     setLoading(true);
 
     try {
+      // Enviar historial (últimos 10 mensajes) para que Alana tenga contexto
+      const historial = newMessages.slice(-10).map(m => ({
+        role: m.role,
+        content: m.content,
+      }));
       const res = await fetch("/api/ia", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mensaje: msg,
+          historial,
           inventario: products,
           equipos,
           miembros,
