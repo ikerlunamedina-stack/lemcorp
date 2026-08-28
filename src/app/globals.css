@@ -43,79 +43,78 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* ===== LEMCORP — AURORA LUXE ===== */
-/* Inspirado en Aurora Borealis: verde neón, púrpura, navy profundo */
-/* Lujo, tranquilidad, belleza — todo animado */
+/* ===== LEMCORP — CORPORATE BLUE ===== */
+/* Azul corporativo #0066CC + navy + blanco — estilo iPhone */
 
 :root {
   --radius: 0.5rem;
   --font-geist-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-geist-mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
 
-  /* Light: blanco luminoso con acentos aurora */
-  --background: oklch(0.98 0.005 150);
+  /* Light: blanco luminoso con acentos azul corporativo */
+  --background: oklch(0.98 0.005 250);
   --foreground: oklch(0.15 0.02 250);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.15 0.02 250);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.15 0.02 250);
-  /* Primary: verde aurora #00B894 */
-  --primary: oklch(0.55 0.20 165);
+  /* Primary: azul corporativo #0066CC */
+  --primary: oklch(0.50 0.20 255);
   --primary-foreground: oklch(0.98 0 0);
-  --secondary: oklch(0.95 0.02 160);
+  --secondary: oklch(0.95 0.02 250);
   --secondary-foreground: oklch(0.20 0.02 250);
-  --muted: oklch(0.95 0.01 150);
+  --muted: oklch(0.95 0.01 250);
   --muted-foreground: oklch(0.45 0.02 250);
-  --accent: oklch(0.93 0.04 290);
-  --accent-foreground: oklch(0.25 0.10 290);
+  --accent: oklch(0.93 0.04 250);
+  --accent-foreground: oklch(0.25 0.10 250);
   --destructive: oklch(0.55 0.22 25);
-  --border: oklch(0.90 0.01 160);
-  --input: oklch(0.95 0.01 150);
-  --ring: oklch(0.55 0.20 165);
-  --chart-1: oklch(0.55 0.20 165);
-  --chart-2: oklch(0.65 0.18 200);
-  --chart-3: oklch(0.60 0.15 180);
-  --chart-4: oklch(0.50 0.22 300);
-  --chart-5: oklch(0.60 0.18 160);
-  --sidebar: oklch(0.97 0.01 150);
+  --border: oklch(0.90 0.01 250);
+  --input: oklch(0.95 0.01 250);
+  --ring: oklch(0.50 0.20 255);
+  --chart-1: oklch(0.50 0.20 255);
+  --chart-2: oklch(0.60 0.18 240);
+  --chart-3: oklch(0.55 0.15 240);
+  --chart-4: oklch(0.50 0.18 280);
+  --chart-5: oklch(0.60 0.18 250);
+  --sidebar: oklch(0.97 0.01 250);
   --sidebar-foreground: oklch(0.15 0.02 250);
-  --sidebar-primary: oklch(0.55 0.20 165);
+  --sidebar-primary: oklch(0.50 0.20 255);
   --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.93 0.04 290);
-  --sidebar-accent-foreground: oklch(0.25 0.10 290);
-  --sidebar-border: oklch(0.90 0.01 160);
-  --sidebar-ring: oklch(0.55 0.20 165);
+  --sidebar-accent: oklch(0.93 0.04 250);
+  --sidebar-accent-foreground: oklch(0.25 0.10 250);
+  --sidebar-border: oklch(0.90 0.01 250);
+  --sidebar-ring: oklch(0.50 0.20 255);
 
   /* Tailwind v4: mapear variables a colores */
-  --color-background: oklch(0.98 0.005 150);
+  --color-background: oklch(0.98 0.005 250);
   --color-foreground: oklch(0.15 0.02 250);
   --color-card: oklch(1 0 0);
   --color-card-foreground: oklch(0.15 0.02 250);
   --color-popover: oklch(1 0 0);
   --color-popover-foreground: oklch(0.15 0.02 250);
-  --color-primary: oklch(0.55 0.20 165);
+  --color-primary: oklch(0.50 0.20 255);
   --color-primary-foreground: oklch(0.98 0 0);
-  --color-secondary: oklch(0.95 0.02 160);
+  --color-secondary: oklch(0.95 0.02 250);
   --color-secondary-foreground: oklch(0.20 0.02 250);
-  --color-muted: oklch(0.95 0.01 150);
+  --color-muted: oklch(0.95 0.01 250);
   --color-muted-foreground: oklch(0.45 0.02 250);
-  --color-accent: oklch(0.93 0.04 290);
-  --color-accent-foreground: oklch(0.25 0.10 290);
+  --color-accent: oklch(0.93 0.04 250);
+  --color-accent-foreground: oklch(0.25 0.10 250);
   --color-destructive: oklch(0.55 0.22 25);
-  --color-border: oklch(0.90 0.01 160);
-  --color-input: oklch(0.95 0.01 150);
-  --color-ring: oklch(0.55 0.20 165);
+  --color-border: oklch(0.90 0.01 250);
+  --color-input: oklch(0.95 0.01 250);
+  --color-ring: oklch(0.50 0.20 255);
 
-  /* Sombras con tinte verde aurora */
-  --shadow-xs: 0 1px 3px 0 oklch(0.55 0.20 165 / 0.08);
-  --shadow-sm: 0 2px 6px 0 oklch(0.55 0.20 165 / 0.10);
-  --shadow-md: 0 4px 12px -1px oklch(0.55 0.20 165 / 0.12), 0 2px 4px -1px oklch(0.55 0.20 165 / 0.06);
-  --shadow-lg: 0 12px 28px -4px oklch(0.55 0.20 165 / 0.15), 0 4px 10px -3px oklch(0.55 0.20 165 / 0.08);
-  --shadow-primary: 0 4px 16px oklch(0.55 0.20 165 / 0.25);
-  --shadow-glow: 0 0 24px oklch(0.55 0.20 165 / 0.15);
+  /* Sombras con tinte azul corporativo */
+  --shadow-xs: 0 1px 3px 0 oklch(0.50 0.20 255 / 0.08);
+  --shadow-sm: 0 2px 6px 0 oklch(0.50 0.20 255 / 0.10);
+  --shadow-md: 0 4px 12px -1px oklch(0.50 0.20 255 / 0.12), 0 2px 4px -1px oklch(0.50 0.20 255 / 0.06);
+  --shadow-lg: 0 12px 28px -4px oklch(0.50 0.20 255 / 0.15), 0 4px 10px -3px oklch(0.50 0.20 255 / 0.08);
+  --shadow-primary: 0 4px 16px oklch(0.50 0.20 255 / 0.25);
+  --shadow-glow: 0 0 24px oklch(0.50 0.20 255 / 0.15);
 }
 
-/* DARK: Aurora Borealis — navy profundo con verde neón y púrpura */
+/* DARK: Navy profundo con azul brillante corporativo */
 .dark {
   --background: oklch(0.10 0.02 250);
   --foreground: oklch(0.92 0 0);
@@ -123,32 +122,32 @@
   --card-foreground: oklch(0.92 0 0);
   --popover: oklch(0.14 0.02 250);
   --popover-foreground: oklch(0.92 0 0);
-  /* Primary dark: verde aurora brillante #00FF7F */
-  --primary: oklch(0.80 0.28 155);
+  /* Primary dark: azul brillante corporativo */
+  --primary: oklch(0.68 0.22 255);
   --primary-foreground: oklch(0.10 0.02 250);
   --secondary: oklch(0.18 0.03 250);
   --secondary-foreground: oklch(0.92 0 0);
   --muted: oklch(0.18 0.03 250);
   --muted-foreground: oklch(0.60 0 0);
-  --accent: oklch(0.22 0.06 290);
+  --accent: oklch(0.22 0.06 250);
   --accent-foreground: oklch(0.92 0 0);
   --destructive: oklch(0.55 0.20 25);
   --border: oklch(0.22 0.03 250);
   --input: oklch(0.18 0.03 250);
-  --ring: oklch(0.80 0.28 155);
-  --chart-1: oklch(0.80 0.28 155);
-  --chart-2: oklch(0.75 0.20 200);
-  --chart-3: oklch(0.70 0.15 180);
-  --chart-4: oklch(0.60 0.25 300);
-  --chart-5: oklch(0.72 0.20 160);
+  --ring: oklch(0.68 0.22 255);
+  --chart-1: oklch(0.68 0.22 255);
+  --chart-2: oklch(0.62 0.18 240);
+  --chart-3: oklch(0.58 0.15 240);
+  --chart-4: oklch(0.55 0.20 280);
+  --chart-5: oklch(0.62 0.18 250);
   --sidebar: oklch(0.08 0.02 250);
   --sidebar-foreground: oklch(0.92 0 0);
-  --sidebar-primary: oklch(0.80 0.28 155);
+  --sidebar-primary: oklch(0.68 0.22 255);
   --sidebar-primary-foreground: oklch(0.10 0.02 250);
-  --sidebar-accent: oklch(0.20 0.06 290);
+  --sidebar-accent: oklch(0.20 0.06 250);
   --sidebar-accent-foreground: oklch(0.92 0 0);
   --sidebar-border: oklch(0.22 0.03 250);
-  --sidebar-ring: oklch(0.80 0.28 155);
+  --sidebar-ring: oklch(0.68 0.22 255);
 
   /* Tailwind v4: override color vars for dark */
   --color-background: oklch(0.10 0.02 250);
@@ -157,26 +156,26 @@
   --color-card-foreground: oklch(0.92 0 0);
   --color-popover: oklch(0.14 0.02 250);
   --color-popover-foreground: oklch(0.92 0 0);
-  --color-primary: oklch(0.80 0.28 155);
+  --color-primary: oklch(0.68 0.22 255);
   --color-primary-foreground: oklch(0.10 0.02 250);
   --color-secondary: oklch(0.18 0.03 250);
   --color-secondary-foreground: oklch(0.92 0 0);
   --color-muted: oklch(0.18 0.03 250);
   --color-muted-foreground: oklch(0.60 0 0);
-  --color-accent: oklch(0.22 0.06 290);
+  --color-accent: oklch(0.22 0.06 250);
   --color-accent-foreground: oklch(0.92 0 0);
   --color-destructive: oklch(0.55 0.20 25);
   --color-border: oklch(0.22 0.03 250);
   --color-input: oklch(0.18 0.03 250);
-  --color-ring: oklch(0.80 0.28 155);
+  --color-ring: oklch(0.68 0.22 255);
 
-  /* Sombras con glow verde aurora */
-  --shadow-xs: 0 1px 2px 0 oklch(0.80 0.28 155 / 0.10);
-  --shadow-sm: 0 2px 4px 0 oklch(0.80 0.28 155 / 0.12);
-  --shadow-md: 0 4px 12px -1px oklch(0.80 0.28 155 / 0.15), 0 2px 4px -1px oklch(0.80 0.28 155 / 0.08);
-  --shadow-lg: 0 12px 32px -4px oklch(0.80 0.28 155 / 0.20), 0 4px 12px -3px oklch(0.80 0.28 155 / 0.10);
-  --shadow-primary: 0 4px 20px oklch(0.80 0.28 155 / 0.35);
-  --shadow-glow: 0 0 30px oklch(0.80 0.28 155 / 0.25);
+  /* Sombras con glow azul corporativo */
+  --shadow-xs: 0 1px 2px 0 oklch(0.68 0.22 255 / 0.10);
+  --shadow-sm: 0 2px 4px 0 oklch(0.68 0.22 255 / 0.12);
+  --shadow-md: 0 4px 12px -1px oklch(0.68 0.22 255 / 0.15), 0 2px 4px -1px oklch(0.68 0.22 255 / 0.08);
+  --shadow-lg: 0 12px 32px -4px oklch(0.68 0.22 255 / 0.20), 0 4px 12px -3px oklch(0.68 0.22 255 / 0.10);
+  --shadow-primary: 0 4px 20px oklch(0.68 0.22 255 / 0.35);
+  --shadow-glow: 0 0 30px oklch(0.68 0.22 255 / 0.25);
 }
 
 /* Default the html element to dark (since the app starts in dark) */
@@ -188,7 +187,7 @@ html:not(.light) {
 }
 html.light {
   color-scheme: light;
-  background-color: oklch(0.98 0.005 150);
+  background-color: oklch(0.98 0.005 250);
 }
 
 @layer base {
@@ -558,17 +557,17 @@ html.light .scroll-thin::-webkit-scrollbar-thumb { background: oklch(0.75 0.01 2
 
 /* Gradiente Edge para elementos destacados */
 .gradient-edge {
-  background: linear-gradient(135deg, oklch(0.55 0.18 250), oklch(0.70 0.15 200), oklch(0.65 0.15 180));
+  background: linear-gradient(135deg, oklch(0.55 0.18 250), oklch(0.65 0.15 240), oklch(0.60 0.15 250));
   background-size: 200% 200%;
   animation: lem-edge-gradient 6s ease infinite;
 }
 
-/* Sombra con glow verde aurora */
+/* Sombra con glow azul corporativo */
 .shadow-edge {
-  box-shadow: 0 4px 20px oklch(0.80 0.28 155 / 0.25);
+  box-shadow: 0 4px 20px oklch(0.68 0.22 255 / 0.25);
 }
 .shadow-edge-lg {
-  box-shadow: 0 8px 30px oklch(0.80 0.28 155 / 0.35);
+  box-shadow: 0 8px 30px oklch(0.68 0.22 255 / 0.35);
 }
 
 /* Animación de entrada para TODAS las páginas */
@@ -592,8 +591,8 @@ html.light .scroll-thin::-webkit-scrollbar-thumb { background: oklch(0.75 0.01 2
   100% { background-position: 0% 50%; }
 }
 @keyframes lem-aurora-glow {
-  0%, 100% { box-shadow: 0 0 20px oklch(0.80 0.28 155 / 0.15), 0 0 40px oklch(0.80 0.28 155 / 0.10); }
-  50% { box-shadow: 0 0 30px oklch(0.80 0.28 155 / 0.30), 0 0 60px oklch(0.80 0.28 155 / 0.20); }
+  0%, 100% { box-shadow: 0 0 20px oklch(0.68 0.22 255 / 0.15), 0 0 40px oklch(0.68 0.22 255 / 0.10); }
+  50% { box-shadow: 0 0 30px oklch(0.68 0.22 255 / 0.30), 0 0 60px oklch(0.68 0.22 255 / 0.20); }
 }
 @keyframes lem-aurora-shimmer {
   0% { background-position: -200% center; }
@@ -637,13 +636,13 @@ html.light .scroll-thin::-webkit-scrollbar-thumb { background: oklch(0.75 0.01 2
 .aurora-bg::before {
   top: -10%;
   left: -10%;
-  background: radial-gradient(circle, oklch(0.80 0.28 155), oklch(0.70 0.20 200));
+  background: radial-gradient(circle, oklch(0.68 0.22 255), oklch(0.55 0.18 240));
   animation: lem-aurora-flow 15s ease-in-out infinite;
 }
 .aurora-bg::after {
   bottom: -10%;
   right: -10%;
-  background: radial-gradient(circle, oklch(0.55 0.25 300), oklch(0.70 0.20 200));
+  background: radial-gradient(circle, oklch(0.50 0.18 280), oklch(0.55 0.18 240));
   animation: lem-aurora-flow 20s ease-in-out infinite reverse;
 }
 
@@ -656,7 +655,7 @@ html.light .scroll-thin::-webkit-scrollbar-thumb { background: oklch(0.75 0.01 2
 }
 .anim-aurora-glow { animation: lem-aurora-glow 3s ease-in-out infinite; }
 .anim-aurora-shimmer {
-  background: linear-gradient(90deg, transparent, oklch(0.80 0.28 155 / 0.15), transparent);
+  background: linear-gradient(90deg, transparent, oklch(0.68 0.22 255 / 0.15), transparent);
   background-size: 200% 100%;
   animation: lem-aurora-shimmer 3s linear infinite;
 }
@@ -664,16 +663,16 @@ html.light .scroll-thin::-webkit-scrollbar-thumb { background: oklch(0.75 0.01 2
 .anim-aurora-breath { animation: lem-aurora-breath 4s ease-in-out infinite; }
 .anim-aurora-rotate { animation: lem-aurora-rotate 20s linear infinite; }
 
-/* Gradiente aurora para elementos destacados */
+/* Gradiente azul corporativo para elementos destacados */
 .gradient-aurora {
-  background: linear-gradient(135deg, oklch(0.80 0.28 155), oklch(0.70 0.20 200), oklch(0.55 0.25 300));
+  background: linear-gradient(135deg, oklch(0.68 0.22 255), oklch(0.55 0.18 240), oklch(0.50 0.18 280));
   background-size: 200% 200%;
   animation: lem-aurora-wave 8s ease infinite;
 }
 
-/* Texto con gradiente aurora */
+/* Texto con gradiente azul corporativo */
 .text-aurora {
-  background: linear-gradient(135deg, oklch(0.80 0.28 155), oklch(0.70 0.20 200));
+  background: linear-gradient(135deg, oklch(0.68 0.22 255), oklch(0.55 0.18 240));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -681,12 +680,12 @@ html.light .scroll-thin::-webkit-scrollbar-thumb { background: oklch(0.75 0.01 2
   animation: lem-aurora-wave 5s ease infinite;
 }
 
-/* Glow verde aurora */
+/* Glow azul corporativo */
 .glow-aurora {
-  box-shadow: 0 0 20px oklch(0.55 0.20 165 / 0.30), 0 0 40px oklch(0.55 0.20 165 / 0.15);
+  box-shadow: 0 0 20px oklch(0.50 0.20 255 / 0.30), 0 0 40px oklch(0.50 0.20 255 / 0.15);
 }
 .glow-aurora-strong {
-  box-shadow: 0 0 30px oklch(0.55 0.20 165 / 0.50), 0 0 60px oklch(0.55 0.20 165 / 0.25);
+  box-shadow: 0 0 30px oklch(0.50 0.20 255 / 0.50), 0 0 60px oklch(0.50 0.20 255 / 0.25);
 }
 
 /* ===== ANIMACIONES GLOBALES PARA TODO ===== */
@@ -724,7 +723,7 @@ button:not(:disabled):hover svg {
 
 /* Inputs con glow al focus */
 input:focus, textarea:focus, select:focus {
-  box-shadow: 0 0 0 3px oklch(0.55 0.20 165 / 0.20), 0 0 20px oklch(0.55 0.20 165 / 0.10) !important;
+  box-shadow: 0 0 0 3px oklch(0.50 0.20 255 / 0.20), 0 0 20px oklch(0.50 0.20 255 / 0.10) !important;
 }
 
 /* Scrollbar animada */
@@ -736,17 +735,17 @@ input:focus, textarea:focus, select:focus {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: oklch(0.55 0.20 165 / 0.30);
+  background: oklch(0.50 0.20 255 / 0.30);
   border-radius: 4px;
   transition: background 0.3s;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.55 0.20 165 / 0.50);
+  background: oklch(0.50 0.20 255 / 0.50);
 }
 
-/* Headings con sutil respiración */
+/* Headings estáticos (sin animación — el usuario pidió que las letras no se muevan) */
 h1, h2 {
-  animation: lem-aurora-breath 8s ease-in-out infinite;
+  letter-spacing: -0.01em;
 }
 
 /* Loading spinner para cambio de páginas */

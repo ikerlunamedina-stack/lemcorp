@@ -2372,3 +2372,45 @@ Stage Summary:
 - Mobile responsive verificado (390x844)
 - Todas las páginas cargan sin errores de consola ni del servidor
 - Lint: 0 errores
+
+---
+Task ID: COLOR-BLUE-FIX
+Agent: main
+Task: Restaurar el azul corporativo LEMCORP (#0066CC) — un agente anterior lo había cambiado a verde aurora
+
+Work Log:
+- El usuario reportó que los colores eran verdes ("aura eso verde") cuando él quería azul corporativo
+- Encontré que globals.css estaba completamente en verde aurora (hue 165 = #00B894 verde neón) con tema "Aurora Luxe"
+- Cambios en globals.css:
+  * :root (light): primary verde oklch(0.55 0.20 165) → azul corporativo oklch(0.50 0.20 255) #0066CC
+  * .dark: primary verde brillante oklch(0.80 0.28 155) → azul brillante oklch(0.68 0.22 255)
+  * background, secondary, muted, border, input, sidebar: hue 150/160 (verde) → hue 250 (azul)
+  * accent púrpura (290) → azul suave (250)
+  * charts: verdes/cian → azules
+  * Sombras: tinte verde → tinte azul
+  * .aurora-bg gradientes: verde+cian+púrpura → azul+azul claro+índigo
+  * .gradient-aurora, .text-aurora: verde → azul
+  * .glow-aurora, .glow-aurora-strong: verde → azul
+  * .shadow-edge: verde → azul
+  * Scrollbar thumb: verde → azul
+  * Input focus glow: verde → azul
+  * @keyframes lem-aurora-glow: verde → azul
+  * .anim-aurora-shimmer: verde → azul
+  * .gradient-edge: cian/verde → azul
+  * html.light background: verde → azul
+  * Comentado "verde aurora" → "azul corporativo"
+- ELIMINADA animación infinita en h1/h2 (lem-aurora-breath 8s infinite) — el usuario pidió antes "las letras no se muevan"
+- Verificado con Agent Browser + VLM:
+  * Dashboard light: TODO azul corporativo, cero verde ✓
+  * Dashboard dark: TODO azul brillante, cero verde ✓
+  * Pistolear: TODO azul, cero verde ✓
+  * IA chat: TODO azul (solo el dot verde "ACTIVO" que es convención universal de online, no del tema) ✓
+  * 0 errores de consola, 0 errores en dev log
+
+Stage Summary:
+- Azul corporativo LEMCORP (#0066CC) restaurado en TODO el sistema ✓
+- Verde aurora eliminado completamente de globals.css ✓
+- Animación infinita de títulos eliminada (letras estáticas) ✓
+- Light mode: azul corporativo sobre blanco ✓
+- Dark mode: azul brillante sobre navy ✓
+- Verificado visualmente con VLM en 4 pantallas ✓
