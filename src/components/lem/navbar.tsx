@@ -110,7 +110,8 @@ export function Navbar() {
     settings.tema === "claro" ? Sun : settings.tema === "oscuro" ? Moon : Monitor;
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b border-border bg-card px-3 lg:px-6">
+    <header className="sticky top-0 z-40 px-2 pt-2 lg:px-4 lg:pt-3">
+      <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-2 rounded-2xl border border-border/60 bg-card/80 px-3 shadow-lg backdrop-blur-xl lg:px-6">
       {/* Logo */}
       <Link href="/" className="press flex shrink-0 items-center gap-2">
         <img src="/lemcorp-logo.png" alt="LEMCORP" className="h-9 w-9 rounded-lg object-contain" />
@@ -288,6 +289,7 @@ export function Navbar() {
           </aside>
         </>
       )}
+      </div>
     </header>
   );
 }
