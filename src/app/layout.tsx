@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/lem/theme-provider";
-import { OnboardingGate } from "@/components/lem/onboarding-gate";
 
 export const metadata: Metadata = {
   title: "LEMCORP — Sistema de Gestión de Almacén",
@@ -57,9 +56,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased font-sans" style={{ backgroundColor: "var(--background)", color: "var(--foreground)" }}>
         <ThemeProvider>
-          <OnboardingGate>
-            {children}
-          </OnboardingGate>
+          {children}
         </ThemeProvider>
         <Toaster />
       </body>
