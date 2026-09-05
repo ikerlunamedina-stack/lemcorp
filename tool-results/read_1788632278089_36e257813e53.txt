@@ -1,0 +1,572 @@
+     1→     1→     1→"use client";
+     2→     2→     2→
+     3→     3→     3→import { useMemo, useState, useRef } from "react";
+     4→     4→     4→import {
+     5→     5→     5→  TrendingDown, Search, Trash2, Check, AlertTriangle, Package, Users,
+     6→     6→     6→  Send, MapPin, ClipboardPaste, FileSpreadsheet, Save, Sparkles,
+     7→     7→     7→  ChevronDown, ChevronRight, User, Loader2, Calendar, FileUp,
+     8→     8→     8→  TrendingUp, Hash, Clock,
+     9→     9→     9→} from "lucide-react";
+    10→    10→    10→import { useStore } from "@/lib/store";
+    11→    11→    11→import { fmtNum } from "@/lib/num";
+    12→    12→    12→import { cn } from "@/lib/utils";
+    13→    13→    13→import { Button } from "@/components/ui/button";
+    14→    14→    14→import { Input } from "@/components/ui/input";
+    15→    15→    15→import { Textarea } from "@/components/ui/textarea";
+    16→    16→    16→import {
+    17→    17→    17→  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+    18→    18→    18→} from "@/components/ui/dialog";
+    19→    19→    19→import { useToast } from "@/hooks/use-toast";
+    20→    20→    20→
+    21→    21→    21→interface DespachoImportado {
+    22→    22→    22→  sku: string;
+    23→    23→    23→  cantidad: number;
+    24→    24→    24→  tecnico?: string;
+    25→    25→    25→  destino?: string;
+    26→    26→    26→  producto?: string;
+    27→    27→    27→  fecha?: string;
+    28→    28→    28→}
+    29→    29→    29→
+    30→    30→    30→function isSameDay(a: number, b: number): boolean {
+    31→    31→    31→  const da = new Date(a);
+    32→    32→    32→  const db = new Date(b);
+    33→    33→    33→  return da.getFullYear() === db.getFullYear() &&
+    34→    34→    34→    da.getMonth() === db.getMonth() &&
+    35→    35→    35→    da.getDate() === db.getDate();
+    36→    36→    36→}
+    37→    37→    37→
+    38→    38→    38→function fechaCorta(ts: number): string {
+    39→    39→    39→  return new Date(ts).toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric" });
+    40→    40→    40→}
+    41→    41→    41→
+    42→    42→    42→function diaSemana(ts: number): string {
+    43→    43→    43→  return new Date(ts).toLocaleDateString("es-PE", { weekday: "long" });
+    44→    44→    44→}
+    45→    45→    45→
+    46→    46→    46→export function DespachosView() {
+    47→    47→    47→  const products = useStore((s) => s.products);
+    48→    48→    48→  const despachos = useStore((s) => s.despachos);
+    49→    49→    49→  const findProductBySku = useStore((s) => s.findProductBySku);
+    50→    50→    50→  const registrarDespachosBulk = useStore((s) => s.registrarDespachosBulk);
+    51→    51→    51→  const deleteDespacho = useStore((s) => s.deleteDespacho);
+    52→    52→    52→  const { toast } = useToast();
+    53→    53→    53→
+    54→    54→    54→  const [query, setQuery] = useState("");
+    55→    55→    55→  const [bulkOpen, setBulkOpen] = useState(false);
+    56→    56→    56→  const [bulkText, setBulkText] = useState("");
+    57→    57→    57→  const [importingExcel, setImportingExcel] = useState(false);
+    58→    58→    58→  const [filterToday, setFilterToday] = useState(false);
+    59→    59→    59→  const [expandedDay, setExpandedDay] = useState<string | null>(null);
+    60→    60→    60→  const [expandedTecnico, setExpandedTecnico] = useState<string | null>(null);
+    61→    61→    61→  const [analizando, setAnalizando] = useState(false);
+    62→    62→    62→  const [resultadoIA, setResultadoIA] = useState<{ ok: number; fail: number; fails: string[]; totalUnidades: number; porTecnico: Record<string, number>; porDia: Record<string, number> } | null>(null);
+    63→    63→    63→  const fileInputRef = useRef<HTMLInputElement>(null);
+    64→    64→    64→
+    65→    65→    65→  // Parsear texto pegado en tiempo real
+    66→    66→    66→  const lineasParseadas = useMemo((): DespachoImportado[] => {
+    67→    67→    67→    if (!bulkText.trim()) return [];
+    68→    68→    68→    return bulkText
+    69→    69→    69→      .split("\n")
+    70→    70→    70→      .map((line) => line.trim())
+    71→    71→    71→      .filter(Boolean)
+    72→    72→    72→      .map((line) => {
+    73→    73→    73→        let parts: string[];
+    74→    74→    74→        if (line.includes("\t")) parts = line.split("\t").map((p) => p.trim());
+    75→    75→    75→        else if (line.includes("|")) parts = line.split("|").map((p) => p.trim());
+    76→    76→    76→        else if (line.includes(",") && line.includes("*")) parts = line.split(",").map((p) => p.trim());
+    77→    77→    77→        else parts = [line];
+    78→    78→    78→
+    79→    79→    79→        let skuPartIdx = parts.findIndex((p) => p.includes("*"));
+    80→    80→    80→        if (skuPartIdx === -1) return { sku: "", cantidad: 0, tecnico: undefined, destino: undefined };
+    81→    81→    81→        const [sku, cantStr] = parts[skuPartIdx].split("*").map((s) => s.trim());
+    82→    82→    82→        const cantidad = parseInt(cantStr, 10);
+    83→    83→    83→        const before = parts.slice(0, skuPartIdx);
+    84→    84→    84→        return {
+    85→    85→    85→          sku: sku || "",
+    86→    86→    86→          cantidad: isNaN(cantidad) ? 0 : cantidad,
+    87→    87→    87→          tecnico: before[0] || undefined,
+    88→    88→    88→          destino: before[1] || undefined,
+    89→    89→    89→        };
+    90→    90→    90→      });
+    91→    91→    91→  }, [bulkText]);
+    92→    92→    92→
+    93→    93→    93→  // Validar con catálogo
+    94→    94→    94→  const validacion = useMemo(() => {
+    95→    95→    95→    const validos: DespachoImportado[] = [];
+    96→    96→    96→    const invalidos: { d: DespachoImportado; razon: string }[] = [];
+    97→    97→    97→    const stockMap = new Map<string, number>();
+    98→    98→    98→
+    99→    99→    99→    for (const d of lineasParseadas) {
+   100→   100→   100→      if (!d.sku || d.cantidad <= 0) {
+   101→   101→   101→        invalidos.push({ d, razon: "Formato inválido" });
+   102→   102→   102→        continue;
+   103→   103→   103→      }
+   104→   104→   104→      const producto = findProductBySku(d.sku);
+   105→   105→   105→      if (!producto) {
+   106→   106→   106→        invalidos.push({ d, razon: `SKU "${d.sku}" no encontrado` });
+   107→   107→   107→        continue;
+   108→   108→   108→      }
+   109→   109→   109→      const stockActual = stockMap.get(producto.id) ?? producto.quantity;
+   110→   110→   110→      if (stockActual < d.cantidad) {
+   111→   111→   111→        invalidos.push({ d, razon: `Stock insuficiente (disp: ${stockActual})` });
+   112→   112→   112→        continue;
+   113→   113→   113→      }
+   114→   114→   114→      stockMap.set(producto.id, stockActual - d.cantidad);
+   115→   115→   115→      validos.push({ ...d, producto: producto.name });
+   116→   116→   116→    }
+   117→   117→   117→    return { validos, invalidos };
+   118→   118→   118→  }, [lineasParseadas, findProductBySku]);
+   119→   119→   119→
+   120→   120→   120→  // Filtrar despachos del historial
+   121→   121→   121→  const today = Date.now();
+   122→   122→   122→  const filteredDespachos = useMemo(() => {
+   123→   123→   123→    return despachos.filter((d) => {
+   124→   124→   124→      if (filterToday && !isSameDay(d.fecha, today)) return false;
+   125→   125→   125→      const q = query.toLowerCase().trim();
+   126→   126→   126→      if (!q) return true;
+   127→   127→   127→      return d.producto.toLowerCase().includes(q) ||
+   128→   128→   128→        d.sku.toLowerCase().includes(q) ||
+   129→   129→   129→        (d.tecnico ?? "").toLowerCase().includes(q) ||
+   130→   130→   130→        (d.destino ?? "").toLowerCase().includes(q);
+   131→   131→   131→    });
+   132→   132→   132→  }, [despachos, query, filterToday]);
+   133→   133→   133→
+   134→   134→   134→  // Agrupar historial por día
+   135→   135→   135→  const porDia = useMemo(() => {
+   136→   136→   136→    const map: Record<string, typeof despachos> = {};
+   137→   137→   137→    for (const d of filteredDespachos) {
+   138→   138→   138→      const key = new Date(d.fecha).toDateString();
+   139→   139→   139→      if (!map[key]) map[key] = [];
+   140→   140→   140→      map[key].push(d);
+   141→   141→   141→    }
+   142→   142→   142→    return Object.entries(map).sort((a, b) => new Date(b[0]).getTime() - new Date(a[0]).getTime());
+   143→   143→   143→  }, [filteredDespachos]);
+   144→   144→   144→
+   145→   145→   145→  // Agrupar cada día por técnico
+   146→   146→   146→  const porDiaYTecnico = useMemo(() => {
+   147→   147→   147→    const result: Record<string, Array<[string, typeof despachos, number]>> = {};
+   148→   148→   148→    for (const [dia, items] of porDia) {
+   149→   149→   149→      const tecMap: Record<string, typeof despachos> = {};
+   150→   150→   150→      for (const d of items) {
+   151→   151→   151→        const key = d.tecnico || "(sin técnico)";
+   152→   152→   152→        if (!tecMap[key]) tecMap[key] = [];
+   153→   153→   153→        tecMap[key].push(d);
+   154→   154→   154→      }
+   155→   155→   155→      result[dia] = Object.entries(tecMap)
+   156→   156→   156→        .map(([tecnico, desps]) => [tecnico, desps, desps.reduce((s, d) => s + d.cantidad, 0)] as [string, typeof despachos, number])
+   157→   157→   157→        .sort((a, b) => b[2] - a[2]);
+   158→   158→   158→    }
+   159→   159→   159→    return result;
+   160→   160→   160→  }, [porDia]);
+   161→   161→   161→
+   162→   162→   162→  // Stats
+   163→   163→   163→  const totalDespachado = despachos.reduce((s, d) => s + d.cantidad, 0);
+   164→   164→   164→  const despachosHoy = despachos.filter((d) => isSameDay(d.fecha, today));
+   165→   165→   165→  const totalDespachadoHoy = despachosHoy.reduce((s, d) => s + d.cantidad, 0);
+   166→   166→   166→  const tecnicosUnicos = new Set(despachos.map((d) => d.tecnico).filter(Boolean)).size;
+   167→   167→   167→  const diasConDespachos = new Set(despachos.map((d) => new Date(d.fecha).toDateString())).size;
+   168→   168→   168→
+   169→   169→   169→  const openBulk = () => {
+   170→   170→   170→    setBulkText("");
+   171→   171→   171→    setResultadoIA(null);
+   172→   172→   172→    setBulkOpen(true);
+   173→   173→   173→  };
+   174→   174→   174→
+   175→   175→   175→  // IA analiza y registra automáticamente
+   176→   176→   176→  const analizarYRegistrar = () => {
+   177→   177→   177→    setAnalizando(true);
+   178→   178→   178→    // Simular análisis IA con delay para feedback visual
+   179→   179→   179→    setTimeout(() => {
+   180→   180→   180→      const despachosValidos = validacion.validos.map((d) => ({
+   181→   181→   181→        sku: d.sku,
+   182→   182→   182→        cantidad: d.cantidad,
+   183→   183→   183→        tecnico: d.tecnico,
+   184→   184→   184→        destino: d.destino,
+   185→   185→   185→        fecha: d.fecha ? new Date(d.fecha).getTime() : Date.now(),
+   186→   186→   186→      }));
+   187→   187→   187→      const result = registrarDespachosBulk(despachosValidos);
+   188→   188→   188→
+   189→   189→   189→      // Calcular agrupaciones para mostrar
+   190→   190→   190→      const porTecnico: Record<string, number> = {};
+   191→   191→   191→      const porDia: Record<string, number> = {};
+   192→   192→   192→      for (const d of despachosValidos) {
+   193→   193→   193→        const t = d.tecnico || "(sin técnico)";
+   194→   194→   194→        porTecnico[t] = (porTecnico[t] ?? 0) + d.cantidad;
+   195→   195→   195→        const dia = new Date(d.fecha || Date.now()).toLocaleDateString("es-PE", { day: "2-digit", month: "short" });
+   196→   196→   196→        porDia[dia] = (porDia[dia] ?? 0) + d.cantidad;
+   197→   197→   197→      }
+   198→   198→   198→
+   199→   199→   199→      setResultadoIA({
+   200→   200→   200→        ...result,
+   201→   201→   201→        porTecnico,
+   202→   202→   202→        porDia,
+   203→   203→   203→      });
+   204→   204→   204→
+   205→   205→   205→      if (result.ok > 0) {
+   206→   206→   206→        toast({
+   207→   207→   207→          title: `✓ ${result.ok} despachos registrados`,
+   208→   208→   208→          description: `Se descontaron ${fmtNum(result.totalUnidades)} unidades del inventario`,
+   209→   209→   209→        });
+   210→   210→   210→        setTimeout(() => {
+   211→   211→   211→          setBulkOpen(false);
+   212→   212→   212→          setBulkText("");
+   213→   213→   213→          setResultadoIA(null);
+   214→   214→   214→        }, 3000);
+   215→   215→   215→      }
+   216→   216→   216→      setAnalizando(false);
+   217→   217→   217→    }, 1500);
+   218→   218→   218→  };
+   219→   219→   219→
+   220→   220→   220→  const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+   221→   221→   221→    const file = e.target.files?.[0];
+   222→   222→   222→    if (!file) return;
+   223→   223→   223→    setImportingExcel(true);
+   224→   224→   224→    try {
+   225→   225→   225→      const formData = new FormData();
+   226→   226→   226→      formData.append("file", file);
+   227→   227→   227→      const res = await fetch("/api/import-excel", { method: "POST", body: formData });
+   228→   228→   228→      const data = await res.json();
+   229→   229→   229→      if (!data.ok) throw new Error(data.error);
+   230→   230→   230→
+   231→   231→   231→      // Convertir a texto pegado
+   232→   232→   232→      const lines = data.despachos.map((d: any) => {
+   233→   233→   233→        const parts = [d.tecnico, d.destino, `${d.sku}*${d.cantidad}`].filter(Boolean);
+   234→   234→   234→        return parts.join("|");
+   235→   235→   235→      });
+   236→   236→   236→      setBulkText(lines.join("\n"));
+   237→   237→   237→      setResultadoIA(null);
+   238→   238→   238→      setBulkOpen(true);
+   239→   239→   239→      toast({
+   240→   240→   240→        title: `✓ Excel procesado`,
+   241→   241→   241→        description: `${data.despachos.length} despachos detectados, ${data.skipped} filas omitidas`,
+   242→   242→   242→      });
+   243→   243→   243→    } catch (err: any) {
+   244→   244→   244→      toast({ title: "Error al importar Excel", description: err.message, variant: "destructive" });
+   245→   245→   245→    } finally {
+   246→   246→   246→      setImportingExcel(false);
+   247→   247→   247→      if (fileInputRef.current) fileInputRef.current.value = "";
+   248→   248→   248→    }
+   249→   249→   249→  };
+   250→   250→   250→
+   251→   251→   251→  return (
+   252→   252→   252→    <div className="mx-auto w-full max-w-[1800px] px-4 py-5 lg:px-6">
+   253→   253→   253→      {/* Header */}
+   254→   254→   254→      <div className="anim-fade-up mb-5 flex flex-wrap items-center justify-between gap-3">
+   255→   255→   255→        <div>
+   256→   256→   256→          <h1 className="text-2xl font-bold tracking-tight text-foreground">Despachos</h1>
+   257→   257→   257→          <p className="mt-1 text-sm text-muted-foreground">
+   258→   258→   258→            <span className="font-semibold text-foreground">{despachos.length}</span> despachos ·
+   259→   259→   259→            <span className="font-semibold text-foreground"> {fmtNum(totalDespachado)}</span> unidades ·
+   260→   260→   260→            <span className="font-semibold text-foreground"> {diasConDespachos}</span> días ·
+   261→   261→   261→            <span className="font-semibold text-foreground"> {tecnicosUnicos}</span> destinatarios
+   262→   262→   262→          </p>
+   263→   263→   263→        </div>
+   264→   264→   264→        <div className="flex flex-wrap items-center gap-2">
+   265→   265→   265→          <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={handleExcelUpload} className="hidden" />
+   266→   266→   266→          <Button
+   267→   267→   267→            variant="outline"
+   268→   268→   268→            onClick={() => fileInputRef.current?.click()}
+   269→   269→   269→            disabled={importingExcel}
+   270→   270→   270→            className="press h-10 rounded-lg border-primary/30 bg-card text-primary hover:bg-muted"
+   271→   271→   271→          >
+   272→   272→   272→            {importingExcel ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <FileUp className="mr-1.5 h-4 w-4" />}
+   273→   273→   273→            {importingExcel ? "Procesando…" : "Subir Excel"}
+   274→   274→   274→          </Button>
+   275→   275→   275→          <Button onClick={openBulk} className="btn-spacecom press h-10 rounded-lg border-0">
+   276→   276→   276→            <ClipboardPaste className="mr-1.5 h-4 w-4" /> Pegar despachos
+   277→   277→   277→          </Button>
+   278→   278→   278→        </div>
+   279→   279→   279→      </div>
+   280→   280→   280→
+   281→   281→   281→      {/* Stats */}
+   282→   282→   282→      <div className="anim-fade-up mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+   283→   283→   283→        <StatCard label="Total despachos" value={despachos.length} icon={<Send className="h-4 w-4" />} />
+   284→   284→   284→        <StatCard label="Unidades enviadas" value={fmtNum(totalDespachado)} icon={<TrendingDown className="h-4 w-4" />} />
+   285→   285→   285→        <StatCard label="Hoy" value={despachosHoy.length} sub={`${fmtNum(totalDespachadoHoy)} und`} icon={<Calendar className="h-4 w-4" />} highlight />
+   286→   286→   286→        <StatCard label="Días con despachos" value={diasConDespachos} icon={<Hash className="h-4 w-4" />} />
+   287→   287→   287→        <StatCard label="Destinatarios" value={tecnicosUnicos} icon={<Users className="h-4 w-4" />} />
+   288→   288→   288→      </div>
+   289→   289→   289→
+   290→   290→   290→      {/* Toolbar historial */}
+   291→   291→   291→      <div className="anim-fade-up mb-3 flex flex-wrap items-center gap-2">
+   292→   292→   292→        <div className="relative w-full sm:w-64">
+   293→   293→   293→          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+   294→   294→   294→          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por producto, destinatario, destino…" className="h-9 rounded-lg bg-card pl-9 text-sm shadow-sm" />
+   295→   295→   295→        </div>
+   296→   296→   296→        <button
+   297→   297→   297→          onClick={() => setFilterToday(!filterToday)}
+   298→   298→   298→          className={cn("press flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors",
+   299→   299→   299→            filterToday ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-accent")}
+   300→   300→   300→        >
+   301→   301→   301→          <Calendar className="h-3.5 w-3.5" />
+   302→   302→   302→          {filterToday ? "Solo hoy" : "Ver todos"}
+   303→   303→   303→        </button>
+   304→   304→   304→        <span className="text-[11px] text-muted-foreground">{filteredDespachos.length} despacho(s) · {porDia.length} día(s)</span>
+   305→   305→   305→      </div>
+   306→   306→   306→
+   307→   307→   307→      {/* Historial por día (timeline) */}
+   308→   308→   308→      {filteredDespachos.length === 0 ? (
+   309→   309→   309→        <div className="rounded-xl border border-dashed border-border bg-card px-4 py-16 text-center shadow-sm">
+   310→   310→   310→          <ClipboardPaste className="mx-auto h-10 w-10 text-muted-foreground/40" />
+   311→   311→   311→          <p className="mt-3 text-sm font-medium text-foreground">
+   312→   312→   312→            {despachos.length === 0 ? "No hay despachos registrados" : (filterToday ? "No hay despachos hoy" : "Sin coincidencias")}
+   313→   313→   313→          </p>
+   314→   314→   314→          <p className="mt-1 text-xs text-muted-foreground">
+   315→   315→   315→            {despachos.length === 0 ? "Sube tu Excel de operaciones y la IA analizará y descontará todo automáticamente" : "Cambia el filtro o la búsqueda"}
+   316→   316→   316→          </p>
+   317→   317→   317→        </div>
+   318→   318→   318→      ) : (
+   319→   319→   319→        <div className="space-y-3">
+   320→   320→   320→          {porDia.map(([dia, items]) => {
+   321→   321→   321→            const diaTs = new Date(dia).getTime();
+   322→   322→   322→            const totalDia = items.reduce((s, d) => s + d.cantidad, 0);
+   323→   323→   323→            const tecnicosDia = new Set(items.map((d) => d.tecnico).filter(Boolean)).size;
+   324→   324→   324→            const productosDia = new Set(items.map((d) => d.sku)).size;
+   325→   325→   325→            const isExpanded = expandedDay === dia || porDia.length === 1;
+   326→   326→   326→            const isToday = isSameDay(diaTs, today);
+   327→   327→   327→
+   328→   328→   328→            return (
+   329→   329→   329→              <div key={dia} className={cn("anim-fade-up rounded-xl border bg-card shadow-sm", isToday ? "border-primary/40" : "border-border")}>
+   330→   330→   330→                {/* Header del día */}
+   331→   331→   331→                <button
+   332→   332→   332→                  onClick={() => setExpandedDay(isExpanded ? null : dia)}
+   333→   333→   333→                  className="press flex w-full items-center gap-3 border-b border-border bg-muted/30 px-4 py-3 text-left hover:bg-muted/50 transition-colors"
+   334→   334→   334→                >
+   335→   335→   335→                  {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+   336→   336→   336→                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+   337→   337→   337→                    <Calendar className="h-5 w-5" />
+   338→   338→   338→                  </div>
+   339→   339→   339→                  <div className="flex-1">
+   340→   340→   340→                    <div className="flex items-center gap-2">
+   341→   341→   341→                      <p className="text-[14px] font-bold capitalize text-foreground">{fechaCorta(diaTs)}</p>
+   342→   342→   342→                      {isToday && <span className="rounded-full bg-primary px-2 py-0.5 text-[9px] font-bold text-white">HOY</span>}
+   343→   343→   343→                    </div>
+   344→   344→   344→                    <p className="text-[11px] capitalize text-muted-foreground">{diaSemana(diaTs)}</p>
+   345→   345→   345→                  </div>
+   346→   346→   346→                  <div className="flex items-center gap-4 text-[11px]">
+   347→   347→   347→                    <div className="text-center">
+   348→   348→   348→                      <p className="font-bold tabular-nums text-foreground">{items.length}</p>
+   349→   349→   349→                      <p className="text-[9px] text-muted-foreground">despachos</p>
+   350→   350→   350→                    </div>
+   351→   351→   351→                    <div className="text-center">
+   352→   352→   352→                      <p className="font-bold tabular-nums text-foreground">{tecnicosDia}</p>
+   353→   353→   353→                      <p className="text-[9px] text-muted-foreground">destinatarios</p>
+   354→   354→   354→                    </div>
+   355→   355→   355→                    <div className="text-center">
+   356→   356→   356→                      <p className="font-bold tabular-nums text-foreground">{productosDia}</p>
+   357→   357→   357→                      <p className="text-[9px] text-muted-foreground">productos</p>
+   358→   358→   358→                    </div>
+   359→   359→   359→                    <div className="rounded-md bg-primary/10 px-2 py-1 text-center">
+   360→   360→   360→                      <p className="font-bold tabular-nums text-primary">{fmtNum(totalDia)}</p>
+   361→   361→   361→                      <p className="text-[9px] text-muted-foreground">unidades</p>
+   362→   362→   362→                    </div>
+   363→   363→   363→                  </div>
+   364→   364→   364→                </button>
+   365→   365→   365→
+   366→   366→   366→                {/* Contenido del día: agrupado por técnico */}
+   367→   367→   367→                {isExpanded && (
+   368→   368→   368→                  <div className="divide-y divide-border/40">
+   369→   369→   369→                    {porDiaYTecnico[dia]?.map(([tecnico, desps, totalTec]) => {
+   370→   370→   370→                      const tecKey = `${dia}-${tecnico}`;
+   371→   371→   371→                      const isTecExpanded = expandedTecnico === tecKey || porDiaYTecnico[dia].length === 1;
+   372→   372→   372→                      return (
+   373→   373→   373→                        <div key={tecKey} className="bg-muted/10">
+   374→   374→   374→                          <button
+   375→   375→   375→                            onClick={() => setExpandedTecnico(isTecExpanded ? null : tecKey)}
+   376→   376→   376→                            className="press flex w-full items-center gap-2 px-4 py-2.5 text-left hover:bg-accent/30 transition-colors"
+   377→   377→   377→                          >
+   378→   378→   378→                            {isTecExpanded ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+   379→   379→   379→                            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
+   380→   380→   380→                              <User className="h-3 w-3" />
+   381→   381→   381→                            </span>
+   382→   382→   382→                            <span className="flex-1 text-[12px] font-semibold text-foreground">{tecnico}</span>
+   383→   383→   383→                            <span className="text-[10px] text-muted-foreground">{desps.length} items</span>
+   384→   384→   384→                            <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-bold tabular-nums text-primary">{fmtNum(totalTec)}</span>
+   385→   385→   385→                          </button>
+   386→   386→   386→                          {isTecExpanded && (
+   387→   387→   387→                            <div className="bg-muted/20 px-4 py-2">
+   388→   388→   388→                              <table className="w-full text-sm">
+   389→   389→   389→                                <tbody>
+   390→   390→   390→                                  {desps.map((d) => (
+   391→   391→   391→                                    <tr key={d.id} className="group border-b border-border/30 last:border-0">
+   392→   392→   392→                                      <td className="py-2 pr-3">
+   393→   393→   393→                                        <p className="text-[12px] font-semibold text-foreground">{d.producto}</p>
+   394→   394→   394→                                        <p className="font-mono text-[10px] text-muted-foreground">SKU: {d.sku}</p>
+   395→   395→   395→                                      </td>
+   396→   396→   396→                                      <td className="py-2 pr-3 text-[11px] text-muted-foreground">
+   397→   397→   397→                                        {d.destino ? (
+   398→   398→   398→                                          <span className="inline-flex items-center gap-1 rounded-md bg-cyan-500/15 px-1.5 py-0.5 text-cyan-300">
+   399→   399→   399→                                            <MapPin className="h-2.5 w-2.5" /> {d.destino}
+   400→   400→   400→                                          </span>
+   401→   401→   401→                                        ) : "—"}
+   402→   402→   402→                                      </td>
+   403→   403→   403→                                      <td className="py-2 pr-3 text-[10px] tabular-nums text-muted-foreground">
+   404→   404→   404→                                        {new Date(d.fecha).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
+   405→   405→   405→                                      </td>
+   406→   406→   406→                                      <td className="py-2 text-right">
+   407→   407→   407→                                        <span className="inline-flex min-w-[40px] justify-center rounded-md bg-rose-500/15 px-2 py-0.5 text-[11px] font-bold tabular-nums text-rose-400">
+   408→   408→   408→                                          -{fmtNum(d.cantidad)}
+   409→   409→   409→                                        </span>
+   410→   410→   410→                                      </td>
+   411→   411→   411→                                      <td className="py-2 pl-2 text-right">
+   412→   412→   412→                                        <button
+   413→   413→   413→                                          onClick={() => deleteDespacho(d.id)}
+   414→   414→   414→                                          title="Eliminar (devuelve stock)"
+   415→   415→   415→                                          className="press rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+   416→   416→   416→                                        >
+   417→   417→   417→                                          <Trash2 className="h-3 w-3" />
+   418→   418→   418→                                        </button>
+   419→   419→   419→                                      </td>
+   420→   420→   420→                                    </tr>
+   421→   421→   421→                                  ))}
+   422→   422→   422→                                </tbody>
+   423→   423→   423→                              </table>
+   424→   424→   424→                            </div>
+   425→   425→   425→                          )}
+   426→   426→   426→                        </div>
+   427→   427→   427→                      );
+   428→   428→   428→                    })}
+   429→   429→   429→                  </div>
+   430→   430→   430→                )}
+   431→   431→   431→              </div>
+   432→   432→   432→            );
+   433→   433→   433→          })}
+   434→   434→   434→        </div>
+   435→   435→   435→      )}
+   436→   436→   436→
+   437→   437→   437→      {/* Dialog PEGAR/SUBIR DESPACHOS + IA */}
+   438→   438→   438→      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+   439→   439→   439→        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto scroll-thin rounded-xl">
+   440→   440→   440→          <DialogHeader>
+   441→   441→   441→            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+   442→   442→   442→              <Sparkles className="h-5 w-5 text-primary" /> Analizar despachos con IA
+   443→   443→   443→            </DialogTitle>
+   444→   444→   444→            <DialogDescription>
+   445→   445→   445→              Pega o sube tus despachos. La IA los analizará, validará el stock y los registrará automáticamente.
+   446→   446→   446→            </DialogDescription>
+   447→   447→   447→          </DialogHeader>
+   448→   448→   448→
+   449→   449→   449→          {/* Formatos (compacto) */}
+   450→   450→   450→          <div className="rounded-lg border border-border bg-muted/30 px-3 py-2">
+   451→   451→   451→            <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+   452→   452→   452→              Formatos: SKU*cantidad · Destinatario | SKU*cantidad · Destinatario [TAB] SKU*cantidad (de Excel)
+   453→   453→   453→            </p>
+   454→   454→   454→          </div>
+   455→   455→   455→
+   456→   456→   456→          {/* Textarea con altura limitada */}
+   457→   457→   457→          <Textarea
+   458→   458→   458→            value={bulkText}
+   459→   459→   459→            onChange={(e) => { setBulkText(e.target.value); setResultadoIA(null); }}
+   460→   460→   460→            placeholder={"Pega tus despachos aquí (uno por línea):\n\nJ. Pérez|1066990*20\nM. Luna|1002900*50\n..."}
+   461→   461→   461→            className="max-h-[200px] rounded-lg font-mono text-[12px] leading-relaxed shadow-inner"
+   462→   462→   462→            autoFocus
+   463→   463→   463→          />
+   464→   464→   464→
+   465→   465→   465→          {/* Análisis IA en vivo (compacto, con scroll) */}
+   466→   466→   466→          {lineasParseadas.length > 0 && !resultadoIA && (
+   467→   467→   467→            <div className="rounded-lg border border-border bg-muted/30">
+   468→   468→   468→              <div className="flex items-center justify-between border-b border-border px-3 py-2">
+   469→   469→   469→                <p className="flex items-center gap-1.5 text-[11px] font-bold text-foreground">
+   470→   470→   470→                  <Sparkles className="h-3.5 w-3.5 text-primary" /> Análisis automático
+   471→   471→   471→                </p>
+   472→   472→   472→                <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold">
+   473→   473→   473→                  <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-emerald-400">
+   474→   474→   474→                    <Check className="h-2.5 w-2.5" /> {validacion.validos.length} válidos
+   475→   475→   475→                  </span>
+   476→   476→   476→                  {validacion.invalidos.length > 0 && (
+   477→   477→   477→                    <span className="flex items-center gap-1 rounded-full bg-rose-500/15 px-2 py-0.5 text-rose-400">
+   478→   478→   478→                      <AlertTriangle className="h-2.5 w-2.5" /> {validacion.invalidos.length} error
+   479→   479→   479→                    </span>
+   480→   480→   480→                  )}
+   481→   481→   481→                  <span className="rounded-full bg-cyan-500/15 px-2 py-0.5 text-cyan-300">
+   482→   482→   482→                    {fmtNum(validacion.validos.reduce((s, d) => s + d.cantidad, 0))} und
+   483→   483→   483→                  </span>
+   484→   484→   484→                </div>
+   485→   485→   485→              </div>
+   486→   486→   486→              {/* Errores (máximo 80px) */}
+   487→   487→   487→              {validacion.invalidos.length > 0 && (
+   488→   488→   488→                <div className="max-h-[80px] overflow-y-auto scroll-thin px-3 py-2">
+   489→   489→   489→                  {validacion.invalidos.slice(0, 8).map((inv, i) => (
+   490→   490→   490→                    <div key={i} className="flex items-center gap-2 py-0.5 text-[10px]">
+   491→   491→   491→                      <AlertTriangle className="h-2.5 w-2.5 shrink-0 text-rose-400" />
+   492→   492→   492→                      {inv.d.tecnico && <span className="text-muted-foreground">{inv.d.tecnico}:</span>}
+   493→   493→   493→                      <code className="font-mono text-foreground">{inv.d.sku || "(vacío)"}</code>
+   494→   494→   494→                      <span className="text-rose-400">— {inv.razon}</span>
+   495→   495→   495→                    </div>
+   496→   496→   496→                  ))}
+   497→   497→   497→                  {validacion.invalidos.length > 8 && (
+   498→   498→   498→                    <p className="mt-1 text-[9px] italic text-muted-foreground">+ {validacion.invalidos.length - 8} más…</p>
+   499→   499→   499→                  )}
+   500→   500→   500→                </div>
+   501→   501→   501→              )}
+   502→   502→   502→            </div>
+   503→   503→   503→          )}
+   504→   504→   504→
+   505→   505→   505→          {/* Resultado final IA (compacto) */}
+   506→   506→   506→          {resultadoIA && (
+   507→   507→   507→            <div className="space-y-2">
+   508→   508→   508→              <div className={cn("rounded-lg border p-3", resultadoIA.ok > 0 ? "border-emerald-500/30 bg-emerald-500/10" : "border-rose-500/30 bg-rose-500/10")}>
+   509→   509→   509→                <p className={cn("flex items-center gap-2 text-[13px] font-bold", resultadoIA.ok > 0 ? "text-emerald-400" : "text-rose-400")}>
+   510→   510→   510→                  {resultadoIA.ok > 0 ? <Check className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+   511→   511→   511→                  {resultadoIA.ok > 0
+   512→   512→   512→                    ? `¡Listo! ${resultadoIA.ok} despachos registrados y stock descontado`
+   513→   513→   513→                    : "No se pudieron registrar despachos"}
+   514→   514→   514→                </p>
+   515→   515→   515→                <p className="mt-1 text-[11px] text-muted-foreground">
+   516→   516→   516→                  {fmtNum(resultadoIA.totalUnidades)} unidades descontadas del inventario
+   517→   517→   517→                  {resultadoIA.fail > 0 && ` · ${resultadoIA.fail} con error`}
+   518→   518→   518→                </p>
+   519→   519→   519→              </div>
+   520→   520→   520→
+   521→   521→   521→              {/* Resumen por técnico (máximo 150px con scroll) */}
+   522→   522→   522→              {Object.keys(resultadoIA.porTecnico).length > 0 && (
+   523→   523→   523→                <div className="rounded-lg border border-border bg-muted/30 p-3">
+   524→   524→   524→                  <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Desglose por destinatario</p>
+   525→   525→   525→                  <div className="grid max-h-[150px] grid-cols-1 gap-1.5 overflow-y-auto scroll-thin sm:grid-cols-2">
+   526→   526→   526→                    {Object.entries(resultadoIA.porTecnico)
+   527→   527→   527→                      .sort((a, b) => b[1] - a[1])
+   528→   528→   528→                      .map(([tecnico, unidades]) => (
+   529→   529→   529→                        <div key={tecnico} className="flex items-center justify-between rounded-md bg-card px-2 py-1 text-[11px]">
+   530→   530→   530→                          <span className="truncate text-foreground">{tecnico}</span>
+   531→   531→   531→                          <span className="shrink-0 rounded-md bg-primary/10 px-1.5 py-0.5 font-bold tabular-nums text-primary">{fmtNum(unidades)} und</span>
+   532→   532→   532→                        </div>
+   533→   533→   533→                      ))}
+   534→   534→   534→                  </div>
+   535→   535→   535→                </div>
+   536→   536→   536→              )}
+   537→   537→   537→            </div>
+   538→   538→   538→          )}
+   539→   539→   539→
+   540→   540→   540→          <DialogFooter className="sticky bottom-0 bg-card">
+   541→   541→   541→            <Button variant="outline" onClick={() => setBulkOpen(false)} className="rounded-lg">Cancelar</Button>
+   542→   542→   542→            <Button
+   543→   543→   543→              onClick={analizarYRegistrar}
+   544→   544→   544→              disabled={validacion.validos.length === 0 || analizando}
+   545→   545→   545→              className="btn-spacecom rounded-lg border-0"
+   546→   546→   546→            >
+   547→   547→   547→              {analizando ? (
+   548→   548→   548→                <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Analizando…</>
+   549→   549→   549→              ) : (
+   550→   550→   550→                <><Sparkles className="mr-1.5 h-4 w-4" /> Analizar y registrar {validacion.validos.length > 0 && `${validacion.validos.length}`}</>
+   551→   551→   551→              )}
+   552→   552→   552→            </Button>
+   553→   553→   553→          </DialogFooter>
+   554→   554→   554→        </DialogContent>
+   555→   555→   555→      </Dialog>
+   556→   556→   556→    </div>
+   557→   557→   557→  );
+   558→   558→   558→}
+   559→   559→   559→
+   560→   560→   560→function StatCard({ label, value, sub, icon, highlight }: { label: string; value: string | number; sub?: string; icon: React.ReactNode; highlight?: boolean }) {
+   561→   561→   561→  return (
+   562→   562→   562→    <div className={cn("anim-fade-up rounded-xl border bg-card p-4 shadow-sm", highlight && "border-primary/30 bg-primary/5")}>
+   563→   563→   563→      <div className="flex items-center justify-between">
+   564→   564→   564→        <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg", highlight ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>{icon}</span>
+   565→   565→   565→        <span className="text-xl font-bold tabular-nums text-foreground">{value}</span>
+   566→   566→   566→      </div>
+   567→   567→   567→      <p className="mt-2 text-xs font-semibold text-muted-foreground">{label}</p>
+   568→   568→   568→      {sub && <p className="text-[10px] text-muted-foreground/70">{sub}</p>}
+   569→   569→   569→    </div>
+   570→   570→   570→  );
+   571→   571→   571→}
+   572→   572→   572→

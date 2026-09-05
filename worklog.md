@@ -2467,3 +2467,242 @@ Stage Summary:
 - Timeout de 15s para respuestas completas ✅
 - Fallback mejorado para cuando Z.AI falla ✅
 - Lint: 0 errores ✅
+
+---
+Task ID: 6-a
+Agent: redesigner
+Task: Redesign inventario-view with minimalist Apple style
+
+Work Log:
+- Leído el archivo `src/components/lem/inventario-view.tsx` completo y `globals.css` para confirmar variables CSS disponibles (`--background`, `--foreground`, `--muted`, `--border`, `--primary`, `--card`, `--destructive`) y utilidades de animación (`anim-fade-in`, `anim-slide-up`).
+- Reescrito el JSX aplicando el nuevo lenguaje minimalista Apple/Linear/Stripe. Toda la lógica se preserva intacta: mismos `useStore` hooks, handlers, `useMemo`, state, dialogs y el input file oculto.
+- Header: título `text-2xl font-semibold tracking-tight`, subtítulo en `text-muted-foreground`, acciones a la derecha con `h-9 rounded-md text-[13px] font-medium`.
+- Botones: outline = `border-border bg-background hover:bg-muted` (cambio sutil de fondo al hover). Acción primaria ("Añadir", "Guardar", "Registrar entrada", "Confirmar importación") = `bg-foreground text-background hover:bg-foreground/90` (NO `bg-primary`).
+- Tabla: `divide-y divide-border` (hairline dividers, sin bordes pesados), header `text-[11px] uppercase tracking-wider text-muted-foreground`, hover `hover:bg-muted/50`.
+- Stock: número plano `tabular-nums text-foreground` (sin badge).
+- Alerta de bajo stock: reemplazado el badge `rounded-full` rojo + `AlertTriangle` por un **punto rojo fino** `h-1.5 w-1.5 rounded-full bg-destructive` inline antes del número de stock.
+- Acciones de fila (Pencil/Trash2): aparecen en `group-hover`, `strokeWidth={1.5}`, hover sutil `text-muted-foreground` → `hover:text-foreground` / `hover:text-destructive` con `hover:bg-muted`.
+- Entradas recientes: eliminados el badge verde `+cantidad` y el badge ámbar "NO CAT." — reemplazados por `+cantidad` en foreground y "no en catálogo" con un punto `1px` muted. Sección con `divide-y divide-border` en lugar de tarjetas con bordes.
+- Dialogs (3): shadcn Dialog conservado, contenido con `p-0` y secciones internas separadas por `border-b border-border` para más whitespace. `rounded-lg` en lugar de `rounded-2xl`.
+- Live preview (entrada): eliminados los fondos verde/rojo; reemplazados por `border-border bg-muted/40` (válido) y `border-destructive/30 bg-destructive/5` (inválido). Iconos con `strokeWidth={1.5}`.
+- Preview de importación: eliminados los badges `bg-muted` "Actualizar/Nuevo" → reemplazados por un punto fino `h-1.5 w-1.5 rounded-full` + texto plano. Resumen con layout de 3 métricas (Total / A actualizar / Nuevos) en lugar de pills `rounded-full bg-muted`.
+- Iconos: definido `const ICON_PROPS = { strokeWidth: 1.5 }` y aplicado a todos los iconos lucide-react. Eliminados imports no usados (`AlertTriangle`, `FileUp`); añadido `AlertCircle`.
+- Animaciones: wrapper exterior con `anim-fade-in`, header/tabla/secciones con `anim-slide-up` (sutiles, clases existentes).
+- Sin gradientes, sin aurora, sin neon: solo neutros `bg-background`, `text-foreground`, `text-muted-foreground`, `bg-muted`, `border-border`, más `bg-destructive` para el punto de estado.
+- Sin `bg-primary` en todo el JSX (cumple la regla "acción primaria = bg-foreground").
+- Lint: `bun run lint` → 0 errores, 0 warnings.
+
+Stage Summary:
+- Inventario-view rediseñado con estilo minimalista Apple/Linear/Stripe ✓
+- Toda la lógica (store, handlers, memos, dialogs, import) preservada intacta ✓
+- Tabla con hairline dividers (`divide-y divide-border`), sin bordes pesados ✓
+- Botones primarios usan `bg-foreground text-background` (no `bg-primary`) ✓
+- Alerta de bajo stock = punto rojo fino (1.5px) en lugar de badge grande ✓
+- Badges de color (verde/ámbar) eliminados; reemplazados por puntos finos y texto ✓
+- Iconos lucide-react con `strokeWidth={1.5}` (line-art) ✓
+- Sin gradientes, sin aurora, sin neon ✓
+- Animaciones sutiles (`anim-fade-in`, `anim-slide-up`) ✓
+- Lint: 0 errores ✓
+
+---
+Task ID: 6-c
+Agent: redesigner
+Task: Redesign pistolear-view minimalist
+
+Work Log:
+- Leí completo el archivo `src/components/lem/pistolear-view.tsx` (1084 líneas) en 4 chunks.
+- Revisé `agent-ctx/6-a-redesigner.md` y `globals.css` para alinear convenciones minimalistas.
+- Reescribí el JSX manteniendo TODA la lógica intacta: useStore hooks, useState, useEffect (autofocus, duplicados, auto-hide feedback), useMemo (duplicadosEnLote, seriesExistentesSet, duplicadosEnLoteSet, filasVisibles, hayMasFilas, productosUnicos), handlers (handleScan con límite 1000 + validación prefijo + duplicados en sistema/sesión, onKeyDown Enter/Escape, handleConfirmar, handleConfirmarReal, handleClear, startEdit, cancelEdit, saveEdit), ambos dialogs (preview + duplicados), paginación "Cargar 100 más" y warning de 900+.
+- Cambios visuales clave:
+  · Header: label uppercase pequeño + título `text-[28px] font-semibold tracking-tight` + Config a la derecha.
+  · Config panel: `border border-border bg-background` en vez de `border-primary/30 bg-primary/5`; iconos line-art muted.
+  · Mode buttons: text buttons con `border-b-2 border-transparent`, activo = `border-foreground text-foreground` (no chips).
+  · Scan input: `h-12 rounded-md border border-border bg-background font-mono text-[15px] focus:border-foreground` (sin border-2, sin ring).
+  · Feedback en vivo: texto plano + icono line-art, sin badges green/red.
+  · Duplicate banners: `border border-border bg-background hover:bg-muted` + icono `AlertCircle` muted (sin amber/red).
+  · Acciones: primario `bg-foreground text-background hover:bg-foreground/90 shadow-none` (NO bg-primary), outline `border-border bg-background hover:bg-muted`.
+  · Warning límite 1000: `border border-border bg-background text-muted-foreground` (sin amber).
+  · Tabla: `divide-y divide-border` hairline, padding `px-3 py-2.5`, serial `font-mono text-[12px]`, indicadores de duplicado = small dot `h-1.5 w-1.5 rounded-full bg-destructive` + label uppercase muted (no badges rojos/amber), modelo = icono Cpu muted + texto (no chip primary).
+  · ResumenCard: mantiene `tone` prop por compatibilidad, visualmente neutral.
+  · Dialogs (preview + duplicados): `p-0 gap-0 rounded-lg` con header/body/footer separados por `border-b/border-t border-border`, métricas en 3 columnas con `border-r border-border`, estados = small dot (no pills colored).
+  · ICON_PROPS = { strokeWidth: 1.5 } aplicado a todos los iconos lucide-react. Quité imports no usados (`AlertTriangle`, `Info`).
+  · Animaciones: `anim-fade-in` (wrapper) + `anim-slide-up` (header, panels, tabla, acciones).
+- `bun run lint` → 0 errores, 0 warnings.
+- `bunx tsc --noEmit` → sin errores en `pistolear-view.tsx` (errores aislados en `examples/`, `skills/`, `src/app/api/ia/route.ts` no relacionados).
+- Dev server (PID 1097) estable después del cambio.
+
+Stage Summary:
+- `pistolear-view.tsx` rediseñado al lenguaje minimalista Apple/Linear/Stripe sin tocar lógica: header limpio, scan input grande con font-mono, mode tabs con underline, tabla hairline con small-dot status indicators, banners de duplicados con border fino neutral (sin amber/red), primario `bg-foreground text-background`, límite 1000 en estilo muted, dialogs con secciones divididas por hairline. Lint + tsc limpios en el archivo editado.
+
+---
+Task ID: 6-d
+Agent: redesigner
+Task: Redesign despachos-view and horario-view minimalist
+
+Work Log:
+- Read `agent-ctx/6-a-redesigner.md` and `agent-ctx/6-c-redesigner.md` (sibling minimalist redesigns) to align on conventions (ICON_PROPS strokeWidth 1.5, primary action = bg-foreground text-background, hairline `divide-y divide-border`, no bg-primary, no gradients, no neon).
+- Reviewed `globals.css` to confirm CSS vars (`--background`, `--foreground`, `--muted`, `--muted-foreground`, `--border`, `--destructive`) and animation utilities (`anim-fade-in`, `anim-slide-up`).
+- Read `/home/z/my-project/src/components/lem/despachos-view.tsx` (571 lines) in two chunks. Identified ALL logic to preserve:
+  - imports (kept verbatim incl. unused `Package`, `FileSpreadsheet`, `Save`, `TrendingUp`, `Clock` to avoid touching the import block)
+  - `DespachoImportado` interface
+  - `isSameDay`, `fechaCorta`, `diaSemana` helpers
+  - store hooks: `products`, `despachos`, `findProductBySku`, `registrarDespachosBulk`, `deleteDespacho`
+  - state: `query`, `bulkOpen`, `bulkText`, `importingExcel`, `filterToday`, `expandedDay`, `expandedTecnico`, `analizando`, `resultadoIA`, `fileInputRef`
+  - memo: `lineasParseadas`, `validacion`, `filteredDespachos`, `porDia`, `porDiaYTecnico`
+  - derived stats: `totalDespachado`, `despachosHoy`, `totalDespachadoHoy`, `tecnicosUnicos`, `diasConDespachos`
+  - handlers: `openBulk`, `analizarYRegistrar` (with the 1500ms `setTimeout` IA simulation and the 3000ms close-setTimeout), `handleExcelUpload` (FormData POST to `/api/import-excel`, sets bulkText from `tecnico|destino|sku*cantidad`)
+  - the bulk dialog (formatos hint, textarea, live validation preview with valid/invalid counts, final IA result with `porTecnico` desglose)
+  - the 5-card StatCard row
+  - the `StatCard` sub-component signature (still accepts `highlight` prop)
+- Read `/home/z/my-project/src/components/lem/horario-view.tsx` (537 lines). Identified ALL logic to preserve:
+  - imports (kept verbatim incl. unused `Sun`, `Moon`, `Coffee`, `X`, `Play`)
+  - `DIAS_ORDEN`, `TIPO_ICONO`
+  - `a12h`, `a24h`, `hoyDiaSemana`, `ahora24h` helpers
+  - store hooks: `horario`, `addHorarioItem`, `updateHorarioItem`, `deleteHorarioItem`
+  - state: `open`, `editingId`, `dia`, `horaInicio`, `horaFin`, `actividad`, `tipo`, `pulseKey`
+  - the `useEffect` interval that re-renders every 5s so the "ocurriendo" status updates in real time (kept verbatim; `void pulseKey;` used to consume the value without displaying it)
+  - memo: `porDia` (grouped by day + sorted by horaInicio)
+  - handlers: `resetForm`, `openCreate`, `openEdit`, `handleSave` (with validations), `handleDelete`
+  - the create/edit Dialog (día select, hora inicio/fin inputs with live 12h preview, actividad input with Enter-to-save, tipo select with icon, TTS reminder)
+  - the `KPI` sub-component (still accepts `highlight` prop)
+  - Added ONE new UI display state: `selectedDia` for the text-tabs layout requested in the spec. It is purely UI state (not store/handler/business logic); default = `hoyDiaSemana()`.
+- Rewrote `despachos-view.tsx` JSX applying minimalist design (all logic untouched):
+  1. Header: small uppercase label "Operaciones" + big title `text-[28px] font-semibold tracking-tight` + actions on the right (Subir Excel outline, Pegar despachos `bg-foreground text-background`).
+  2. Stats: hairline grid via `grid-cols-... gap-px bg-border` with each cell `bg-background px-4 py-3` (no individual rounded cards, no shadows, no `bg-primary/5` highlight — highlighted cell uses subtle `bg-muted/40`).
+  3. Search input: `h-9 rounded-md border-border bg-background` with line-art `Search` icon `strokeWidth={1.5}`.
+  4. Filter chip "Solo hoy / Ver todos": `border border-border rounded-md px-3 py-1 text-[12px]`, active = `border-foreground bg-foreground text-background`.
+  5. Historial por día: replaced bordered shadowed cards with a single `rounded-lg border border-border bg-background` container using `divide-y divide-border` hairlines. Each day row is a clean button (chevron + date + tiny `Hoy` indicator with `h-1.5 w-1.5 rounded-full bg-foreground` dot, not a big colored badge).
+  6. Day stats inline (despachos/destinatarios/productos/unidades) all neutral `text-foreground` tabular-nums — no `bg-primary/10` highlight pills.
+  7. Per-técnico nested rows: hairline `divide-y divide-border`, line-art `User` icon in muted, total units in plain text (no `bg-primary/10` chip).
+  8. Despacho rows table: `divide-y divide-border`, plain producto + SKU mono, destino as plain inline text with line-art `MapPin` (removed `bg-cyan-500/15 text-cyan-300` pill), time in muted tabular-nums, cantidad as plain text with tiny `h-1 w-1 bg-muted-foreground` dot (removed `bg-rose-500/15 text-rose-400` badge).
+  9. Row delete button: `opacity-0 group-hover:opacity-100`, `hover:bg-destructive/10 hover:text-destructive`.
+  10. Empty state: `rounded-lg border border-dashed border-border bg-background` with line-art `ClipboardPaste` icon in `text-muted-foreground/40`.
+  11. Bulk dialog: `DialogContent` uses `p-0 gap-0 rounded-lg`; sections split by `border-b border-border` / `border-t border-border`. Title with neutral `ClipboardPaste` icon (was `text-primary` Sparkles). Removed all `bg-emerald-500/15 text-emerald-400`, `bg-rose-500/15 text-rose-400`, `bg-cyan-500/15 text-cyan-300` colored pills — replaced with plain inline text + line-art icons (Check in foreground, AlertTriangle in `text-destructive`).
+  12. Final IA result: neutral `border-border bg-muted/30` for success (was emerald), `border-destructive/30 bg-destructive/5` for failure (kept destructive accent since it indicates an error state). Desglose por destinatario uses hairline `grid gap-px bg-border` with `bg-background` cells (no `bg-primary/10` chip).
+  13. Footer: sticky `bg-background`, `border-t border-border`; Cancel = outline, primary action "Analizar y registrar" = `bg-foreground text-background hover:bg-foreground/90 shadow-none` (NOT `btn-spacecom`, NOT `bg-primary`).
+- Rewrote `horario-view.tsx` JSX applying minimalist design (all logic untouched, only one new UI state added for tab display):
+  1. Header: small uppercase label "Operaciones" + big title `text-[28px] font-semibold tracking-tight` + "Nueva actividad" button on the right (`bg-foreground text-background hover:bg-foreground/90 shadow-none`, NOT `btn-spacecom`).
+  2. Clock display: replaced the big colored circle (`bg-primary/10` + `text-primary` pulsing `Clock`) and `anim-horario-shimmer` aurora with a minimal `rounded-lg border border-border bg-background px-4 py-3` row — small uppercase date label + big `text-[28px] font-semibold tabular-nums` time on the left, single line-art `Clock` icon (`strokeWidth={1.5}`, `text-muted-foreground`) on the right. No shimmer, no pulse, no big colored tile.
+  3. KPIs: hairline `grid grid-cols-2 sm:grid-cols-4 gap-px bg-border rounded-lg border border-border` with each cell `bg-background px-4 py-3`. "Hoy" KPI uses subtle `bg-muted/40` (no `bg-primary/5`/`border-primary/40`). `KPI` signature unchanged.
+  4. Day selector: replaced the `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4` card grid with **text tabs** (per spec). The strip uses `border-b border-border` and each day is `border-b-2 -mb-px px-1 py-2.5 text-[12px] font-medium whitespace-nowrap`; active = `border-foreground text-foreground`, inactive = `border-transparent text-muted-foreground hover:text-foreground`. Today is marked with a small `h-1.5 w-1.5 rounded-full bg-foreground` dot next to the label. Item count is shown as a small muted tabular-nums number. Horizontal scroll on small screens via `overflow-x-auto`.
+  5. Selected day items: replaced the `rounded-2xl border bg-card shadow-sm` cards with rounded card tiles inside each day, with **hairline rows** in a single `rounded-lg border border-border bg-background divide-y divide-border` container. Each row has: condensed time range (mono, two lines for inicio/fin in `tabular-nums`), a status column (small dot for upcoming, animated `bg-foreground` 2px dot for ocurriendo, line-art `Check` for pasado — NOT the big `bg-primary text-primary-foreground BellRing` "Ahora" badge or the `bg-muted` "Hecho" badge), a line-art type icon in muted (was colored tile `bg-primary`/`oklch` orange/blue/green), the activity name + type label + inline status suffix ("· Ahora"/"· Hecho"), and hover-revealed edit/delete buttons.
+  6. Past items: subtle `opacity-50` (kept from original behavior).
+  7. Empty state for the selected day: minimal `rounded-lg border border-dashed border-border bg-background` message.
+  8. Global empty state (when `horario.length === 0`): same hairline minimal treatment with a "Agregar actividad" primary button (`bg-foreground`).
+  9. Dialog: `DialogContent p-0 gap-0 rounded-lg`, sections split by `border-b border-border` / `border-t border-border`. Title icon is line-art in `text-foreground` (was `text-primary`). Labels use `text-[11px] uppercase tracking-wider text-muted-foreground`. Inputs/selects use `h-9 rounded-md border-border bg-background`. Live 12h preview text uses `text-[10px] text-muted-foreground` (was `text-primary`). The TTS reminder is in a `rounded-md border border-border bg-muted/30` (was `bg-muted/40` with `text-primary` BellRing). Footer: Cancel outline + primary `bg-foreground text-background` action button.
+  10. Icons: defined `const ICON_PROPS = { strokeWidth: 1.5 } as const;` and spread onto every lucide-react icon (including inside the `SelectItem` and `KPI`). Removed `anim-horario-pulse`, `anim-horario-breathe`, `anim-horario-glow`, `anim-horario-shimmer`, `anim-horario-slide-in` animation classes (no neon/aurora). Used the standard `anim-fade-in` and `anim-slide-up` utilities for entrance animations.
+  11. No `bg-primary` anywhere in the JSX. No gradients, no neon, no aurora, no flashy shadows. Only neutral `bg-background`, `text-foreground`, `text-muted-foreground`, `bg-muted`, `border-border`, plus `bg-destructive`/`text-destructive` for the error states in despachos IA validation.
+
+Stage Summary:
+- `despachos-view.tsx` and `horario-view.tsx` both redesigned to the minimalist Apple/Linear/Stripe design language used by sibling tasks 6-a and 6-c.
+- All business logic, store hooks, state, handlers, memo computations, the IA setTimeout flow, the bulk dialog flow, the Excel upload, the 5s re-render interval, the a12h/a24h time functions, the ocurriendo/pasado detection, and the dialog create/edit flow are preserved verbatim. Only one UI-only state (`selectedDia`) was added to horario-view to support the requested text-tabs layout.
+- `bun run lint` → 0 errors, 0 warnings.
+- `bunx tsc --noEmit` → no errors in `despachos-view.tsx` or `horario-view.tsx` (errors only in unrelated `examples/`, `skills/`, and `src/app/api/ia/route.ts`).
+- Visual changes: hairline `divide-y divide-border` rows replace rounded shadowed cards; `bg-foreground text-background` replaces `bg-primary`/`btn-spacecom` for primary actions; small dots + plain text replace big colored badges for "Hoy"/"Ahora"/"Hecho"/status; line-art `strokeWidth={1.5}` icons in `text-muted-foreground` replace colored icon tiles; thin 1px `border-border` everywhere; the horario grid-of-day-cards is replaced with text-tabs + hairline-rows-per-day as requested by the spec.
+
+---
+Task ID: 6-e
+Agent: redesigner
+Task: Redesign bloc, empresa, notificaciones views minimalist
+
+Work Log:
+- Read sibling agent-ctx records 6-c and 6-d to align on the minimalist Apple/Linear/Stripe conventions (ICON_PROPS strokeWidth 1.5, primary action bg-foreground text-background, hairline divide-y divide-border rows, no bg-primary fills, no gradients, no neon, no aurora, no flashy shadows, page header = small uppercase label + big title text-[28px] font-semibold tracking-tight + actions right).
+- Reviewed src/app/globals.css to confirm available CSS vars and animation utilities (anim-fade-in, anim-slide-up).
+- Read bloc-view.tsx (107 lines), empresa-view.tsx (398 lines), notificaciones-view.tsx (186 lines) completely; identified ALL logic to preserve (store hooks, state, handlers, dialogs, derived values, side-effects, sub-components).
+- bloc-view.tsx: rewrote JSX. Header = small uppercase "Apuntes" + big title "Bloc". Add panel = single rounded-lg border-border bg-background container with textarea + footer row; primary "Añadir nota" button uses bg-foreground text-background. Notes list = single hairline container with divide-y divide-border rows; pinned indicator = small h-1.5 w-1.5 rounded-full bg-foreground dot; pin/delete buttons hover-revealed. No bg-primary. Kept the Ctrl+Enter handler, the sorted logic, the togglePinNota/deleteNota calls, the date formatter — all verbatim. Note: the store has no editNota so the redesign preserves the existing add/pin/delete functionality exactly (per the CRITICAL no-add-logic rule); "edit in dialog" hint applied only to components that already have edit logic.
+- empresa-view.tsx: rewrote JSX. Header = small uppercase "Organización" + big title. Empresa contratista block and Personal block both as single rounded-lg border-border bg-background containers with header row + hairline divide-y body. Read-mode InfoRow as hairline rows with fixed-width uppercase label. Members grouped by role with a thin section header bg-muted/30 + hairline rows; avatar = small neutral h-8 w-8 rounded-full border-border (no bg-primary); role badge = small muted text-[11px] text-muted-foreground (NOT a colored pill); "Permisos personalizados" = small uppercase muted text with line-art Shield icon (was amber pill). Edit/Permisos/Delete buttons hover-revealed. Permisos dialog uses p-0 rounded-lg shell with border-b / border-t splits and a hairline divide-y permissions list in a rounded-md border-border container; active = border-foreground bg-foreground text-background, inactive = border-border bg-muted. Miembro dialog same shell. All handlers (saveEmpresa, openCreateMiembro, openEditMiembro, saveMiembro with the empty-string-to-undefined coercion, openPermisos, savePermisos, togglePermisoExtra with cross-clear, togglePermisoRevocado with cross-clear) and the byRol grouping and the ROLES order preserved verbatim.
+- notificaciones-view.tsx: rewrote JSX. Header = small uppercase "Avisos" + big title + 1-line muted summary with tabular-nums counters; "Limpiar leídas" and "Borrar todo" outline buttons on the right. Bajo stock alerts = hairline list with small h-1.5 w-1.5 rounded-full bg-destructive dot per row (NOT a big bg-red-500/10 icon tile). Recordatorios pendientes = hairline list with small bg-foreground/60 dot. Sin leer / Leídas = single hairline container each with small status dot + line-art type icon in text-muted-foreground (NOT a colored bg-accent icon tile) + type label + relative time + title + body. Mark-as-read Check button hover-revealed for unread. Read rows dimmed with opacity-60. Empty state = rounded-lg border-dashed border-border bg-background. Removed unused Button and cn imports. All handlers and derived arrays (noLeidas, leidas, bajoStock with the minStock>0 guard, recordatoriosPendientes with !r.disparado) and the date formatters preserved verbatim; refactored the empty-state condition into a local hasAny boolean (same boolean expression).
+- Defined const ICON_PROPS = { strokeWidth: 1.5 } as const; in all three files and spread onto every lucide-react icon. Removed unused imports (StickyNote, PinOff, Button in bloc-view; cn in notificaciones-view). Kept cn in empresa-view (still used by the permisos buttons).
+- Verification: bun run lint → 0 errors, 0 warnings. bunx tsc --noEmit → no errors in any of the three files. dev.log was not present at /home/z/my-project/dev.log at verification time.
+
+Stage Summary:
+- All three LEMCORP components (bloc-view, empresa-view, notificaciones-view) redesigned to the minimalist Apple/Linear/Stripe design language consistent with sibling tasks 6-a / 6-c / 6-d.
+- Every useStore hook, state, handler, dialog, derived array, side-effect and sub-component signature preserved verbatim. Only className, layout and container structure were touched. bloc-view's existing add/pin/delete functionality is preserved unchanged (the store has no editNota so no edit dialog was introduced, in strict compliance with the CRITICAL no-add-logic rule).
+- Visual: hairline divide-y divide-border rows replace the old rounded-2xl shadow-sm cards; bg-foreground text-background replaces bg-primary / btn-spacecom on primary actions; small dots (bg-foreground for pinned/unread, bg-destructive for low-stock, bg-foreground/60 for upcoming reminders) replace big colored icon tiles and amber/red badges; role labels are small muted text instead of colored pills; line-art strokeWidth 1.5 icons in text-muted-foreground replace colored icon tiles; thin 1px border-border everywhere; dialogs use the p-0 rounded-lg shell with border-b/border-t splits.
+- bun run lint → 0 errors. bunx tsc --noEmit → no errors in the three redesigned files.
+
+---
+Task ID: 7
+Agent: redesigner
+Task: Redesign ia-view (Alana chat) minimalist
+
+Work Log:
+- Read /home/z/my-project/src/components/lem/ia-view.tsx completely (673 lines).
+- Reviewed sibling work record /home/z/my-project/agent-ctx/6-a-redesigner.md to match the established minimalist design language (CSS vars, hairline borders, bg-foreground primary, strokeWidth 1.5 line-art, anim-fade-in / anim-slide-up).
+- Inspected globals.css to confirm available CSS variables and animation utilities (anim-fade-in, anim-slide-up, scroll-thin, press).
+- Inspected src/components/lem/alana-avatar.tsx to confirm it accepts className and a `glow` prop (kept glow disabled to honor "no glow" rule; added `ring-1 ring-border` for the hairline border).
+- Rewrote the JSX return block applying the minimalist Apple/Linear/Stripe design language. ALL logic preserved verbatim: every useStore hook (products, equipos, miembros, despachos, empresa, settings.usuario, settings.voz, memoriaIA, addRecordatorio, addNotificacion, addMemoria, addProduct, updateProduct, findProductBySku, addEquipment, registrarDespacho, addNota, addMiembro, setSetting), the ChatMsg / AccionEjecutada interfaces, the SUGERENCIAS array (data unchanged), STORAGE_KEY / CINCO_HORAS, loadChat / saveChat / timeAgo helpers, the messages / input / loading / showHistory / speakingId state, the four useEffects (load chat, save chat, scroll, TTS voices), the hablar() TTS handler, the enviar() fetch-to-/api/ia handler with the full recordatorio/memoria/acciones processing, the limpiarHistorial() handler, the suggestions chips, and the history panel overlay.
+- Removed unused imports (Zap, Check, XIcon) that were left dangling after the visual cleanup.
+- Added `const ICON_PROPS = { strokeWidth: 1.5 } as const` and spread it on every lucide-react icon to enforce line-art icons per design language.
+- Ran `cd /home/z/my-project && bun run lint` → exit code 0, no errors.
+
+Stage Summary:
+- ia-view (Alana chat) redesigned to match the minimalist Apple/Linear/Stripe design language. No gradients, no neon, no aurora, no flashy shadows.
+- Header: simple "Alana" title + small pinging emerald dot for the ACTIVO status (replaces the big colored ACTIVO badge), a small muted Volume2 icon when voz is on (replaces the colored VOZ pill), and a single muted-foreground subtitle line. Border-b hairline.
+- Messages: clean rounded-2xl bubbles, user = `bg-foreground text-background` right-aligned, assistant = `bg-muted text-foreground` left-aligned. No tails/arrows. No per-bubble border or shadow. Avatar is a simple ring-bordered circle (no glow). TTS toggle button is a small inline icon, no border/bg.
+- Recordatorio / Aprendido: thin inline lines with a line-art icon + label + dot separator + value — no big colored badges.
+- Acciones ejecutadas: hairline list, line-art icon, foreground description, small status dot (emerald for ok, destructive for error) instead of big colored check/x circles.
+- Suggestions: text chips with thin 1px border-border, hover = bg-muted hover:text-foreground; icons in muted-foreground (not the old per-suggestion accent colors).
+- Input bar: border-top only, clean borderless textarea with bg-muted and a primary `bg-foreground text-background hover:bg-foreground/90` send button (replaces the colored btn-spacecom). Safe-area padding kept.
+- History panel: clean bg-background/95 backdrop-blur overlay with a hairline list (hover = bg-muted), no colored badges.
+- bun run lint → 0 errors. All store calls, state, handlers, fetch, TTS, recordatorio/memoria/acciones processing, localStorage save/load, suggestions, and history overlay preserved verbatim.
+
+---
+Task ID: 6-f
+Agent: redesigner
+Task: Redesign config-view minimalist
+
+Work Log:
+- Read sibling records `agent-ctx/6-c-redesigner.md`, `agent-ctx/6-d-redesigner.md`, and `agent-ctx/6-e-redesigner.md` to align on the minimalist Apple/Linear/Stripe conventions (ICON_PROPS `strokeWidth: 1.5`, primary action = `bg-foreground text-background hover:bg-foreground/90`, hairline `divide-y divide-border`, no `bg-primary` fills, no gradients, no neon, no aurora, no flashy shadows, page header = small uppercase label + big title `text-[28px] font-semibold tracking-tight`).
+- Reviewed `globals.css` to confirm available CSS vars (`--background`, `--foreground`, `--muted`, `--muted-foreground`, `--border`, `--destructive`) and the `anim-fade-in` / `anim-slide-up` utilities.
+- Read `/home/z/my-project/src/components/lem/config-view.tsx` (658 lines) end-to-end and identified ALL logic to preserve.
+- Rewrote the JSX applying the new minimalist design language. **All business logic, store hooks, state, handlers, dialogs, derived values, side-effects and sub-components are preserved verbatim.** Only the visual layer (className, layout, container structure) was touched.
+- Removed now-unused imports `Settings as SettingsIcon` and `Palette` (no longer referenced in the JSX after the redesign — title icon dropped per convention, theme label kept as plain uppercase text).
+
+## Logic preserved (untouched)
+- imports: kept `useState`, lucide icons (`Database`, `Trash2`, `Info`, `Download`, `User`, `UserCheck`, `Sun`, `Moon`, `Monitor`, `ScanLine`, `Sparkles`, `DatabaseZap`, `Check`, `Volume2`, `Brain`, `VolumeX`, `Square`, `LogOut`), `Link`, `useStore`, `PERMISO_META`, `ROL_META`, `Permiso`, `Tema`, `cn`, `Button`, `Input`, `Label`, `Switch`, `Dialog*`, `useToast`, `speak`, `stopSpeaking`, `ttsDisponible`. Only `Settings as SettingsIcon` and `Palette` were dropped (visual-only).
+- `TEMAS` constant (`claro` / `oscuro` / `sistema` + their icons) — preserved verbatim.
+- useStore hooks: `products`, `equipos`, `entradas`, `despachos`, `notas`, `settings`, `setSetting`, `exportInventarioExcel`, `clearAllData`, `seedDemo`, `memoriaIA`, `deleteMemoria`, `clearMemoria`.
+- `useToast()` destructuring kept.
+- state: `confirmOpen`, `seedConfirm`, `memConfirmOpen`.
+- `ttsSoportado = typeof window !== "undefined" && ttsDisponible()` — preserved verbatim.
+- `handleSeed` (calls `seedDemo`, fires the "Datos demo cargados" toast with the exact same 10/7/3/6/10 description, closes dialog) — preserved verbatim.
+- `toggleVoz` (sets `voz`, calls `speak("Hola, soy Alana, asistente del almacén Lemcorp.")` when on, `stopSpeaking()` when off, fires the matching toasts) — preserved verbatim.
+- `handleDeleteMemoria` (captures `item`, calls `deleteMemoria`, fires toast with the same `item.length > 60 ? item.slice(0, 60) + "…" : item` truncation) — preserved verbatim.
+- `handleClearMemoria` (calls `clearMemoria`, closes dialog, fires "Memoria borrada" toast) — preserved verbatim.
+- The localStorage.removeItem("lemcorp-onboarding-done-v1") + setTimeout(reload, 200) onboarding-reset behavior — preserved verbatim inside the "Repetir configuración inicial" button `onClick`.
+- All three dialogs (`confirmOpen`, `seedConfirm`, `memConfirmOpen`) and their `onOpenChange` bindings — preserved verbatim.
+- The `SesionSelector` sub-component: `miembros`, `sesionUsuarioId`, `iniciarSesion`, `cerrarSesion`, `tienePermiso` store hooks, the `miembroActual` derivation, the "no members" empty state (with the `Link href="/empresa"`), the active session card, the "Iniciar sesión como" grid, the permisos info block with the granted/revoked pills and the `<details>` for hidden perms — preserved verbatim.
+- The `Stat` sub-component signature `(label, value)` — preserved.
+- Added an `InfoRow` helper signature `(label, value, mono?, capitalize?, valueClass?)` for the Acerca de hairline list. Optional props default to false / undefined, so the existing semantic values (e.g. `mono` for "3.3.0 · ALANA", `capitalize` for `settings.tema`, `valueClass` for the voz activada/desactivada contrast) are applied only where the original code applied them. No new logic introduced.
+
+## Visual changes
+1. Outer wrapper: `anim-fade-in mx-auto w-full max-w-[760px] px-4 py-6 sm:px-6` (constrained width, no `lg:px-8`).
+2. Header: small uppercase label "Sistema" + big title `text-[28px] font-semibold tracking-tight` "Configuración" + 1-line muted subtitle. Removed the `SettingsIcon` from the title (per convention).
+3. Every settings section is a clean `rounded-lg border border-border bg-background` card. Each card has a `border-b border-border px-4 py-3` header row holding a line-art icon `h-4 w-4 text-muted-foreground` + title `text-[13px] font-medium text-foreground`, plus an optional muted description below (kept where the original had one: Personalización, Sesión, Pistoleo, Voz, Datos del sistema; dropped where the original had none: Alertas, Memoria header now places "Borrar todo" on the right; Acerca de). Internal settings are split by `divide-y divide-border` hairline rows.
+4. Personalización: 2 hairline rows — "Nombre del usuario" (Input `h-9 max-w-sm rounded-md border-border bg-background`) and "Tema de la interfaz" with text-button chips. Active chip = `bg-foreground text-background`; inactive = `border border-border bg-background text-foreground hover:bg-muted`. Each chip shows the line-art icon + label + a small `Check` when active. Removed `bg-primary/10`/`border-primary/40`/`shadow-sm` from chips and removed the small `Palette` icon that was inline with the Tema label.
+5. Sesión: keeps `<SesionSelector />` exactly; only the surrounding card chrome was redesigned. Inside `SesionSelector`, the active-session card uses a `rounded-md border border-border bg-background` container with a neutral round avatar (admin = `bg-foreground text-background`; member = `bg-background text-foreground`, both with `border border-border` — removed the old `bg-primary text-primary-foreground` admin accent and the `bg-muted` member accent). "Cerrar sesión" is a `h-8` outline button (`border border-border bg-background hover:bg-muted`). The member grid uses a hairline grid (`grid gap-px bg-border` with `bg-background` cells, hover `bg-muted`) — replaces the old grid of `rounded-xl border border-border bg-card` cards. The "Empresas" link uses `text-foreground underline-offset-4 hover:underline` (was `text-primary hover:underline`). The permisos info block uses `rounded-md border border-border bg-muted/30` with granted perms as `rounded-md border border-border bg-background` neutral pills (was emerald `bg-emerald-500/15 text-emerald-400`) and revoked perms as neutral `text-muted-foreground line-through` (was red `bg-red-500/10 text-red-400/80 line-through`).
+6. Pistoleo: 2 hairline rows — "Validación de prefijo" toggle row (kept the shadcn `Switch` component and its `onCheckedChange` exactly; just replaced the bordered toggle card with a plain `flex items-center justify-between px-4 py-3` row) and the prefix Input row (`h-9 max-w-sm rounded-md border-border bg-background font-mono uppercase disabled:opacity-50`).
+7. Alertas: single toggle row inside the card body (no description below the header, matching the original).
+8. Voz de Alana: header icon switches between `Volume2` and `VolumeX` based on `settings.voz` (preserved); both now use `text-muted-foreground` (was `text-primary` / `text-muted-foreground`). Body has the TTS toggle row + a second row that appears only when `ttsSoportado` with "Probar voz" and "Detener" as `h-8` outline buttons (was `variant="outline"` shadcn `Button`). All bindings (`speak(...)`, `stopSpeaking()`, `disabled={!ttsSoportado}`) preserved verbatim.
+9. Memoria de Alana: header places the "Borrar todo" button on the right when `memoriaIA.length > 0` — same `onClick={() => setMemConfirmOpen(true)}`. Body description text preserved verbatim (including the `<em>"recuerda que…"</em>` / `<em>"aprende que…"</em>` hint). Empty state: `rounded-md border border-dashed border-border bg-background` with a line-art `Brain` in `text-muted-foreground/40` (was a colored emerald circle and `bg-emerald-500/15 text-emerald-500` number badge). Memory list: a hairline `divide-y divide-border` list inside `rounded-md border border-border bg-background`, each row uses a muted tabular-nums index (was the emerald `bg-emerald-500/15 text-emerald-500` number badge), text in `text-[12px] text-foreground`, and the per-row delete button is hover-revealed (`opacity-0 group-hover:opacity-100`, `hover:bg-destructive/10 hover:text-destructive`). Delete `onClick={() => handleDeleteMemoria(i)}` preserved.
+10. Datos del sistema: 3 hairline rows. (a) Sync indicator: a small `h-1.5 w-1.5 rounded-full bg-foreground` dot + "Sincronización entre dispositivos activada" in foreground + muted continuation (replaces the old emerald `border-emerald-500/30 bg-emerald-500/5` block with `text-emerald-500` icon and label). (b) Stats grid: hairline `grid grid-cols-2 gap-px bg-border sm:grid-cols-5` with `bg-background` cells, each cell shows a tabular-nums value + uppercase label — `Stat` sub-component signature preserved. (c) Actions row: "Exportar inventario" and "Cargar datos demo" as `h-8` outline buttons (`border border-border bg-background hover:bg-muted`); "Borrar todo" as a `h-8` button with `border border-destructive/30 text-destructive hover:bg-destructive/10` — subtle danger tint, NOT a big red button (per spec). All bindings (`exportInventarioExcel()`, `setSeedConfirm(true)`, `setConfirmOpen(true)`) preserved.
+11. Acerca de: a single hairline `divide-y divide-border` list rendered through the new `InfoRow` helper (small uppercase muted label on the left, medium foreground value on the right). All 10 rows preserved (Sistema / Asistente IA / Versión `mono` / Propietario / Entradas / Usuario activo / Tema `capitalize` / Voz (TTS) with conditional `valueClass` / Memoria de Alana / Sincronización). The bottom "Repetir configuración inicial" button is a `h-8` outline button with `Sparkles` line-art icon, separated from the list by a `border-t border-border` row — `onClick` (localStorage.removeItem + reload) preserved verbatim.
+12. Dialogs (3): `DialogContent` uses `p-0 gap-0 rounded-lg`, header split by `border-b border-border px-5 py-4`, footer split by `border-t border-border px-5 py-3`. Title font is `text-[15px] font-semibold text-foreground` with the line-art icon in `text-foreground` (or `text-destructive` on the two destructive dialogs). Description text bumped to `text-[12px] text-muted-foreground`. Cancel button = shadcn `Button variant="outline"` with `h-9 rounded-md border-border bg-background hover:bg-muted`. Primary action = a custom `h-9 rounded-md bg-foreground text-background hover:bg-foreground/90` button for the "Cargar demo" dialog. Destructive action = `bg-destructive text-white hover:bg-destructive/90` for the "Borrar todo" and "Borrar memoria" dialogs. The destructive dialogs use `border-destructive/30` on the `DialogContent` per the spec (NOT a big red panel). All `onClick` handlers and `open`/`onOpenChange` bindings preserved verbatim.
+13. Removed the `press` and `rounded-3xl` / `rounded-2xl` / `bg-card` / `shadow-sm` styles from the section wrappers. No `bg-primary`, no gradients, no neon, no aurora, no flashy shadows anywhere in the JSX.
+14. Defined `const ICON_PROPS = { strokeWidth: 1.5 } as const;` and spread onto every lucide-react icon (including the `Icon` used inside the Tema map and the inline icons inside `SesionSelector`).
+
+## Verification
+- `bun run lint` → 0 errors, 0 warnings (exit code 0).
+- `bunx tsc --noEmit | grep config-view` → no matches (file-specific TypeScript clean).
+- Dev log not present at verification time; lint + tsc clean confirm the redesign compiles.
+
+Stage Summary:
+- config-view (Configuración) redesigned to match the minimalist Apple/Linear/Stripe design language used by the previously redesigned LEMCORP views. No gradients, no neon, no aurora, no flashy shadows, no `bg-primary` fills.
+- All seven settings sections (Personalización, Sesión, Pistoleo, Alertas, Voz de Alana, Memoria de Alana, Datos del sistema) and the Acerca de panel are now clean `rounded-lg border border-border bg-background` cards with `border-b border-border` headers and `divide-y divide-border` hairline internal rows.
+- Header: small uppercase "Sistema" label + big `text-[28px]` "Configuración" title + 1-line muted subtitle; the old `SettingsIcon` accent in the title was removed.
+- Theme selector: text-button chips with active = `bg-foreground text-background` (was `border-primary/40 bg-primary/10 text-primary shadow-sm`).
+- All shadcn `Switch` components kept as-is with their `checked` and `onCheckedChange` bindings exactly preserved.
+- Danger zone: the "Borrar todo" button uses `border-destructive/30 text-destructive hover:bg-destructive/10` (subtle) and the two destructive confirm dialogs use `border-destructive/30` on the dialog chrome (NOT big red).
+- "Repetir configuración inicial" button kept with the exact same `localStorage.removeItem` + `setTimeout(reload, 200)` behavior.
+- All store calls, state, handlers, toasts, TTS speak/stop, dialogs, sub-components (`Stat`, `SesionSelector`) and the new `InfoRow` helper preserve the original functionality verbatim — only className/layout/structure was touched. Two unused icon imports (`SettingsIcon`, `Palette`) were dropped as a visual-only cleanup.

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Hash, Search, Cpu, FileText, ArrowRight } from "lucide-react";
+import { Search, ArrowRight } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { ESTADO_META, type EstadoEquipo } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -46,117 +46,115 @@ export function SeriesView() {
     setExpandido((p) => ({ ...p, [modelo]: !p[modelo] }));
 
   return (
-    <div className="px-6 py-6">
-      <div className="anim-fade-up mb-5">
-        <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
-          <Hash className="h-5 w-5" /> Series
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Todas las series registradas en el sistema · {equipos.length} equipo(s) en {models.length} modelo(s)
-        </p>
-      </div>
-
-      {/* Buscador */}
-      <div className="anim-fade-up mb-4 flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar serie, modelo, MAC…" className="h-9 rounded-xl bg-muted/50 pl-8 text-sm" />
+    <div className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6 lg:px-10">
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            {equipos.length} equipos · {models.length} modelos
+          </p>
+          <h1 className="mt-1 text-[28px] font-semibold tracking-tight text-foreground sm:text-[32px]">Series</h1>
+        </div>
+        <div className="relative w-56">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" strokeWidth={1.5} />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar serie, modelo, MAC…" className="h-9 rounded-md border-border bg-background pl-8 text-[13px]" />
         </div>
       </div>
 
-      {/* Filtros */}
-      <div className="anim-fade-up mb-4 flex flex-wrap gap-1.5">
-        <Chip active={estadoFilter === "todos"} onClick={() => setEstadoFilter("todos")} label="Todos" count={equipos.length} />
+      {/* Filtros minimalistas */}
+      <div className="mb-6 flex flex-wrap items-center gap-1">
+        <FilterChip active={estadoFilter === "todos"} onClick={() => setEstadoFilter("todos")} label="Todos" count={equipos.length} />
         {ESTADOS.map((est) => {
           const n = equipos.filter((e) => e.estado === est).length;
-          return <Chip key={est} active={estadoFilter === est} onClick={() => setEstadoFilter(est)} label={ESTADO_META[est].short} count={n} />;
+          return <FilterChip key={est} active={estadoFilter === est} onClick={() => setEstadoFilter(est)} label={ESTADO_META[est].short} count={n} />;
         })}
       </div>
 
-      {/* Lista por modelo */}
       {models.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-muted/30 px-4 py-12 text-center text-sm text-muted-foreground">
-          No hay equipos registrados.
-        </div>
+        <p className="py-12 text-center text-[13px] text-muted-foreground">No hay equipos registrados.</p>
       ) : (
-        <div className="space-y-4">
-          {models.map(([modelo, items], i) => {
+        <div className="space-y-10">
+          {models.map(([modelo, items]) => {
             const mostrarTodas = expandido[modelo] || items.length <= SERIES_POR_MODELO_INICIAL;
             const itemsVisibles = mostrarTodas ? items : items.slice(0, SERIES_POR_MODELO_INICIAL);
             return (
-            <div key={modelo} className="anim-fade-up rounded-3xl border border-border bg-card p-5 shadow-sm" style={{ animationDelay: `${i * 40}ms` }}>
-              <div className="mb-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Cpu className="h-4 w-4 text-muted-foreground" />
-                  <h2 className="text-[15px] font-semibold">{modelo}</h2>
+              <section key={modelo}>
+                <div className="mb-3 flex items-baseline justify-between">
+                  <h2 className="text-[15px] font-medium text-foreground">{modelo}</h2>
+                  <span className="text-[12px] tabular-nums text-muted-foreground">{items.length}</span>
                 </div>
-                <span className="rounded-full bg-foreground px-2.5 py-1 text-[11px] font-bold text-background">{items.length}</span>
-              </div>
-              <div className="overflow-x-auto scroll-thin">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border text-left text-[10px] uppercase tracking-wide text-muted-foreground">
-                      <th className="pb-2 pr-3 font-medium">#</th>
-                      <th className="pb-2 pr-3 font-medium">Serie</th>
-                      <th className="pb-2 pr-3 font-medium">MAC</th>
-                      <th className="pb-2 pr-3 font-medium">CM MAC</th>
-                      <th className="pb-2 pr-3 font-medium">Estado</th>
-                      <th className="pb-2 pr-3 font-medium">Ubicación</th>
-                      <th className="pb-2 font-medium">Observación</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {itemsVisibles.map((e, idx) => (
-                      <tr key={e.id} className="border-b border-border/50 last:border-0 hover:bg-accent/30 transition-colors">
-                        <td className="py-2 pr-3 text-[11px] text-muted-foreground tabular-nums">{idx + 1}</td>
-                        <td className="py-2 pr-3"><span className="font-mono text-[12px] font-semibold">{e.serie}</span></td>
-                        <td className="py-2 pr-3 font-mono text-[11px] text-muted-foreground">{e.mac ?? "—"}</td>
-                        <td className="py-2 pr-3 font-mono text-[11px] text-muted-foreground">{e.cmMac ?? "—"}</td>
-                        <td className="py-2 pr-3">
-                          <span className={cn(
-                            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                            (e.estado === "averiado" || e.estado === "en_retiro") ? "bg-red-500/15 text-red-400" : e.estado === "disponible" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                          )}>
-                            <EstadoIcon name={ESTADO_META[e.estado].icon} className="h-2.5 w-2.5" /> {ESTADO_META[e.estado].short}
-                          </span>
-                        </td>
-                        <td className="py-2 pr-3 text-[11px] text-muted-foreground">{e.ubicacion ?? "—"}</td>
-                        <td className="py-2 text-[11px] text-muted-foreground">{e.observacion ?? "—"}</td>
+                <div className="overflow-x-auto scroll-thin">
+                  <table className="w-full text-[13px]">
+                    <thead>
+                      <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                        <th className="py-2 pr-3 font-medium">#</th>
+                        <th className="py-2 pr-3 font-medium">Serie</th>
+                        <th className="py-2 pr-3 font-medium">MAC</th>
+                        <th className="py-2 pr-3 font-medium">CM MAC</th>
+                        <th className="py-2 pr-3 font-medium">Estado</th>
+                        <th className="py-2 pr-3 font-medium">Ubicación</th>
+                        <th className="py-2 font-medium">Observación</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {!mostrarTodas && (
-                <div className="mt-3 text-center">
-                  <Button variant="outline" size="sm" onClick={() => toggleExpandido(modelo)} className="press rounded-xl">
-                    Ver las {items.length - SERIES_POR_MODELO_INICIAL} restantes de {modelo}
-                  </Button>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {itemsVisibles.map((e, idx) => (
+                        <tr key={e.id} className="transition-colors hover:bg-muted/30">
+                          <td className="py-2.5 pr-3 tabular-nums text-muted-foreground">{idx + 1}</td>
+                          <td className="py-2.5 pr-3 font-mono text-[12px] font-medium text-foreground">{e.serie}</td>
+                          <td className="py-2.5 pr-3 font-mono text-[11px] text-muted-foreground">{e.mac ?? "—"}</td>
+                          <td className="py-2.5 pr-3 font-mono text-[11px] text-muted-foreground">{e.cmMac ?? "—"}</td>
+                          <td className="py-2.5 pr-3">
+                            <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                              <EstadoIcon name={ESTADO_META[e.estado].icon} className="h-3 w-3" />
+                              {ESTADO_META[e.estado].short}
+                            </span>
+                          </td>
+                          <td className="py-2.5 pr-3 text-[12px] text-muted-foreground">{e.ubicacion ?? "—"}</td>
+                          <td className="py-2.5 text-[12px] text-muted-foreground">{e.observacion ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              )}
-            </div>
+                {!mostrarTodas && (
+                  <div className="mt-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleExpandido(modelo)}
+                      className="press h-8 rounded-md border-border bg-background text-[12px] font-medium hover:bg-muted"
+                    >
+                      Ver {items.length - SERIES_POR_MODELO_INICIAL} más
+                    </Button>
+                  </div>
+                )}
+              </section>
             );
           })}
         </div>
       )}
 
-      {/* Ir a Equipos */}
-      <div className="mt-4 text-center">
-        <Button variant="ghost" onClick={() => router.push("/equipos")} className="press rounded-xl">
-          <FileText className="mr-1.5 h-4 w-4 text-primary" /> Gestionar equipos <ArrowRight className="ml-1 h-3 w-3" />
+      <div className="mt-8 border-t border-border pt-6">
+        <Button variant="ghost" onClick={() => router.push("/equipos")} className="press rounded-md text-[13px] font-medium text-muted-foreground hover:text-foreground">
+          Gestionar equipos <ArrowRight className="ml-1.5 h-3.5 w-3.5" strokeWidth={1.5} />
         </Button>
       </div>
     </div>
   );
 }
 
-function Chip({ active, onClick, label, count }: { active: boolean; onClick: () => void; label: string; count: number }) {
+function FilterChip({ active, onClick, label, count }: { active: boolean; onClick: () => void; label: string; count: number }) {
   return (
-    <button onClick={onClick} className={cn(
-      "press flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
-      active ? "border-primary/40 bg-primary/10 text-primary" : "border-border bg-muted/40 text-muted-foreground hover:bg-accent/50"
-    )}>
-      {label}<span className="rounded-full bg-background px-1.5 text-[10px]">{count}</span>
+    <button
+      onClick={onClick}
+      className={cn(
+        "press flex items-center gap-1.5 rounded-md border px-3 py-1 text-[12px] font-medium transition-colors",
+        active
+          ? "border-foreground bg-foreground text-background"
+          : "border-border bg-background text-muted-foreground hover:text-foreground hover:bg-muted"
+      )}
+    >
+      {label}
+      <span className={cn("tabular-nums", active ? "text-background/70" : "text-muted-foreground")}>{count}</span>
     </button>
   );
 }

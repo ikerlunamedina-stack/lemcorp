@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
-import { HardDrive, Clock, Cpu, StickyNote } from "lucide-react";
 
 export function Footer() {
   const products = useStore((s) => s.products);
@@ -13,13 +12,14 @@ export function Footer() {
   useEffect(() => {
     const tick = () => {
       try {
-        // Usar zona horaria de Lima para consistencia con el sub-header
-        setNow(new Date().toLocaleTimeString("es-PE", {
-          timeZone: "America/Lima",
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        }));
+        setNow(
+          new Date().toLocaleTimeString("es-PE", {
+            timeZone: "America/Lima",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          })
+        );
       } catch {
         setNow(new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false }));
       }
@@ -33,28 +33,22 @@ export function Footer() {
 
   return (
     <footer
-      className="glass-topbar flex min-h-9 shrink-0 items-center gap-4 border-t border-border/60 px-4 text-[11px] text-muted-foreground sm:px-6"
+      className="flex min-h-8 shrink-0 items-center gap-4 border-t border-border px-4 text-[11px] text-muted-foreground sm:px-6"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
-      <span className="flex items-center gap-1.5">
-        <HardDrive className="h-3 w-3 text-primary" />
+      <span>
         <span className="font-medium text-foreground">{products.length}</span> productos
-        <span className="text-muted-foreground/60">·</span>
+        <span className="mx-1.5 text-border">·</span>
         <span className="font-medium text-foreground">{totalUnidades.toLocaleString("es-PE")}</span> und
       </span>
-      <span className="flex items-center gap-1.5">
-        <Cpu className="h-3 w-3 text-primary" />
+      <span>
         <span className="font-medium text-foreground">{equipos.length}</span> equipos
       </span>
-      <span className="flex items-center gap-1.5">
-        <StickyNote className="h-3 w-3 text-amber-500" />
+      <span>
         <span className="font-medium text-foreground">{notas.length}</span> notas
       </span>
-      <span className="ml-auto flex items-center gap-1.5">
-        <Clock className="h-3 w-3 text-emerald-500" />
-        <span className="font-medium text-foreground tabular-nums">{now}</span>
-      </span>
-      <span className="font-bold tracking-wide text-primary">LEMCORP © 2026</span>
+      <span className="ml-auto font-mono tabular-nums text-foreground">{now}</span>
+      <span className="font-medium tracking-wide text-muted-foreground">LEMCORP © 2026</span>
     </footer>
   );
 }

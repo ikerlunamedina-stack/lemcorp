@@ -25,6 +25,8 @@ import {
 
 const ROLES: Rol[] = ["jefe_operaciones", "supervisor", "almacenero", "administrador"];
 
+const ICON_PROPS = { strokeWidth: 1.5 } as const;
+
 export function EmpresaView() {
   const empresa = useStore((s) => s.empresa);
   const updateEmpresa = useStore((s) => s.updateEmpresa);
@@ -108,79 +110,129 @@ export function EmpresaView() {
   }
 
   return (
-    <div className="px-6 py-6 lg:px-8">
-      <div className="anim-fade-up mb-6">
-        <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
-          <Building2 className="h-5 w-5" /> Empresas y Contactos
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Empresas contratistas (ej: LPS) y personal a los que despachas. El almacén es LEMCORP.
-        </p>
+    <div className="anim-fade-in px-4 py-6 sm:px-6 lg:px-8">
+      {/* Header */}
+      <div className="anim-slide-up mb-6 flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            Organización
+          </p>
+          <h1 className="text-[28px] font-semibold tracking-tight text-foreground">
+            Empresas y Contactos
+          </h1>
+          <p className="mt-1 max-w-xl text-[13px] text-muted-foreground">
+            Empresas contratistas (ej: LPS) y personal a los que despachas. El almacén es LEMCORP.
+          </p>
+        </div>
       </div>
 
       {/* Info de la empresa contratista */}
-      <div className="anim-fade-up mb-5 rounded-2xl border border-border bg-card p-5 shadow-sm">
-        <div className="mb-3 flex items-center justify-between">
+      <div className="anim-slide-up mb-6 overflow-hidden rounded-lg border border-border bg-background">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
-            <Truck className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-sm font-semibold">Empresa contratista / Cliente</h2>
+            <Truck className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+            <h2 className="text-[13px] font-medium text-foreground">Empresa contratista / Cliente</h2>
           </div>
           {editing ? (
-            <div className="flex gap-1.5">
-              <Button size="sm" variant="outline" onClick={() => setEditing(false)} className="press h-7 rounded-lg"><X className="h-3.5 w-3.5" /></Button>
-              <Button size="sm" onClick={saveEmpresa} className="press h-7 rounded-lg"><Save className="mr-1 h-3.5 w-3.5" />Guardar</Button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setEditing(false)}
+                className="press inline-flex h-7 items-center gap-1 rounded-md border border-border bg-background px-2.5 text-[12px] font-medium text-foreground hover:bg-muted"
+              >
+                <X className="h-3.5 w-3.5" {...ICON_PROPS} />
+              </button>
+              <button
+                onClick={saveEmpresa}
+                className="press inline-flex h-7 items-center gap-1 rounded-md bg-foreground px-3 text-[12px] font-medium text-background hover:bg-foreground/90"
+              >
+                <Save className="h-3.5 w-3.5" {...ICON_PROPS} />
+                Guardar
+              </button>
             </div>
           ) : (
-            <Button size="sm" variant="ghost" onClick={() => { setForm(empresa); setEditing(true); }} className="press h-7 rounded-lg"><Pencil className="h-3.5 w-3.5" /></Button>
+            <button
+              onClick={() => { setForm(empresa); setEditing(true); }}
+              className="press inline-flex h-7 items-center gap-1 rounded-md border border-border bg-background px-2.5 text-[12px] font-medium text-foreground hover:bg-muted"
+            >
+              <Pencil className="h-3.5 w-3.5" {...ICON_PROPS} />
+              Editar
+            </button>
           )}
         </div>
 
         {editing ? (
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <Label>Nombre de la empresa *</Label>
-              <Input value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} placeholder="Ej: LPS" className="rounded-xl" />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>RUC</Label>
-              <Input value={form.ruc ?? ""} onChange={(e) => setForm({ ...form, ruc: e.target.value })} className="rounded-xl" />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Teléfono</Label>
-              <Input value={form.telefono ?? ""} onChange={(e) => setForm({ ...form, telefono: e.target.value })} className="rounded-xl" />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Correo</Label>
-              <Input value={form.correo ?? ""} onChange={(e) => setForm({ ...form, correo: e.target.value })} className="rounded-xl" />
-            </div>
-            <div className="col-span-2 flex flex-col gap-1.5">
-              <Label>Dirección</Label>
-              <Input value={form.direccion ?? ""} onChange={(e) => setForm({ ...form, direccion: e.target.value })} className="rounded-xl" />
-            </div>
-            <div className="col-span-2 flex flex-col gap-1.5">
-              <Label>Información de la empresa contratista</Label>
-              <Textarea
-                value={form.descripcion ?? ""}
-                onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
-                placeholder={"Ej:\nLPS — CONTRATISTA DE CLARO\nPERSONAL EN CAMPO: 30\nDespacho diario: ~17 despachos\nCobertura: Lima Norte, Comas, Los Olivos\n...toda la info que necesites"}
-                className="rounded-xl min-h-[140px] text-[13px] leading-relaxed"
-              />
-              <p className="text-[10px] text-muted-foreground">
-                El almacén es de LEMCORP. Aquí registras la empresa contratista a la que despachas (ej: LPS que trabaja para Claro).
-              </p>
+          <div className="p-4">
+            <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Nombre de la empresa *</Label>
+                <Input
+                  value={form.nombre}
+                  onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+                  placeholder="Ej: LPS"
+                  className="h-9 rounded-md border-border bg-background"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">RUC</Label>
+                <Input
+                  value={form.ruc ?? ""}
+                  onChange={(e) => setForm({ ...form, ruc: e.target.value })}
+                  className="h-9 rounded-md border-border bg-background"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Teléfono</Label>
+                <Input
+                  value={form.telefono ?? ""}
+                  onChange={(e) => setForm({ ...form, telefono: e.target.value })}
+                  className="h-9 rounded-md border-border bg-background"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Correo</Label>
+                <Input
+                  value={form.correo ?? ""}
+                  onChange={(e) => setForm({ ...form, correo: e.target.value })}
+                  className="h-9 rounded-md border-border bg-background"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5 sm:col-span-2">
+                <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Dirección</Label>
+                <Input
+                  value={form.direccion ?? ""}
+                  onChange={(e) => setForm({ ...form, direccion: e.target.value })}
+                  className="h-9 rounded-md border-border bg-background"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5 sm:col-span-2">
+                <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Información de la empresa contratista</Label>
+                <Textarea
+                  value={form.descripcion ?? ""}
+                  onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
+                  placeholder={"Ej:\nLPS — CONTRATISTA DE CLARO\nPERSONAL EN CAMPO: 30\nDespacho diario: ~17 despachos\nCobertura: Lima Norte, Comas, Los Olivos\n...toda la info que necesites"}
+                  className="min-h-[140px] rounded-md border-border bg-background text-[13px] leading-relaxed"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  El almacén es de LEMCORP. Aquí registras la empresa contratista a la que despachas (ej: LPS que trabaja para Claro).
+                </p>
+              </div>
             </div>
           </div>
         ) : (
-          <div className="space-y-2 text-[13px]">
+          <div className="divide-y divide-border">
             <InfoRow label="Empresa" value={empresa.nombre} />
             {empresa.ruc && <InfoRow label="RUC" value={empresa.ruc} />}
             {empresa.direccion && <InfoRow label="Dirección" value={empresa.direccion} />}
             {empresa.telefono && <InfoRow label="Teléfono" value={empresa.telefono} />}
             {empresa.correo && <InfoRow label="Correo" value={empresa.correo} />}
             {empresa.descripcion && (
-              <div className="mt-3 rounded-xl border border-border bg-muted/30 p-4">
-                <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Información</p>
-                <p className="whitespace-pre-wrap text-[13px] leading-relaxed">{empresa.descripcion}</p>
+              <div className="px-4 py-3">
+                <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  Información
+                </p>
+                <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-foreground">
+                  {empresa.descripcion}
+                </p>
               </div>
             )}
           </div>
@@ -188,78 +240,122 @@ export function EmpresaView() {
       </div>
 
       {/* Personal del almacén */}
-      <div className="anim-fade-up rounded-2xl border border-border bg-card p-5 shadow-sm">
-        <div className="mb-4 flex items-center justify-between">
+      <div className="anim-slide-up overflow-hidden rounded-lg border border-border bg-background">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-sm font-semibold">Personal del almacén ({miembros.length})</h2>
+            <Users className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+            <h2 className="text-[13px] font-medium text-foreground">
+              Personal del almacén
+              <span className="ml-1.5 text-[12px] tabular-nums text-muted-foreground">{miembros.length}</span>
+            </h2>
           </div>
           {puedeGestionarPersonal && (
-            <Button size="sm" onClick={openCreateMiembro} className="press h-8 rounded-lg"><Plus className="mr-1 h-3.5 w-3.5" />Añadir</Button>
+            <button
+              onClick={openCreateMiembro}
+              className="press inline-flex h-7 items-center gap-1 rounded-md bg-foreground px-3 text-[12px] font-medium text-background hover:bg-foreground/90"
+            >
+              <Plus className="h-3.5 w-3.5" {...ICON_PROPS} />
+              Añadir
+            </button>
           )}
         </div>
 
         {miembros.length === 0 ? (
-          <div className="py-8 text-center">
-            <Users className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
-            <p className="text-[13px] font-semibold text-foreground">Sin personal registrado</p>
+          <div className="px-4 py-16 text-center">
+            <Users className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" {...ICON_PROPS} />
+            <p className="text-[13px] font-medium text-foreground">Sin personal registrado</p>
             <p className="mt-1 text-[12px] text-muted-foreground">
               {puedeGestionarPersonal
                 ? "Añade a tu equipo: administradores, jefes, supervisores y almaceneros."
                 : "El administrador añadirá al personal cuando corresponda."}
             </p>
             {puedeGestionarPersonal && (
-              <Button size="sm" onClick={openCreateMiembro} className="press mt-3 h-8 rounded-lg">
-                <Plus className="mr-1 h-3.5 w-3.5" />Añadir primer miembro
-              </Button>
+              <button
+                onClick={openCreateMiembro}
+                className="press mx-auto mt-4 inline-flex h-8 items-center gap-1.5 rounded-md bg-foreground px-3.5 text-[12px] font-medium text-background hover:bg-foreground/90"
+              >
+                <Plus className="h-3.5 w-3.5" {...ICON_PROPS} />
+                Añadir primer miembro
+              </button>
             )}
           </div>
         ) : (
-          <div className="space-y-3">
+          <div>
             {ROLES.map((rol) => {
               const lista = byRol[rol] ?? [];
               if (lista.length === 0) return null;
               return (
                 <div key={rol}>
-                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    {ROL_META[rol].label} ({lista.length})
-                  </p>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="border-b border-border bg-muted/30 px-4 py-2">
+                    <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                      {ROL_META[rol].label}
+                      <span className="ml-1.5 tabular-nums">{lista.length}</span>
+                    </p>
+                  </div>
+                  <ul className="divide-y divide-border">
                     {lista.map((m) => (
-                      <div key={m.id} className="group flex items-center gap-3 rounded-xl border border-border/60 p-3 hover:bg-accent/30">
-                        <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl text-[12px] font-bold",
-                          m.rol === "administrador" ? "bg-primary text-primary-foreground"
-                          : m.rol === "jefe_operaciones" ? "bg-primary text-primary-foreground"
-                          : m.rol === "supervisor" ? "bg-primary/10 text-primary"
-                          : "bg-muted text-muted-foreground")}>
+                      <li key={m.id} className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-background text-[12px] font-medium text-foreground">
                           {m.nombre.charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-[13px] font-semibold">{m.nombre}</p>
-                          <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-                            {m.correo && <span className="flex items-center gap-0.5"><Mail className="h-2.5 w-2.5" />{m.correo}</span>}
-                            {m.telefono && <span className="flex items-center gap-0.5"><Phone className="h-2.5 w-2.5" />{m.telefono}</span>}
-                          </div>
-                          {(m.permisosExtra?.length || m.permisosRevocados?.length) ? (
-                            <span className="mt-1 inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-300">
-                              <Shield className="h-2.5 w-2.5" /> Permisos personalizados
+                          <div className="flex items-baseline gap-2">
+                            <p className="truncate text-[13px] font-medium text-foreground">{m.nombre}</p>
+                            <span className="shrink-0 text-[11px] text-muted-foreground">
+                              {ROL_META[m.rol].short}
                             </span>
-                          ) : null}
+                            {(m.permisosExtra?.length || m.permisosRevocados?.length) ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+                                <Shield className="h-2.5 w-2.5" {...ICON_PROPS} />
+                                Permisos personalizados
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                            {m.correo && (
+                              <span className="inline-flex items-center gap-1">
+                                <Mail className="h-3 w-3" {...ICON_PROPS} />
+                                <span className="truncate">{m.correo}</span>
+                              </span>
+                            )}
+                            {m.telefono && (
+                              <span className="inline-flex items-center gap-1">
+                                <Phone className="h-3 w-3" {...ICON_PROPS} />
+                                {m.telefono}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         {puedeGestionarPersonal && (
-                          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                          <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                             {puedeGestionarPermisos && m.rol !== "administrador" && (
-                              <button onClick={() => openPermisos(m)} className="press rounded-md p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary" title="Permisos">
-                                <Shield className="h-3.5 w-3.5" />
+                              <button
+                                onClick={() => openPermisos(m)}
+                                className="press rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                title="Permisos"
+                              >
+                                <Shield className="h-3.5 w-3.5" {...ICON_PROPS} />
                               </button>
                             )}
-                            <button onClick={() => openEditMiembro(m)} className="press rounded-md p-1 text-muted-foreground hover:bg-accent"><Pencil className="h-3.5 w-3.5" /></button>
-                            <button onClick={() => deleteMiembro(m.id)} className="press rounded-md p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                            <button
+                              onClick={() => openEditMiembro(m)}
+                              className="press rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                              title="Editar"
+                            >
+                              <Pencil className="h-3.5 w-3.5" {...ICON_PROPS} />
+                            </button>
+                            <button
+                              onClick={() => deleteMiembro(m.id)}
+                              className="press rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" {...ICON_PROPS} />
+                            </button>
                           </div>
                         )}
-                      </div>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </div>
               );
             })}
@@ -269,22 +365,22 @@ export function EmpresaView() {
 
       {/* Dialog de permisos */}
       <Dialog open={!!permisosDialog} onOpenChange={(v) => !v && setPermisosDialog(null)}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto rounded-2xl sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-primary" />
+        <DialogContent className="gap-0 rounded-lg border-border bg-background p-0 sm:max-w-2xl">
+          <DialogHeader className="border-b border-border px-5 py-4">
+            <DialogTitle className="flex items-center gap-2 text-[15px] font-semibold text-foreground">
+              <Shield className="h-4 w-4 text-foreground" {...ICON_PROPS} />
               Permisos de {permisosDialog?.nombre}
             </DialogTitle>
-            <p className="text-[12px] text-muted-foreground">
-              Rol: <span className="font-semibold text-foreground">{permisosDialog ? ROL_META[permisosDialog.rol].label : ""}</span>
+            <p className="mt-1 text-[12px] text-muted-foreground">
+              Rol: <span className="font-medium text-foreground">{permisosDialog ? ROL_META[permisosDialog.rol].label : ""}</span>
             </p>
           </DialogHeader>
           {permisosDialog && (
-            <div className="flex flex-col gap-3 py-1">
-              <p className="text-[11px] text-muted-foreground">
+            <div className="max-h-[60vh] overflow-y-auto px-5 py-4">
+              <p className="mb-3 text-[12px] text-muted-foreground">
                 Los permisos del rol ({ROL_META[permisosDialog.rol].label}) se aplican por defecto. Puedes otorgar permisos adicionales o revocar los del rol.
               </p>
-              <div className="grid gap-2">
+              <ul className="divide-y divide-border overflow-hidden rounded-md border border-border">
                 {(Object.keys(PERMISO_META) as Permiso[]).map((p) => {
                   const meta = PERMISO_META[p];
                   const delRol = (PERMISOS_POR_ROL[permisosDialog.rol] ?? []).includes(p);
@@ -292,35 +388,31 @@ export function EmpresaView() {
                   const esRevocado = permisosRevocados.includes(p);
                   const efectivo = delRol ? !esRevocado : esExtra;
                   return (
-                    <div
-                      key={p}
-                      className={cn(
-                        "flex items-center gap-3 rounded-xl border p-3 transition-colors",
-                        efectivo ? "border-emerald-500/30 bg-emerald-500/5" : "border-border bg-muted/20"
-                      )}
-                    >
+                    <li key={p} className="flex items-center gap-3 px-3 py-2.5">
                       <div className="min-w-0 flex-1">
-                        <p className="text-[13px] font-semibold text-foreground">{meta.label}</p>
+                        <div className="flex items-baseline gap-2">
+                          <p className="text-[13px] font-medium text-foreground">{meta.label}</p>
+                          {delRol && (
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                              Del rol
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[11px] text-muted-foreground">{meta.desc}</p>
-                        {delRol && (
-                          <span className="mt-0.5 inline-block rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold uppercase text-primary">
-                            Permiso del rol
-                          </span>
-                        )}
                       </div>
-                      <div className="flex shrink-0 items-center gap-1.5">
+                      <div className="shrink-0">
                         {delRol ? (
                           // Si es del rol, solo se puede revocar/quitar revocación
                           <button
                             onClick={() => togglePermisoRevocado(p)}
                             className={cn(
-                              "press flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-colors",
+                              "press inline-flex h-7 items-center gap-1 rounded-md border px-2.5 text-[11px] font-medium transition-colors",
                               esRevocado
-                                ? "border-red-500/40 bg-red-500/10 text-red-400"
-                                : "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
+                                ? "border-border bg-muted text-muted-foreground"
+                                : "border-foreground bg-foreground text-background"
                             )}
                           >
-                            {esRevocado ? <XIcon className="h-3 w-3" /> : <Check className="h-3 w-3" />}
+                            {esRevocado ? <XIcon className="h-3 w-3" {...ICON_PROPS} /> : <Check className="h-3 w-3" {...ICON_PROPS} />}
                             {esRevocado ? "Revocado" : "Activo"}
                           </button>
                         ) : (
@@ -328,59 +420,107 @@ export function EmpresaView() {
                           <button
                             onClick={() => togglePermisoExtra(p)}
                             className={cn(
-                              "press flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-colors",
+                              "press inline-flex h-7 items-center gap-1 rounded-md border px-2.5 text-[11px] font-medium transition-colors",
                               esExtra
-                                ? "border-primary bg-primary/15 text-primary"
-                                : "border-border text-muted-foreground hover:bg-accent"
+                                ? "border-foreground bg-foreground text-background"
+                                : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
                             )}
                           >
-                            {esExtra ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+                            {esExtra ? <Check className="h-3 w-3" {...ICON_PROPS} /> : <Plus className="h-3 w-3" {...ICON_PROPS} />}
                             {esExtra ? "Otorgado" : "Otorgar"}
                           </button>
                         )}
                       </div>
-                    </div>
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPermisosDialog(null)} className="rounded-xl">Cancelar</Button>
-            <Button onClick={savePermisos} className="btn-spacecom rounded-xl">
-              <Save className="mr-1.5 h-4 w-4" /> Guardar permisos
+          <DialogFooter className="border-t border-border px-5 py-3 sm:justify-between">
+            <Button
+              variant="outline"
+              onClick={() => setPermisosDialog(null)}
+              className="h-9 rounded-md border-border bg-background hover:bg-muted"
+            >
+              Cancelar
             </Button>
+            <button
+              onClick={savePermisos}
+              className="press inline-flex h-9 items-center gap-1.5 rounded-md bg-foreground px-3.5 text-[13px] font-medium text-background hover:bg-foreground/90"
+            >
+              <Save className="h-3.5 w-3.5" {...ICON_PROPS} />
+              Guardar permisos
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Dialog miembro */}
       <Dialog open={miembroDialog} onOpenChange={setMiembroDialog}>
-        <DialogContent className="rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>{editingMiembro ? "Editar" : "Añadir"} personal del almacén</DialogTitle>
+        <DialogContent className="gap-0 rounded-lg border-border bg-background p-0">
+          <DialogHeader className="border-b border-border px-5 py-4">
+            <DialogTitle className="text-[15px] font-semibold text-foreground">
+              {editingMiembro ? "Editar" : "Añadir"} personal del almacén
+            </DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 py-1">
-            <div className="col-span-2 flex flex-col gap-1.5">
-              <Label>Nombre *</Label><Input value={miembroForm.nombre} onChange={(e) => setMiembroForm({ ...miembroForm, nombre: e.target.value })} className="rounded-xl" autoFocus />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Rol</Label>
-              <Select value={miembroForm.rol} onValueChange={(v) => setMiembroForm({ ...miembroForm, rol: v as Rol })}>
-                <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-                <SelectContent className="rounded-xl">{ROLES.map((r) => <SelectItem key={r} value={r}>{ROL_META[r].label}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Teléfono</Label><Input value={miembroForm.telefono} onChange={(e) => setMiembroForm({ ...miembroForm, telefono: e.target.value })} className="rounded-xl" />
-            </div>
-            <div className="col-span-2 flex flex-col gap-1.5">
-              <Label>Correo</Label><Input value={miembroForm.correo} onChange={(e) => setMiembroForm({ ...miembroForm, correo: e.target.value })} className="rounded-xl" />
+          <div className="px-5 py-4">
+            <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5 sm:col-span-2">
+                <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Nombre *</Label>
+                <Input
+                  value={miembroForm.nombre}
+                  onChange={(e) => setMiembroForm({ ...miembroForm, nombre: e.target.value })}
+                  className="h-9 rounded-md border-border bg-background"
+                  autoFocus
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Rol</Label>
+                <Select value={miembroForm.rol} onValueChange={(v) => setMiembroForm({ ...miembroForm, rol: v as Rol })}>
+                  <SelectTrigger className="h-9 rounded-md border-border bg-background">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-md border-border bg-background">
+                    {ROLES.map((r) => (
+                      <SelectItem key={r} value={r}>{ROL_META[r].label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Teléfono</Label>
+                <Input
+                  value={miembroForm.telefono}
+                  onChange={(e) => setMiembroForm({ ...miembroForm, telefono: e.target.value })}
+                  className="h-9 rounded-md border-border bg-background"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5 sm:col-span-2">
+                <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Correo</Label>
+                <Input
+                  value={miembroForm.correo}
+                  onChange={(e) => setMiembroForm({ ...miembroForm, correo: e.target.value })}
+                  className="h-9 rounded-md border-border bg-background"
+                />
+              </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setMiembroDialog(false)} className="rounded-xl">Cancelar</Button>
-            <Button onClick={saveMiembro} disabled={!miembroForm.nombre.trim()} className="rounded-xl">{editingMiembro ? "Guardar" : "Añadir"}</Button>
+          <DialogFooter className="border-t border-border px-5 py-3 sm:justify-between">
+            <Button
+              variant="outline"
+              onClick={() => setMiembroDialog(false)}
+              className="h-9 rounded-md border-border bg-background hover:bg-muted"
+            >
+              Cancelar
+            </Button>
+            <button
+              onClick={saveMiembro}
+              disabled={!miembroForm.nombre.trim()}
+              className="press inline-flex h-9 items-center gap-1.5 rounded-md bg-foreground px-3.5 text-[13px] font-medium text-background hover:bg-foreground/90 disabled:opacity-40"
+            >
+              {editingMiembro ? "Guardar" : "Añadir"}
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -390,9 +530,9 @@ export function EmpresaView() {
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start gap-2">
-      <span className="min-w-[100px] text-muted-foreground">{label}:</span>
-      <span className="flex-1 font-medium">{value}</span>
+    <div className="flex items-start gap-3 px-4 py-3">
+      <span className="w-24 shrink-0 text-[12px] uppercase tracking-wider text-muted-foreground">{label}</span>
+      <span className="flex-1 text-[13px] font-medium text-foreground">{value}</span>
     </div>
   );
 }

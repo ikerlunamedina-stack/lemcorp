@@ -8,32 +8,27 @@ import { NotificationStack } from "@/components/lem/notification-stack";
 
 interface AppShellProps {
   children: React.ReactNode;
-  /** Si la página es la del chat de IA, no se renderizan SubHeader ni Footer
-   * para dar espacio completo al chat. */
+  /** Si la página es la del chat de IA, no se renderizan SubHeader ni Footer. */
   isChat?: boolean;
 }
 
 export function AppShell({ children, isChat = false }: AppShellProps) {
   return (
     <SyncProvider>
-      <div className="relative flex h-screen flex-col bg-background text-foreground">
-        {/* Fondo aurora boreal animado */}
-        <div className="aurora-bg" />
-        <div className="relative z-10 flex h-full flex-col">
-          <Navbar />
-          {!isChat && <SubHeader />}
-          <main className="relative flex-1 overflow-auto scroll-thin">
-            {isChat ? (
-              children
-            ) : (
-              <div className="min-h-full pb-14 lg:pb-0 anim-page-enter">
-                {children}
-              </div>
-            )}
-          </main>
-          {!isChat && <Footer />}
-          <NotificationStack />
-        </div>
+      <div className="flex h-screen flex-col bg-background text-foreground">
+        <Navbar />
+        {!isChat && <SubHeader />}
+        <main className="relative flex-1 overflow-auto scroll-thin">
+          {isChat ? (
+            children
+          ) : (
+            <div className="min-h-full pb-14 lg:pb-0 anim-page-enter">
+              {children}
+            </div>
+          )}
+        </main>
+        {!isChat && <Footer />}
+        <NotificationStack />
       </div>
     </SyncProvider>
   );

@@ -4,9 +4,9 @@ import { useRef, useEffect, useState } from "react";
 import {
   Send, User, Trash2,
   TrendingDown, Package, AlertTriangle, Cpu, Users,
-  BarChart3, ShoppingCart, Zap, BellRing, Clock,
+  BarChart3, ShoppingCart, BellRing, Clock,
   Volume2, Square, Brain,
-  Check, X as XIcon, FileText, PackagePlus, ClipboardList,
+  FileText, PackagePlus, ClipboardList,
   Sun,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
@@ -83,6 +83,8 @@ function timeAgo(ts: number): string {
   if (hrs < 24) return `hace ${hrs}h`;
   return new Date(ts).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit" });
 }
+
+const ICON_PROPS = { strokeWidth: 1.5 } as const;
 
 export function IAView() {
   const products = useStore((s) => s.products);
@@ -383,31 +385,24 @@ export function IAView() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Header compacto */}
-      <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2.5 sm:px-4 lg:px-6">
+      {/* Header — minimal, single hairline border */}
+      <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3 sm:px-6">
         <div className="flex min-w-0 items-center gap-2.5">
-          <AlanaAvatar size={36} glow />
+          <AlanaAvatar size={32} className="ring-1 ring-border" />
           <div className="min-w-0">
-            <h1 className="flex items-center gap-1.5 text-[15px] font-bold tracking-tight">
+            <h1 className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-foreground">
               <span className="truncate">Alana</span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                </span>
-                <span className="hidden sm:inline">ACTIVO</span>
+              {/* Status: simple dot, no big colored badge */}
+              <span className="relative flex h-1.5 w-1.5" aria-label="Activo">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500/50" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
               </span>
               {vozEnabled && (
-                <span
-                  className="hidden items-center gap-0.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold text-primary sm:inline-flex"
-                  title="Voz activada — Alana leerá sus respuestas en voz alta"
-                >
-                  <Volume2 className="h-2.5 w-2.5" /> VOZ
-                </span>
+                <Volume2 className="h-3.5 w-3.5 text-muted-foreground" {...ICON_PROPS} aria-label="Voz activada" />
               )}
             </h1>
-            <p className="hidden text-[10px] text-muted-foreground sm:block">
-              {messages.length} mensaje(s) · se borra en 5h · {memoriaIA.length} aprendizajes
+            <p className="hidden text-[11px] text-muted-foreground sm:block">
+              {messages.length} mensajes · se borra en 5h · {memoriaIA.length} aprendizajes
             </p>
           </div>
         </div>
@@ -415,12 +410,14 @@ export function IAView() {
           <button
             onClick={() => setShowHistory(!showHistory)}
             className={cn(
-              "press flex h-9 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-medium transition-colors sm:px-3",
-              showHistory ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-accent"
+              "press flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[12px] font-medium transition-colors",
+              showHistory
+                ? "border-foreground/20 bg-muted text-foreground"
+                : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
             title="Ver conversaciones anteriores"
           >
-            <Clock className="h-4 w-4" />
+            <Clock className="h-3.5 w-3.5" {...ICON_PROPS} />
             <span className="hidden sm:inline">Historial</span>
           </button>
           {messages.length > 1 && (
@@ -430,22 +427,22 @@ export function IAView() {
                 setSpeakingId(null);
                 limpiarHistorial();
               }}
-              className="press flex h-9 items-center justify-center rounded-lg border border-border bg-card px-2.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="press flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               title="Borrar conversación"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-3.5 w-3.5" {...ICON_PROPS} />
             </button>
           )}
         </div>
       </div>
 
-      {/* Chat - llena el espacio disponible con scroll interno */}
+      {/* Chat — fills available space with internal scroll */}
       <div className="relative flex-1 overflow-hidden">
         <div
           ref={scrollRef}
-          className="h-full overflow-y-auto scroll-thin px-4 py-4 lg:px-6"
+          className="h-full overflow-y-auto scroll-thin px-4 py-5 lg:px-6"
         >
-          <div className="mx-auto max-w-3xl space-y-3">
+          <div className="mx-auto max-w-3xl space-y-4">
             {messages.map((m, i) => {
               const msgId = `ts-${m.ts}-${i}`;
               const isSpeaking = speakingId === msgId;
@@ -454,69 +451,78 @@ export function IAView() {
                   key={i}
                   className={cn("flex gap-3 anim-fade-in", m.role === "user" && "flex-row-reverse")}
                 >
-                  {m.role === "assistant"
-                    ? <AlanaAvatar size={32} className="shadow-sm" />
-                    : (
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground shadow-sm">
-                        <User className="h-4 w-4" />
-                      </div>
-                    )
-                  }
-                  <div className={cn("flex max-w-[85%] flex-col", m.role === "user" && "items-end")}>
+                  {m.role === "assistant" ? (
+                    <AlanaAvatar size={28} className="mt-1 ring-1 ring-border" />
+                  ) : (
+                    <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border bg-background text-muted-foreground">
+                      <User className="h-3.5 w-3.5" {...ICON_PROPS} />
+                    </div>
+                  )}
+                  <div className={cn("flex max-w-[80%] flex-col", m.role === "user" && "items-end")}>
                     <div
                       className={cn(
-                        "rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap break-words shadow-sm",
+                        "rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap break-words",
                         m.role === "assistant"
-                          ? "rounded-tl-sm bg-card border border-border text-foreground"
-                          : "rounded-tr-sm bg-primary text-primary-foreground"
+                          ? "bg-muted text-foreground"
+                          : "bg-foreground text-background"
                       )}
                     >
                       {m.content}
-                      {/* Botón de TTS solo en mensajes de la IA */}
+                      {/* TTS toggle — only on assistant messages */}
                       {m.role === "assistant" && (
                         <button
                           onClick={() => hablar(m.content, msgId)}
                           className={cn(
-                            "press ml-2 inline-flex h-6 w-6 items-center justify-center rounded-md border border-border align-middle text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
-                            isSpeaking && "border-primary text-primary bg-primary/10"
+                            "press ml-2 inline-flex h-5 w-5 items-center justify-center rounded-md align-middle text-current/70 transition-colors hover:text-current",
+                            isSpeaking && "text-current"
                           )}
                           title={isSpeaking ? "Detener voz" : "Leer en voz alta"}
                         >
-                          {isSpeaking ? <Square className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                          {isSpeaking ? (
+                            <Square className="h-3 w-3" {...ICON_PROPS} />
+                          ) : (
+                            <Volume2 className="h-3 w-3" {...ICON_PROPS} />
+                          )}
                         </button>
                       )}
                     </div>
-                    {/* Badge de recordatorio creado */}
+
+                    {/* Recordatorio — thin inline line, no colored badge */}
                     {m.recordatorio && (
-                      <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-primary/30 bg-muted px-2.5 py-1.5 text-[10px]">
-                        <BellRing className="h-3 w-3 text-primary" />
-                        <span className="font-semibold text-primary">Recordatorio creado:</span>
-                        <span className="text-muted-foreground">{m.recordatorio.texto}</span>
-                        <span className="ml-auto text-primary">
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5 px-1 text-[10px] text-muted-foreground">
+                        <BellRing className="h-3 w-3 shrink-0" {...ICON_PROPS} />
+                        <span className="font-medium text-foreground">Recordatorio</span>
+                        <span className="text-muted-foreground/50">·</span>
+                        <span>{m.recordatorio.texto}</span>
+                        <span className="text-muted-foreground/50">·</span>
+                        <span className="tabular-nums">
                           {new Date(m.recordatorio.cuando).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                         </span>
                       </div>
                     )}
-                    {/* Badge de aprendido */}
+
+                    {/* Aprendido — small dot, no colored badge */}
                     {m.aprendido && m.aprendido.length > 0 && (
                       <div className="mt-1.5 flex flex-col gap-1">
                         {m.aprendido.map((ap, idx) => (
                           <div
                             key={idx}
-                            className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-[10px]"
+                            className="flex items-center gap-1.5 px-1 text-[10px] text-muted-foreground"
                           >
-                            <Brain className="h-3 w-3 text-emerald-500" />
-                            <span className="font-semibold text-emerald-500">Aprendido ✓</span>
-                            <span className="text-foreground">{ap}</span>
+                            <Brain className="h-3 w-3 shrink-0" {...ICON_PROPS} />
+                            <span className="font-medium text-foreground">Aprendido</span>
+                            <span className="text-muted-foreground/50">·</span>
+                            <span>{ap}</span>
                           </div>
                         ))}
                       </div>
                     )}
-                    {/* Acciones del sistema ejecutadas */}
+
+                    {/* Acciones ejecutadas — hairline list, small status dot */}
                     {m.accionesEjecutadas && m.accionesEjecutadas.length > 0 && (
                       <div className="mt-1.5 flex flex-col gap-1">
-                        <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wide text-primary">
-                          <ClipboardList className="h-2.5 w-2.5" />
+                        <div className="flex items-center gap-1.5 px-1 text-[9px] font-medium uppercase tracking-wider text-muted-foreground">
+                          <ClipboardList className="h-3 w-3" {...ICON_PROPS} />
                           Acciones ejecutadas
                         </div>
                         {m.accionesEjecutadas.map((a, idx) => {
@@ -533,34 +539,26 @@ export function IAView() {
                           return (
                             <div
                               key={idx}
-                              className={cn(
-                                "flex items-start gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10px]",
-                                a.ok
-                                  ? "border-primary/30 bg-primary/5"
-                                  : "border-red-500/30 bg-red-500/5"
-                              )}
+                              className="flex items-start gap-1.5 px-1 text-[10px]"
                             >
-                              <Icon className="mt-0.5 h-3 w-3 shrink-0 text-primary" />
+                              <Icon className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" {...ICON_PROPS} />
                               <div className="min-w-0 flex-1">
                                 <p className="text-foreground">{a.descripcion}</p>
                                 {a.error && (
-                                  <p className="text-red-400">⚠ {a.error}</p>
+                                  <p className="text-destructive">{a.error}</p>
                                 )}
                               </div>
                               {a.ok ? (
-                                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
-                                  <Check className="h-2.5 w-2.5" />
-                                </span>
+                                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
                               ) : (
-                                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-red-500 text-white">
-                                  <XIcon className="h-2.5 w-2.5" />
-                                </span>
+                                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-destructive" />
                               )}
                             </div>
                           );
                         })}
                       </div>
                     )}
+
                     <span className="mt-1 px-1 text-[9px] text-muted-foreground/60">
                       {timeAgo(m.ts)}
                     </span>
@@ -568,14 +566,15 @@ export function IAView() {
                 </div>
               );
             })}
+
             {loading && (
-              <div className="flex gap-3">
-                <AlanaAvatar size={32} className="shadow-sm" />
-                <div className="flex items-center gap-2 rounded-2xl rounded-tl-sm border border-border bg-card px-4 py-3 shadow-sm">
+              <div className="flex gap-3 anim-fade-in">
+                <AlanaAvatar size={28} className="mt-1 ring-1 ring-border" />
+                <div className="flex items-center gap-2 rounded-2xl bg-muted px-4 py-3">
                   <span className="flex gap-1">
-                    <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "0ms", animationDuration: "0.8s" }} />
-                    <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "150ms", animationDuration: "0.8s" }} />
-                    <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: "300ms", animationDuration: "0.8s" }} />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/60" style={{ animationDelay: "0ms", animationDuration: "0.8s" }} />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/60" style={{ animationDelay: "150ms", animationDuration: "0.8s" }} />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/60" style={{ animationDelay: "300ms", animationDuration: "0.8s" }} />
                   </span>
                   <span className="text-[13px] text-muted-foreground">Pensando…</span>
                 </div>
@@ -584,15 +583,19 @@ export function IAView() {
           </div>
         </div>
 
-        {/* Panel de historial (overlay lateral) */}
+        {/* Panel de historial — clean overlay with hairline list */}
         {showHistory && (
-          <div className="absolute right-0 top-0 h-full w-72 border-l border-border bg-card/95 backdrop-blur-xl anim-fade-in">
+          <div className="absolute right-0 top-0 h-full w-72 border-l border-border bg-background/95 backdrop-blur-sm anim-fade-in">
             <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
-              <p className="flex items-center gap-1.5 text-[12px] font-bold">
-                <Clock className="h-3.5 w-3.5 text-primary" /> Historial
+              <p className="flex items-center gap-1.5 text-[12px] font-medium text-foreground">
+                <Clock className="h-3.5 w-3.5 text-muted-foreground" {...ICON_PROPS} /> Historial
               </p>
-              <button onClick={() => setShowHistory(false)} className="press text-muted-foreground hover:text-foreground">
-                <Trash2 className="h-3.5 w-3.5" />
+              <button
+                onClick={() => setShowHistory(false)}
+                className="press text-muted-foreground transition-colors hover:text-foreground"
+                title="Cerrar"
+              >
+                <Trash2 className="h-3.5 w-3.5" {...ICON_PROPS} />
               </button>
             </div>
             <div className="max-h-[calc(100%-3rem)] overflow-y-auto scroll-thin p-2">
@@ -606,7 +609,7 @@ export function IAView() {
                       setShowHistory(false);
                       setInput(m.content);
                     }}
-                    className="press mb-1 block w-full rounded-lg border border-transparent px-2.5 py-2 text-left text-[11px] transition-colors hover:border-border hover:bg-accent"
+                    className="press mb-0.5 block w-full rounded-md px-2.5 py-2 text-left text-[11px] transition-colors hover:bg-muted"
                   >
                     <p className="line-clamp-2 text-foreground">{m.content}</p>
                     <p className="mt-0.5 text-[9px] text-muted-foreground">{timeAgo(m.ts)}</p>
@@ -618,8 +621,8 @@ export function IAView() {
         )}
       </div>
 
-      {/* Sugerencias - siempre visibles, compactas */}
-      <div className="border-t border-border bg-card/50 px-3 py-2 sm:px-4 lg:px-6">
+      {/* Sugerencias — thin-bordered text chips, hover = bg-muted */}
+      <div className="border-t border-border px-4 py-2 sm:px-6">
         <div className="mx-auto flex max-w-3xl flex-wrap gap-1.5">
           {SUGERENCIAS.slice(0, 6).map((s) => {
             const Icon = s.icon;
@@ -628,9 +631,9 @@ export function IAView() {
                 key={s.text}
                 onClick={() => enviar(s.text)}
                 disabled={loading}
-                className="press flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground transition-all hover:border-primary/40 hover:bg-muted hover:text-foreground disabled:opacity-50"
+                className="press flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
               >
-                <Icon className={cn("h-3.5 w-3.5 shrink-0", s.color)} />
+                <Icon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" {...ICON_PROPS} />
                 <span className="max-w-[200px] truncate sm:max-w-[160px]">{s.text}</span>
               </button>
             );
@@ -638,9 +641,9 @@ export function IAView() {
         </div>
       </div>
 
-      {/* Input fijo abajo — con safe-area para que la barra del celular no lo tape */}
+      {/* Input bar — border-top only, clean textarea + primary send button */}
       <div
-        className="border-t border-border bg-card px-3 py-3 sm:px-4 lg:px-6"
+        className="border-t border-border bg-background px-4 py-3 sm:px-6"
         style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 12px)" }}
       >
         <div className="mx-auto flex max-w-3xl items-end gap-2">
@@ -654,17 +657,17 @@ export function IAView() {
               }
             }}
             placeholder="Pregúntame, pídeme algo o dime qué recordar…"
-            className="h-12 min-h-[48px] flex-1 resize-none rounded-xl border border-border bg-background px-4 py-3 text-[15px] outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
+            className="h-12 min-h-[48px] flex-1 resize-none rounded-xl bg-muted px-4 py-3 text-[15px] text-foreground outline-none transition-colors placeholder:text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-foreground/10"
             disabled={loading}
             rows={1}
           />
           <button
             onClick={() => enviar()}
             disabled={!input.trim() || loading}
-            className="btn-spacecom flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+            className="press flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-foreground text-background transition-colors hover:bg-foreground/90 disabled:opacity-40 disabled:hover:bg-foreground"
             aria-label="Enviar"
           >
-            <Send className="h-5 w-5" />
+            <Send className="h-5 w-5" {...ICON_PROPS} />
           </button>
         </div>
       </div>

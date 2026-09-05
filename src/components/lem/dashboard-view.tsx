@@ -3,16 +3,11 @@
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
-import {
-  Package, Boxes, AlertTriangle, Cpu, Download,
-  Sparkles, Hash, StickyNote, Users, Check, X, Undo2, Wrench,
-} from "lucide-react";
+import { Download, ArrowRight } from "lucide-react";
 import { fmtNum } from "@/lib/num";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ESTADO_META, type ActiveView, type EstadoEquipo } from "@/lib/types";
-
-const ESTADO_ICONS = { check: Check, x: X, undo: Undo2, wrench: Wrench } as const;
 
 const VIEW_PATH: Record<ActiveView, string> = {
   dashboard: "/",
@@ -34,10 +29,8 @@ export function DashboardView() {
   const equipos = useStore((s) => s.equipos) ?? [];
   const entradas = useStore((s) => s.entradas) ?? [];
   const notas = useStore((s) => s.notas) ?? [];
-  const miembros = useStore((s) => s.miembros) ?? [];
   const exportInventarioExcel = useStore((s) => s.exportInventarioExcel);
   const router = useRouter();
-  const despachos = useStore((s) => s.despachos) ?? [];
 
   const go = (v: ActiveView) => () => router.push(VIEW_PATH[v]);
 
@@ -45,196 +38,209 @@ export function DashboardView() {
     const totalUnidades = products.reduce((s, p) => s + p.quantity, 0);
     const bajoStock = products.filter((p) => p.minStock && p.minStock > 0 && p.quantity <= p.minStock);
     const equiposDisponibles = equipos.filter((e) => e.estado === "disponible").length;
-
-    const catMap: Record<string, number> = {};
-    for (const p of products) {
-      const k = p.udm ?? "Sin UDM";
-      catMap[k] = (catMap[k] ?? 0) + p.quantity;
-    }
-    const categorias = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 6);
-    const maxCat = categorias[0]?.[1] ?? 1;
-
     const topBajoStock = [...products].sort((a, b) => {
       const aPct = a.minStock ? a.quantity / a.minStock : 999;
       const bPct = b.minStock ? b.quantity / b.minStock : 999;
       return aPct - bPct;
     }).slice(0, 5);
-
-    return { totalUnidades, bajoStock, equiposDisponibles, categorias, maxCat, topBajoStock };
+    return { totalUnidades, bajoStock, equiposDisponibles, topBajoStock };
   }, [products, equipos]);
 
-  const { totalUnidades, bajoStock, equiposDisponibles, categorias, maxCat, topBajoStock } = stats;
-  const numPersonal = miembros.length;
-
-  const estadoBarColor = (est: EstadoEquipo) => {
-    const t = ESTADO_META[est].tone;
-    return t === "danger" ? "bg-red-500"
-      : t === "warn" ? "bg-amber-500"
-      : t === "ok" ? "bg-emerald-500"
-      : "bg-primary";
-  };
+  const { totalUnidades, bajoStock, equiposDisponibles, topBajoStock } = stats;
 
   const kpis = [
-    { label: "Productos", value: products.length, sub: "en catálogo", icon: Package, view: "inventario" as ActiveView },
-    { label: "Unidades", value: fmtNum(totalUnidades), sub: "en stock", icon: Boxes, view: "inventario" as ActiveView },
-    { label: "Equipos", value: equipos.length, sub: `${equiposDisponibles} disponibles`, icon: Cpu, view: "equipos" as ActiveView },
-    { label: "Alertas", value: bajoStock.length, sub: bajoStock.length === 0 ? "Todo OK" : "bajo stock", icon: AlertTriangle, view: "inventario" as ActiveView },
+    { label: "Productos", value: products.length, sub: "en catálogo", view: "inventario" as ActiveView },
+    { label: "Unidades", value: fmtNum(totalUnidades), sub: "en stock", view: "inventario" as ActiveView },
+    { label: "Equipos", value: equipos.length, sub: `${equiposDisponibles} disponibles`, view: "equipos" as ActiveView },
+    { label: "Alertas", value: bajoStock.length, sub: bajoStock.length === 0 ? "Todo OK" : "bajo stock", view: "inventario" as ActiveView },
   ];
 
   return (
-    <div className="px-4 py-5 sm:px-6 lg:px-8">
-      {/* Header */}
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+    <div className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6 lg:px-10">
+      {/* Header minimalista */}
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">Dashboard</h1>
-          <p className="mt-1 text-sm text-muted-foreground capitalize">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
             {new Date().toLocaleDateString("es-PE", { timeZone: "America/Lima", weekday: "long", day: "numeric", month: "long" })}
           </p>
+          <h1 className="mt-1 text-[28px] font-semibold tracking-tight text-foreground sm:text-[32px]">
+            Dashboard
+          </h1>
         </div>
-        <Button onClick={() => exportInventarioExcel()} className="press btn-spacecom rounded-lg h-10">
-          <Download className="mr-1.5 h-4 w-4" /> Exportar
+        <Button
+          onClick={() => exportInventarioExcel()}
+          variant="outline"
+          className="press h-9 rounded-md border-border bg-background px-3 text-[13px] font-medium hover:bg-muted"
+        >
+          <Download className="mr-1.5 h-4 w-4" strokeWidth={1.5} /> Exportar
         </Button>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
-        {kpis.map((k, i) => {
-          const Icon = k.icon;
-          return (
-            <button key={k.label} onClick={go(k.view)}
-              className="anim-fade-up group rounded-xl border border-border bg-card p-3 text-left shadow-sm transition-transform hover:-translate-y-0.5 sm:p-4"
-              style={{ animationDelay: `${i * 50}ms` }}>
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted sm:h-10 sm:w-10">
-                <Icon className="h-4 w-4 text-foreground sm:h-5 sm:w-5" />
-              </div>
-              <p className="mt-2 text-xl font-bold tabular-nums text-foreground sm:mt-3 sm:text-2xl">{k.value}</p>
-              <p className="text-[13px] font-semibold text-foreground sm:text-sm">{k.label}</p>
-              <p className="text-[11px] text-muted-foreground sm:text-xs">{k.sub}</p>
-            </button>
-          );
-        })}
+      {/* KPIs — solo números grandes, sin iconos en círculos de color */}
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border lg:grid-cols-4">
+        {kpis.map((k, i) => (
+          <button
+            key={k.label}
+            onClick={go(k.view)}
+            className="anim-slide-up group bg-background p-5 text-left transition-colors hover:bg-muted/50"
+            style={{ animationDelay: `${i * 60}ms` }}
+          >
+            <p className="text-[32px] font-semibold tabular-nums tracking-tight text-foreground sm:text-[36px]">
+              {k.value}
+            </p>
+            <p className="mt-1 text-[13px] font-medium text-foreground">{k.label}</p>
+            <p className="text-[11px] text-muted-foreground">{k.sub}</p>
+          </button>
+        ))}
       </div>
 
-      {/* Grid */}
-      <div className="mt-4 grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-3">
+      {/* Grid principal */}
+      <div className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-3">
         {/* Col izquierda */}
-        <div className="space-y-4 lg:col-span-2">
+        <div className="space-y-10 lg:col-span-2">
           {/* Productos con menor stock */}
-          <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-bold text-foreground">Productos con menor stock</h2>
-              <button onClick={go("inventario")} className="text-xs font-medium text-primary hover:underline">Ver todo →</button>
+          <section>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-[15px] font-medium text-foreground">Productos con menor stock</h2>
+              <button
+                onClick={go("inventario")}
+                className="press flex items-center gap-1 text-[12px] font-medium text-muted-foreground hover:text-foreground"
+              >
+                Ver todo <ArrowRight className="h-3 w-3" strokeWidth={1.5} />
+              </button>
             </div>
-            <div className="space-y-2">
-              {topBajoStock.map((p, i) => {
+            <div className="space-y-4">
+              {topBajoStock.map((p) => {
                 const pct = p.minStock ? Math.min(100, (p.quantity / Math.max(p.minStock * 2, 1)) * 100) : 100;
                 const bajo = p.minStock && p.minStock > 0 && p.quantity <= p.minStock;
                 return (
                   <div key={p.id}>
-                    <div className="mb-1 flex items-center justify-between text-sm">
-                      <span className="truncate font-medium text-foreground">{p.name}</span>
-                      <span className="font-bold tabular-nums text-foreground">{fmtNum(p.quantity)}</span>
+                    <div className="mb-1.5 flex items-baseline justify-between">
+                      <span className="text-[13px] font-medium text-foreground">{p.name}</span>
+                      <span className="text-[13px] font-semibold tabular-nums text-foreground">
+                        {fmtNum(p.quantity)}
+                        {p.minStock ? (
+                          <span className="ml-1 text-[11px] font-normal text-muted-foreground">/ {fmtNum(p.minStock)}</span>
+                        ) : null}
+                      </span>
                     </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                      <div className={cn("h-full rounded-full", bajo ? "bg-red-500" : pct < 50 ? "bg-amber-500" : "bg-primary")} style={{ width: `${pct}%` }} />
+                    <div className="h-px w-full bg-muted">
+                      <div
+                        className={cn(
+                          "h-px transition-all",
+                          bajo ? "bg-foreground" : "bg-foreground/40"
+                        )}
+                        style={{ width: `${pct}%` }}
+                      />
                     </div>
                   </div>
                 );
               })}
             </div>
-          </div>
+          </section>
 
           {/* Entradas recientes */}
-          <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-bold text-foreground">Entradas recientes</h2>
-              <button onClick={go("inventario")} className="text-xs font-medium text-primary hover:underline">Ver →</button>
+          <section>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-[15px] font-medium text-foreground">Entradas recientes</h2>
+              <button
+                onClick={go("inventario")}
+                className="press flex items-center gap-1 text-[12px] font-medium text-muted-foreground hover:text-foreground"
+              >
+                Ver <ArrowRight className="h-3 w-3" strokeWidth={1.5} />
+              </button>
             </div>
-            <div className="space-y-1.5">
-              {entradas.length === 0 ? (
-                <p className="py-4 text-center text-xs text-muted-foreground">No hay entradas registradas</p>
-              ) : (
-                entradas.slice(0, 5).map((e) => (
-                  <div key={e.id} className="flex items-center gap-3 rounded-md border border-border/40 p-2">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-md bg-muted text-xs font-bold text-foreground">+{e.cantidad}</span>
+            {entradas.length === 0 ? (
+              <p className="text-[13px] text-muted-foreground">No hay entradas registradas</p>
+            ) : (
+              <div className="divide-y divide-border">
+                {entradas.slice(0, 5).map((e) => (
+                  <div key={e.id} className="flex items-center gap-4 py-3">
+                    <span className="text-[13px] font-semibold tabular-nums text-foreground">+{e.cantidad}</span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-medium text-foreground">{e.producto}</p>
-                      <p className="font-mono text-[10px] text-muted-foreground">{e.sku}</p>
+                      <p className="truncate text-[13px] font-medium text-foreground">{e.producto}</p>
+                      <p className="font-mono text-[11px] text-muted-foreground">{e.sku}</p>
                     </div>
-                    <span className="text-[10px] text-muted-foreground">{new Date(e.fecha).toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit" })}</span>
+                    <span className="text-[11px] tabular-nums text-muted-foreground">
+                      {new Date(e.fecha).toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit" })}
+                    </span>
                   </div>
-                ))
-              )}
-            </div>
-          </div>
+                ))}
+              </div>
+            )}
+          </section>
         </div>
 
         {/* Col derecha */}
-        <div className="space-y-4">
+        <div className="space-y-10">
           {/* Equipos por estado */}
           {equipos.length > 0 && (
-            <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-bold text-foreground">Equipos por estado</h2>
-                <button onClick={go("equipos")} className="text-xs font-medium text-primary hover:underline">Ver →</button>
+            <section>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-[15px] font-medium text-foreground">Equipos por estado</h2>
+                <button
+                  onClick={go("equipos")}
+                  className="press flex items-center gap-1 text-[12px] font-medium text-muted-foreground hover:text-foreground"
+                >
+                  Ver <ArrowRight className="h-3 w-3" strokeWidth={1.5} />
+                </button>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {(Object.keys(ESTADO_META) as EstadoEquipo[]).map((est) => {
                   const n = equipos.filter((e) => e.estado === est).length;
                   const meta = ESTADO_META[est];
                   const pct = equipos.length > 0 ? (n / equipos.length) * 100 : 0;
-                  const IE = ESTADO_ICONS[meta.icon];
                   return (
                     <div key={est}>
-                      <div className="mb-1 flex items-center justify-between text-xs">
-                        <span className="font-medium text-foreground">{meta.label}</span>
-                        <span className="font-bold tabular-nums text-foreground">{n}</span>
+                      <div className="mb-1 flex items-baseline justify-between">
+                        <span className="text-[13px] text-muted-foreground">{meta.label}</span>
+                        <span className="text-[13px] font-semibold tabular-nums text-foreground">{n}</span>
                       </div>
-                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                        <div className={cn("h-full rounded-full", estadoBarColor(est))} style={{ width: `${pct}%` }} />
+                      <div className="h-px w-full bg-muted">
+                        <div className="h-px bg-foreground/60" style={{ width: `${pct}%` }} />
                       </div>
                     </div>
                   );
                 })}
               </div>
-            </div>
+            </section>
           )}
 
-          {/* Accesos rápidos */}
-          <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-            <h2 className="mb-3 text-sm font-bold text-foreground">Accesos rápidos</h2>
-            <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-              <QuickLink onClick={go("ia")} icon={Sparkles} label="Asistente IA" />
-              <QuickLink onClick={go("series")} icon={Hash} label="Series" />
-              <QuickLink onClick={go("bloc")} icon={StickyNote} label="Bloc" />
-              <QuickLink onClick={go("empresa")} icon={Users} label="Empresas" />
+          {/* Accesos rápidos — solo texto, sin cuadros con iconos */}
+          <section>
+            <h2 className="mb-4 text-[15px] font-medium text-foreground">Accesos rápidos</h2>
+            <div className="divide-y divide-border border-y border-border">
+              {[
+                { label: "Asistente Alana", view: "ia" as ActiveView },
+                { label: "Series", view: "series" as ActiveView },
+                { label: "Bloc de notas", view: "bloc" as ActiveView },
+                { label: "Empresas", view: "empresa" as ActiveView },
+              ].map((q) => (
+                <button
+                  key={q.view}
+                  onClick={go(q.view)}
+                  className="press flex w-full items-center justify-between py-3 text-left transition-colors hover:text-foreground"
+                >
+                  <span className="text-[13px] font-medium text-foreground">{q.label}</span>
+                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />
+                </button>
+              ))}
             </div>
-          </div>
+          </section>
 
           {/* Notas fijadas */}
           {notas.filter((n) => n.pinned).length > 0 && (
-            <div className="rounded-lg border border-border bg-muted/30 p-4">
-              <h2 className="mb-2 text-sm font-bold text-foreground">Notas fijadas</h2>
-              <div className="space-y-1.5">
+            <section>
+              <h2 className="mb-3 text-[15px] font-medium text-foreground">Notas fijadas</h2>
+              <div className="space-y-2">
                 {notas.filter((n) => n.pinned).slice(0, 3).map((n) => (
-                  <div key={n.id} className="rounded-md border border-border/40 bg-card p-2 text-xs text-foreground">{n.texto}</div>
+                  <p key={n.id} className="text-[13px] text-muted-foreground">{n.texto}</p>
                 ))}
               </div>
-            </div>
+            </section>
           )}
         </div>
       </div>
     </div>
-  );
-}
-
-function QuickLink({ onClick, icon: Icon, label }: { onClick: () => void; icon: any; label: string }) {
-  return (
-    <button onClick={onClick} className="flex flex-col items-center gap-2.5 rounded-xl border border-border bg-card p-4 transition-transform hover:-translate-y-0.5 active:scale-95 sm:p-5">
-      <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted sm:h-12 sm:w-12">
-        <Icon className="h-5 w-5 text-foreground sm:h-6 sm:w-6" />
-      </span>
-      <span className="text-[13px] font-medium text-foreground sm:text-sm">{label}</span>
-    </button>
   );
 }

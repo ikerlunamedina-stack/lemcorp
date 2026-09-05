@@ -50,6 +50,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
+const ICON_PROPS = { strokeWidth: 1.5 } as const;
+
 const DIAS_ORDEN: DiaSemana[] = [
   "lunes",
   "martes",
@@ -122,6 +124,9 @@ export function HorarioView() {
     return () => clearInterval(id);
   }, []);
 
+  // Estado UI para la pestaña de día seleccionada
+  const [selectedDia, setSelectedDia] = useState<DiaSemana>(() => hoyDiaSemana());
+
   const hoy = hoyDiaSemana();
   const ahora = ahora24h();
 
@@ -190,225 +195,207 @@ export function HorarioView() {
     toast({ title: "Actividad eliminada", description: label });
   };
 
+  // Re-render trigger (5s)
+  void pulseKey;
+
+  const itemsSelected = porDia[selectedDia];
+  const esSelectedHoy = selectedDia === hoy;
+
   return (
-    <div className="px-4 py-5 sm:px-6 lg:px-8">
-      {/* Header con animación */}
-      <div className="anim-fade-up mb-5 flex flex-wrap items-center justify-between gap-3">
+    <div className="anim-fade-in px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      {/* Header */}
+      <div className="anim-slide-up flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight sm:text-2xl">
-            <span className="anim-horario-breathe">
-              <Calendar className="h-5 w-5 text-primary sm:h-6 sm:w-6" />
-            </span>
-            Horario del almacén
-          </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Operaciones</p>
+          <h1 className="text-[28px] font-semibold tracking-tight text-foreground">Horario del almacén</h1>
+          <p className="mt-1 text-[13px] text-muted-foreground">
             Planifica la semana. Las actividades se te recordarán automáticamente.
           </p>
         </div>
-        <Button onClick={openCreate} className="btn-spacecom rounded-xl h-10">
-          <Plus className="mr-1.5 h-4 w-4" /> Nueva actividad
+        <Button
+          onClick={openCreate}
+          className="h-9 rounded-md bg-foreground text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+        >
+          <Plus className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Nueva actividad
         </Button>
       </div>
 
-      {/* Hora actual grande con animación */}
-      <div className="anim-fade-up mb-5 overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm">
-        <div className="relative overflow-hidden">
-          <div className="absolute inset-0 anim-horario-shimmer" />
-          <div className="relative flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                {new Date().toLocaleDateString("es-PE", { timeZone: "America/Lima", weekday: "long", day: "numeric", month: "long" })}
-              </p>
-              <p className="mt-1 text-3xl font-bold tabular-nums text-foreground sm:text-4xl">
-                {a12h(ahora24h().slice(0, 5) + ":00").replace(":00 ", " ")}
-              </p>
-            </div>
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 sm:h-16 sm:w-16">
-              <Clock className="h-7 w-7 text-primary anim-horario-pulse sm:h-8 sm:w-8" />
-            </div>
-          </div>
+      {/* Hora actual (minimal) */}
+      <div className="anim-slide-up mt-6 flex items-center justify-between rounded-lg border border-border bg-background px-4 py-3">
+        <div>
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+            {new Date().toLocaleDateString("es-PE", { timeZone: "America/Lima", weekday: "long", day: "numeric", month: "long" })}
+          </p>
+          <p className="mt-0.5 text-[28px] font-semibold tabular-nums tracking-tight text-foreground">
+            {a12h(ahora24h().slice(0, 5) + ":00").replace(":00 ", " ")}
+          </p>
         </div>
+        <Clock className="h-5 w-5 text-muted-foreground" {...ICON_PROPS} />
       </div>
 
       {/* KPIs */}
-      <div className="anim-fade-up mb-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-        <KPI label="Total actividades" value={horario.length} icon={<Calendar className="h-4 w-4" />} />
-        <KPI label="Hoy" value={porDia[hoy].length} highlight icon={<Zap className="h-4 w-4" />} />
-        <KPI label="Despachos" value={horario.filter((h) => h.tipo === "despacho").length} icon={<Truck className="h-4 w-4" />} />
-        <KPI label="Reuniones" value={horario.filter((h) => h.tipo === "reunion").length} icon={<Users className="h-4 w-4" />} />
+      <div className="anim-slide-up mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-4">
+        <KPI label="Total actividades" value={horario.length} icon={<Calendar className="h-4 w-4" {...ICON_PROPS} />} />
+        <KPI label="Hoy" value={porDia[hoy].length} highlight icon={<Zap className="h-4 w-4" {...ICON_PROPS} />} />
+        <KPI label="Despachos" value={horario.filter((h) => h.tipo === "despacho").length} icon={<Truck className="h-4 w-4" {...ICON_PROPS} />} />
+        <KPI label="Reuniones" value={horario.filter((h) => h.tipo === "reunion").length} icon={<Users className="h-4 w-4" {...ICON_PROPS} />} />
       </div>
 
       {/* Vista semanal responsive */}
       {horario.length === 0 ? (
-        <div className="anim-fade-up flex flex-col items-center justify-center rounded-3xl border border-dashed border-border bg-card/50 p-8 text-center sm:p-10">
-          <Calendar className="mb-3 h-12 w-12 text-muted-foreground anim-horario-breathe sm:h-16 sm:w-16" />
-          <p className="text-[15px] font-semibold">No hay actividades programadas</p>
-          <p className="mb-4 mt-1 text-[13px] text-muted-foreground">
+        <div className="anim-fade-in mt-6 flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-background px-4 py-16 text-center">
+          <Calendar className="mb-3 h-10 w-10 text-muted-foreground/40" {...ICON_PROPS} />
+          <p className="text-[13px] font-medium text-foreground">No hay actividades programadas</p>
+          <p className="mb-4 mt-1 text-[12px] text-muted-foreground">
             Crea tu primera actividad para empezar a organizar la semana.
           </p>
-          <Button onClick={openCreate} className="btn-spacecom rounded-xl h-10">
-            <Plus className="mr-1.5 h-4 w-4" /> Agregar actividad
+          <Button
+            onClick={openCreate}
+            className="h-9 rounded-md bg-foreground text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+          >
+            <Plus className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Agregar actividad
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {DIAS_ORDEN.map((d, diaIdx) => {
-            const items = porDia[d];
-            const esHoy = d === hoy;
-            return (
-              <div
-                key={d}
-                className={cn(
-                  "anim-horario-slide-in flex flex-col rounded-2xl border bg-card p-3 shadow-sm transition-all sm:p-4",
-                  esHoy ? "border-primary ring-2 ring-primary/20" : "border-border"
-                )}
-                style={{ animationDelay: `${diaIdx * 60}ms` }}
-              >
-                {/* Cabecera del día */}
-                <div className="mb-3 flex items-center justify-between border-b border-border/60 pb-2">
-                  <div className="flex items-center gap-2">
-                    <span
+        <>
+          {/* Pestañas de día (text tabs, active = underline) */}
+          <div className="anim-slide-up mt-6 overflow-x-auto">
+            <div className="flex items-center gap-6 border-b border-border">
+              {DIAS_ORDEN.map((d) => {
+                const count = porDia[d].length;
+                const isActive = selectedDia === d;
+                const isToday = d === hoy;
+                return (
+                  <button
+                    key={d}
+                    onClick={() => setSelectedDia(d)}
+                    className={cn(
+                      "relative -mb-px border-b-2 px-1 py-2.5 text-[12px] font-medium transition-colors whitespace-nowrap",
+                      isActive
+                        ? "border-foreground text-foreground"
+                        : "border-transparent text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      {DIA_SEMANA_META[d].label}
+                      {isToday && (
+                        <span className="h-1.5 w-1.5 rounded-full bg-foreground" />
+                      )}
+                      {count > 0 && (
+                        <span className="text-[10px] font-normal tabular-nums text-muted-foreground">{count}</span>
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Items del día seleccionado (hairline rows) */}
+          {itemsSelected.length === 0 ? (
+            <div className="anim-fade-in mt-6 rounded-lg border border-dashed border-border bg-background px-4 py-12 text-center">
+              <p className="text-[13px] font-medium text-foreground">
+                Sin actividades para {DIA_SEMANA_META[selectedDia].label}
+              </p>
+              <p className="mt-1 text-[12px] text-muted-foreground">
+                Agrega una nueva actividad para este día.
+              </p>
+            </div>
+          ) : (
+            <div className="anim-fade-in mt-4 overflow-hidden rounded-lg border border-border bg-background">
+              <div className="divide-y divide-border">
+                {itemsSelected.map((h) => {
+                  const cfg = TIPO_HORARIO_META[h.tipo];
+                  const Icon = TIPO_ICONO[h.tipo];
+                  const ocurriendo = esSelectedHoy && ahora >= h.horaInicio && ahora < h.horaFin;
+                  const pasado = esSelectedHoy && ahora >= h.horaFin;
+                  return (
+                    <div
+                      key={h.id}
                       className={cn(
-                        "flex h-9 w-9 items-center justify-center rounded-xl text-[12px] font-bold transition-all sm:h-10 sm:w-10",
-                        esHoy
-                          ? "bg-primary text-primary-foreground anim-horario-pulse"
-                          : "bg-muted text-muted-foreground"
+                        "group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40",
+                        pasado && "opacity-50"
                       )}
                     >
-                      {DIA_SEMANA_META[d].short}
-                    </span>
-                    <div className="flex flex-col leading-tight">
-                      <span className="text-[13px] font-bold">{DIA_SEMANA_META[d].label}</span>
-                      {esHoy && (
-                        <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-primary">
-                          <span className="h-1.5 w-1.5 rounded-full bg-primary anim-horario-pulse" />
-                          Hoy
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <span className="text-[11px] text-muted-foreground">
-                    {items.length} {items.length === 1 ? "act." : "acts."}
-                  </span>
-                </div>
+                      {/* Time range (mono, condensed) */}
+                      <div className="flex w-[88px] shrink-0 flex-col text-[11px] tabular-nums leading-tight">
+                        <span className="font-mono font-medium text-foreground">{a12h(h.horaInicio)}</span>
+                        <span className="font-mono text-muted-foreground">{a12h(h.horaFin)}</span>
+                      </div>
 
-                {/* Items del día */}
-                {items.length === 0 ? (
-                  <div className="flex flex-1 items-center justify-center py-4 text-[11px] text-muted-foreground">
-                    Sin actividades
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    {items.map((h, idx) => {
-                      const cfg = TIPO_HORARIO_META[h.tipo];
-                      const Icon = TIPO_ICONO[h.tipo];
-                      const ocurriendo = esHoy && ahora >= h.horaInicio && ahora < h.horaFin;
-                      const pasado = esHoy && ahora >= h.horaFin;
-                      return (
-                        <div
-                          key={h.id}
-                          className={cn(
-                            "group relative flex items-start gap-2.5 rounded-xl border bg-background/60 p-2.5 transition-all",
-                            ocurriendo
-                              ? "border-primary/50 ring-1 ring-primary/30 anim-horario-glow"
-                              : pasado
-                              ? "border-border opacity-50"
-                              : "border-border hover:border-primary/30"
-                          )}
-                          style={{ animationDelay: `${idx * 80}ms` }}
+                      {/* Status dot */}
+                      <div className="flex w-4 shrink-0 justify-center">
+                        {ocurriendo ? (
+                          <span className="h-2 w-2 animate-pulse rounded-full bg-foreground" title="Ocurriendo ahora" />
+                        ) : pasado ? (
+                          <Check className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+                        ) : (
+                          <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+                        )}
+                      </div>
+
+                      {/* Icon (line-art, muted) */}
+                      <Icon className="h-4 w-4 shrink-0 text-muted-foreground" {...ICON_PROPS} />
+
+                      {/* Content */}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] font-medium text-foreground">{h.actividad}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {cfg.label}
+                          {ocurriendo && <span className="ml-2 text-foreground">· Ahora</span>}
+                          {pasado && <span className="ml-2">· Hecho</span>}
+                        </p>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                        <button
+                          onClick={() => openEdit(h)}
+                          className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          title="Editar"
                         >
-                          {/* Icono del tipo */}
-                          <div
-                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white transition-transform group-hover:scale-110 sm:h-9 sm:w-9"
-                            style={{
-                              backgroundColor:
-                                h.tipo === "despacho" ? "var(--primary)" :
-                                h.tipo === "almuerzo" ? "oklch(0.70 0.13 75)" :
-                                h.tipo === "reunion" ? "oklch(0.65 0.10 220)" :
-                                "oklch(0.65 0.13 145)",
-                            }}
-                          >
-                            <Icon className="h-4 w-4" />
-                          </div>
-
-                          {/* Contenido */}
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-mono text-[11px] font-bold tabular-nums text-foreground">
-                                {a12h(h.horaInicio)}
-                              </span>
-                              <span className="text-[10px] text-muted-foreground">→</span>
-                              <span className="font-mono text-[11px] font-bold tabular-nums text-muted-foreground">
-                                {a12h(h.horaFin)}
-                              </span>
-                              {ocurriendo && (
-                                <span className="flex items-center gap-0.5 rounded-full bg-primary px-1.5 py-0.5 text-[8px] font-bold uppercase text-primary-foreground">
-                                  <BellRing className="h-2.5 w-2.5 anim-horario-pulse" /> Ahora
-                                </span>
-                              )}
-                              {pasado && (
-                                <span className="rounded-full bg-muted px-1.5 py-0.5 text-[8px] font-bold uppercase text-muted-foreground">
-                                  <Check className="h-2.5 w-2.5" /> Hecho
-                                </span>
-                              )}
-                            </div>
-                            <p className="mt-0.5 line-clamp-2 break-words text-[12px] font-medium leading-snug">
-                              {h.actividad}
-                            </p>
-                            <span className="mt-0.5 inline-block rounded-md bg-muted px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
-                              {cfg.label}
-                            </span>
-                          </div>
-
-                          {/* Acciones */}
-                          <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-                            <button
-                              onClick={() => openEdit(h)}
-                              className="press rounded-md p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary"
-                              title="Editar"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(h.id, `${DIA_SEMANA_META[d].label} ${a12h(h.horaInicio)} · ${h.actividad}`)}
-                              className="press rounded-md p-1 text-muted-foreground hover:bg-red-500/10 hover:text-red-400"
-                              title="Eliminar"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                          <Pencil className="h-3.5 w-3.5" {...ICON_PROPS} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(h.id, `${DIA_SEMANA_META[selectedDia].label} ${a12h(h.horaInicio)} · ${h.actividad}`)}
+                          className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" {...ICON_PROPS} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Dialog para crear/editar */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {editingId ? <Pencil className="h-4 w-4 text-primary" /> : <Plus className="h-4 w-4 text-primary" />}
+        <DialogContent className="gap-0 rounded-lg p-0">
+          <DialogHeader className="border-b border-border px-5 py-4">
+            <DialogTitle className="flex items-center gap-2 text-[15px] font-semibold">
+              {editingId
+                ? <Pencil className="h-4 w-4 text-foreground" {...ICON_PROPS} />
+                : <Plus className="h-4 w-4 text-foreground" {...ICON_PROPS} />}
               {editingId ? "Editar actividad" : "Nueva actividad"}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-[12px]">
               Agrega una actividad al horario semanal del almacén.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex flex-col gap-3 py-2">
+          <div className="flex flex-col gap-4 px-5 py-4">
             {/* Día */}
             <div className="flex flex-col gap-1.5">
-              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
                 Día de la semana
               </Label>
               <Select value={dia} onValueChange={(v) => setDia(v as DiaSemana)}>
-                <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 rounded-md border-border bg-background"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {DIAS_ORDEN.map((d) => (
                     <SelectItem key={d} value={d}>{DIA_SEMANA_META[d].label}</SelectItem>
@@ -420,41 +407,41 @@ export function HorarioView() {
             {/* Horas en formato 12h */}
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                  <Clock className="h-3 w-3" /> Hora inicio
+                <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <Clock className="h-3 w-3" {...ICON_PROPS} /> Hora inicio
                 </Label>
                 <Input
                   type="time"
                   value={horaInicio}
                   onChange={(e) => setHoraInicio(e.target.value)}
-                  className="rounded-xl"
+                  className="h-9 rounded-md border-border bg-background"
                 />
-                <p className="text-[10px] text-primary">{a12h(horaInicio)}</p>
+                <p className="text-[10px] text-muted-foreground">{a12h(horaInicio)}</p>
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-                  <Clock className="h-3 w-3" /> Hora fin
+                <Label className="flex items-center gap-1 text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <Clock className="h-3 w-3" {...ICON_PROPS} /> Hora fin
                 </Label>
                 <Input
                   type="time"
                   value={horaFin}
                   onChange={(e) => setHoraFin(e.target.value)}
-                  className="rounded-xl"
+                  className="h-9 rounded-md border-border bg-background"
                 />
-                <p className="text-[10px] text-primary">{a12h(horaFin)}</p>
+                <p className="text-[10px] text-muted-foreground">{a12h(horaFin)}</p>
               </div>
             </div>
 
             {/* Actividad */}
             <div className="flex flex-col gap-1.5">
-              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
                 Actividad
               </Label>
               <Input
                 value={actividad}
                 onChange={(e) => setActividad(e.target.value)}
                 placeholder="Ej: Despacho matutino"
-                className="rounded-xl"
+                className="h-9 rounded-md border-border bg-background"
                 onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
                 autoFocus
               />
@@ -462,11 +449,11 @@ export function HorarioView() {
 
             {/* Tipo */}
             <div className="flex flex-col gap-1.5">
-              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">
                 Tipo de actividad
               </Label>
               <Select value={tipo} onValueChange={(v) => setTipo(v as TipoHorario)}>
-                <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 rounded-md border-border bg-background"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.keys(TIPO_HORARIO_META) as TipoHorario[]).map((t) => {
                     const cfg = TIPO_HORARIO_META[t];
@@ -474,7 +461,7 @@ export function HorarioView() {
                     return (
                       <SelectItem key={t} value={t}>
                         <span className="flex items-center gap-2">
-                          <Icon className="h-3.5 w-3.5" /> {cfg.label}
+                          <Icon className="h-3.5 w-3.5" {...ICON_PROPS} /> {cfg.label}
                         </span>
                       </SelectItem>
                     );
@@ -483,21 +470,29 @@ export function HorarioView() {
               </Select>
             </div>
 
-            <div className="rounded-xl bg-muted/40 p-2 text-[11px] text-muted-foreground">
-              <BellRing className="mr-1 inline h-3 w-3 text-primary" />
+            <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-[11px] text-muted-foreground">
+              <BellRing className="mr-1 inline h-3 w-3" {...ICON_PROPS} />
               Al coincidir la hora de inicio, Alana te avisará con una notificación y leerá el texto en voz alta (si el TTS está activado).
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2 border-t border-border px-5 py-3">
             <DialogClose asChild>
-              <Button variant="outline" className="rounded-xl">Cancelar</Button>
+              <Button
+                variant="outline"
+                className="h-9 rounded-md border-border bg-background text-[13px] font-medium text-foreground hover:bg-muted"
+              >
+                Cancelar
+              </Button>
             </DialogClose>
-            <Button onClick={handleSave} className="btn-spacecom rounded-xl">
+            <Button
+              onClick={handleSave}
+              className="h-9 rounded-md bg-foreground text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+            >
               {editingId ? (
-                <><Pencil className="mr-1.5 h-4 w-4" /> Guardar cambios</>
+                <><Pencil className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Guardar cambios</>
               ) : (
-                <><Plus className="mr-1.5 h-4 w-4" /> Agregar</>
+                <><Plus className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Agregar</>
               )}
             </Button>
           </DialogFooter>
@@ -519,19 +514,10 @@ function KPI({
   icon?: React.ReactNode;
 }) {
   return (
-    <div
-      className={cn(
-        "rounded-2xl border p-3 text-center transition-colors",
-        highlight ? "border-primary/40 bg-primary/5" : "border-border bg-card"
-      )}
-    >
-      <div className="mb-1 flex items-center justify-center text-muted-foreground">
-        {icon}
-      </div>
-      <p className={cn("text-xl font-semibold tabular-nums sm:text-2xl", highlight ? "text-primary" : "text-foreground")}>
-        {value}
-      </p>
-      <p className="text-[10px] font-medium text-muted-foreground sm:text-[11px]">{label}</p>
+    <div className={cn("bg-background px-4 py-3", highlight && "bg-muted/40")}>
+      <div className="mb-1 text-muted-foreground">{icon}</div>
+      <p className="text-lg font-semibold tabular-nums text-foreground">{value}</p>
+      <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
     </div>
   );
 }

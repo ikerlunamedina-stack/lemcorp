@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
+const ICON_PROPS = { strokeWidth: 1.5 } as const;
+
 interface DespachoImportado {
   sku: string;
   cantidad: number;
@@ -249,16 +251,17 @@ export function DespachosView() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1800px] px-4 py-5 lg:px-6">
+    <div className="anim-fade-in mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       {/* Header */}
-      <div className="anim-fade-up mb-5 flex flex-wrap items-center justify-between gap-3">
+      <div className="anim-slide-up flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Despachos</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            <span className="font-semibold text-foreground">{despachos.length}</span> despachos ·
-            <span className="font-semibold text-foreground"> {fmtNum(totalDespachado)}</span> unidades ·
-            <span className="font-semibold text-foreground"> {diasConDespachos}</span> días ·
-            <span className="font-semibold text-foreground"> {tecnicosUnicos}</span> destinatarios
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Operaciones</p>
+          <h1 className="text-[28px] font-semibold tracking-tight text-foreground">Despachos</h1>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            <span className="text-foreground">{despachos.length}</span> despachos ·
+            <span className="text-foreground"> {fmtNum(totalDespachado)}</span> unidades ·
+            <span className="text-foreground"> {diasConDespachos}</span> días ·
+            <span className="text-foreground"> {tecnicosUnicos}</span> destinatarios
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -267,287 +270,328 @@ export function DespachosView() {
             variant="outline"
             onClick={() => fileInputRef.current?.click()}
             disabled={importingExcel}
-            className="press h-10 rounded-lg border-primary/30 bg-card text-primary hover:bg-muted"
+            className="h-9 rounded-md border-border bg-background text-[13px] font-medium text-foreground hover:bg-muted"
           >
-            {importingExcel ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <FileUp className="mr-1.5 h-4 w-4" />}
+            {importingExcel
+              ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" {...ICON_PROPS} />
+              : <FileUp className="mr-1.5 h-4 w-4" {...ICON_PROPS} />}
             {importingExcel ? "Procesando…" : "Subir Excel"}
           </Button>
-          <Button onClick={openBulk} className="btn-spacecom press h-10 rounded-lg border-0">
-            <ClipboardPaste className="mr-1.5 h-4 w-4" /> Pegar despachos
+          <Button
+            onClick={openBulk}
+            className="h-9 rounded-md bg-foreground text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+          >
+            <ClipboardPaste className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Pegar despachos
           </Button>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="anim-fade-up mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
-        <StatCard label="Total despachos" value={despachos.length} icon={<Send className="h-4 w-4" />} />
-        <StatCard label="Unidades enviadas" value={fmtNum(totalDespachado)} icon={<TrendingDown className="h-4 w-4" />} />
-        <StatCard label="Hoy" value={despachosHoy.length} sub={`${fmtNum(totalDespachadoHoy)} und`} icon={<Calendar className="h-4 w-4" />} highlight />
-        <StatCard label="Días con despachos" value={diasConDespachos} icon={<Hash className="h-4 w-4" />} />
-        <StatCard label="Destinatarios" value={tecnicosUnicos} icon={<Users className="h-4 w-4" />} />
+      <div className="anim-slide-up mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-3 lg:grid-cols-5">
+        <StatCard label="Total despachos" value={despachos.length} icon={<Send className="h-4 w-4" {...ICON_PROPS} />} />
+        <StatCard label="Unidades enviadas" value={fmtNum(totalDespachado)} icon={<TrendingDown className="h-4 w-4" {...ICON_PROPS} />} />
+        <StatCard label="Hoy" value={despachosHoy.length} sub={`${fmtNum(totalDespachadoHoy)} und`} icon={<Calendar className="h-4 w-4" {...ICON_PROPS} />} highlight />
+        <StatCard label="Días con despachos" value={diasConDespachos} icon={<Hash className="h-4 w-4" {...ICON_PROPS} />} />
+        <StatCard label="Destinatarios" value={tecnicosUnicos} icon={<Users className="h-4 w-4" {...ICON_PROPS} />} />
       </div>
 
       {/* Toolbar historial */}
-      <div className="anim-fade-up mb-3 flex flex-wrap items-center gap-2">
-        <div className="relative w-full sm:w-64">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por producto, destinatario, destino…" className="h-9 rounded-lg bg-card pl-9 text-sm shadow-sm" />
+      <div className="anim-slide-up mt-6 flex flex-wrap items-center gap-2">
+        <div className="relative w-full sm:w-72">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" {...ICON_PROPS} />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por producto, destinatario, destino…"
+            className="h-9 rounded-md border-border bg-background pl-9 text-[13px]"
+          />
         </div>
         <button
           onClick={() => setFilterToday(!filterToday)}
-          className={cn("press flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors",
-            filterToday ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-accent")}
+          className={cn(
+            "flex items-center gap-1.5 rounded-md border px-3 py-1 text-[12px] font-medium transition-colors",
+            filterToday
+              ? "border-foreground bg-foreground text-background"
+              : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+          )}
         >
-          <Calendar className="h-3.5 w-3.5" />
+          <Calendar className="h-3.5 w-3.5" {...ICON_PROPS} />
           {filterToday ? "Solo hoy" : "Ver todos"}
         </button>
-        <span className="text-[11px] text-muted-foreground">{filteredDespachos.length} despacho(s) · {porDia.length} día(s)</span>
+        <span className="text-[11px] text-muted-foreground">
+          {filteredDespachos.length} despacho(s) · {porDia.length} día(s)
+        </span>
       </div>
 
       {/* Historial por día (timeline) */}
       {filteredDespachos.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-card px-4 py-16 text-center shadow-sm">
-          <ClipboardPaste className="mx-auto h-10 w-10 text-muted-foreground/40" />
-          <p className="mt-3 text-sm font-medium text-foreground">
+        <div className="anim-fade-in mt-6 rounded-lg border border-dashed border-border bg-background px-4 py-16 text-center">
+          <ClipboardPaste className="mx-auto h-10 w-10 text-muted-foreground/40" {...ICON_PROPS} />
+          <p className="mt-3 text-[13px] font-medium text-foreground">
             {despachos.length === 0 ? "No hay despachos registrados" : (filterToday ? "No hay despachos hoy" : "Sin coincidencias")}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {despachos.length === 0 ? "Sube tu Excel de operaciones y la IA analizará y descontará todo automáticamente" : "Cambia el filtro o la búsqueda"}
+          <p className="mt-1 text-[12px] text-muted-foreground">
+            {despachos.length === 0
+              ? "Sube tu Excel de operaciones y la IA analizará y descontará todo automáticamente"
+              : "Cambia el filtro o la búsqueda"}
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {porDia.map(([dia, items]) => {
-            const diaTs = new Date(dia).getTime();
-            const totalDia = items.reduce((s, d) => s + d.cantidad, 0);
-            const tecnicosDia = new Set(items.map((d) => d.tecnico).filter(Boolean)).size;
-            const productosDia = new Set(items.map((d) => d.sku)).size;
-            const isExpanded = expandedDay === dia || porDia.length === 1;
-            const isToday = isSameDay(diaTs, today);
+        <div className="anim-fade-in mt-4 overflow-hidden rounded-lg border border-border bg-background">
+          <div className="divide-y divide-border">
+            {porDia.map(([dia, items]) => {
+              const diaTs = new Date(dia).getTime();
+              const totalDia = items.reduce((s, d) => s + d.cantidad, 0);
+              const tecnicosDia = new Set(items.map((d) => d.tecnico).filter(Boolean)).size;
+              const productosDia = new Set(items.map((d) => d.sku)).size;
+              const isExpanded = expandedDay === dia || porDia.length === 1;
+              const isToday = isSameDay(diaTs, today);
 
-            return (
-              <div key={dia} className={cn("anim-fade-up rounded-xl border bg-card shadow-sm", isToday ? "border-primary/40" : "border-border")}>
-                {/* Header del día */}
-                <button
-                  onClick={() => setExpandedDay(isExpanded ? null : dia)}
-                  className="press flex w-full items-center gap-3 border-b border-border bg-muted/30 px-4 py-3 text-left hover:bg-muted/50 transition-colors"
-                >
-                  {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Calendar className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-[14px] font-bold capitalize text-foreground">{fechaCorta(diaTs)}</p>
-                      {isToday && <span className="rounded-full bg-primary px-2 py-0.5 text-[9px] font-bold text-white">HOY</span>}
+              return (
+                <div key={dia}>
+                  {/* Header del día */}
+                  <button
+                    onClick={() => setExpandedDay(isExpanded ? null : dia)}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40"
+                  >
+                    {isExpanded
+                      ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" {...ICON_PROPS} />
+                      : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" {...ICON_PROPS} />}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-[13px] font-medium capitalize text-foreground">{fechaCorta(diaTs)}</p>
+                        {isToday && (
+                          <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-foreground">
+                            <span className="h-1.5 w-1.5 rounded-full bg-foreground" />
+                            Hoy
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] capitalize text-muted-foreground">{diaSemana(diaTs)}</p>
                     </div>
-                    <p className="text-[11px] capitalize text-muted-foreground">{diaSemana(diaTs)}</p>
-                  </div>
-                  <div className="flex items-center gap-4 text-[11px]">
-                    <div className="text-center">
-                      <p className="font-bold tabular-nums text-foreground">{items.length}</p>
-                      <p className="text-[9px] text-muted-foreground">despachos</p>
+                    <div className="hidden items-center gap-6 text-[11px] sm:flex">
+                      <div className="text-right">
+                        <p className="font-medium tabular-nums text-foreground">{items.length}</p>
+                        <p className="text-[10px] text-muted-foreground">despachos</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium tabular-nums text-foreground">{tecnicosDia}</p>
+                        <p className="text-[10px] text-muted-foreground">destinatarios</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium tabular-nums text-foreground">{productosDia}</p>
+                        <p className="text-[10px] text-muted-foreground">productos</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium tabular-nums text-foreground">{fmtNum(totalDia)}</p>
+                        <p className="text-[10px] text-muted-foreground">unidades</p>
+                      </div>
                     </div>
-                    <div className="text-center">
-                      <p className="font-bold tabular-nums text-foreground">{tecnicosDia}</p>
-                      <p className="text-[9px] text-muted-foreground">destinatarios</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="font-bold tabular-nums text-foreground">{productosDia}</p>
-                      <p className="text-[9px] text-muted-foreground">productos</p>
-                    </div>
-                    <div className="rounded-md bg-primary/10 px-2 py-1 text-center">
-                      <p className="font-bold tabular-nums text-primary">{fmtNum(totalDia)}</p>
-                      <p className="text-[9px] text-muted-foreground">unidades</p>
-                    </div>
-                  </div>
-                </button>
+                  </button>
 
-                {/* Contenido del día: agrupado por técnico */}
-                {isExpanded && (
-                  <div className="divide-y divide-border/40">
-                    {porDiaYTecnico[dia]?.map(([tecnico, desps, totalTec]) => {
-                      const tecKey = `${dia}-${tecnico}`;
-                      const isTecExpanded = expandedTecnico === tecKey || porDiaYTecnico[dia].length === 1;
-                      return (
-                        <div key={tecKey} className="bg-muted/10">
-                          <button
-                            onClick={() => setExpandedTecnico(isTecExpanded ? null : tecKey)}
-                            className="press flex w-full items-center gap-2 px-4 py-2.5 text-left hover:bg-accent/30 transition-colors"
-                          >
-                            {isTecExpanded ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
-                            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
-                              <User className="h-3 w-3" />
-                            </span>
-                            <span className="flex-1 text-[12px] font-semibold text-foreground">{tecnico}</span>
-                            <span className="text-[10px] text-muted-foreground">{desps.length} items</span>
-                            <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-bold tabular-nums text-primary">{fmtNum(totalTec)}</span>
-                          </button>
-                          {isTecExpanded && (
-                            <div className="bg-muted/20 px-4 py-2">
-                              <table className="w-full text-sm">
-                                <tbody>
-                                  {desps.map((d) => (
-                                    <tr key={d.id} className="group border-b border-border/30 last:border-0">
-                                      <td className="py-2 pr-3">
-                                        <p className="text-[12px] font-semibold text-foreground">{d.producto}</p>
-                                        <p className="font-mono text-[10px] text-muted-foreground">SKU: {d.sku}</p>
-                                      </td>
-                                      <td className="py-2 pr-3 text-[11px] text-muted-foreground">
-                                        {d.destino ? (
-                                          <span className="inline-flex items-center gap-1 rounded-md bg-cyan-500/15 px-1.5 py-0.5 text-cyan-300">
-                                            <MapPin className="h-2.5 w-2.5" /> {d.destino}
+                  {/* Contenido del día: agrupado por técnico */}
+                  {isExpanded && (
+                    <div className="divide-y divide-border border-t border-border bg-muted/20">
+                      {porDiaYTecnico[dia]?.map(([tecnico, desps, totalTec]) => {
+                        const tecKey = `${dia}-${tecnico}`;
+                        const isTecExpanded = expandedTecnico === tecKey || porDiaYTecnico[dia].length === 1;
+                        return (
+                          <div key={tecKey}>
+                            <button
+                              onClick={() => setExpandedTecnico(isTecExpanded ? null : tecKey)}
+                              className="flex w-full items-center gap-2 px-4 py-2.5 text-left transition-colors hover:bg-muted/60"
+                            >
+                              {isTecExpanded
+                                ? <ChevronDown className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+                                : <ChevronRight className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />}
+                              <User className="h-3.5 w-3.5 text-muted-foreground" {...ICON_PROPS} />
+                              <span className="flex-1 text-[12px] font-medium text-foreground">{tecnico}</span>
+                              <span className="text-[11px] text-muted-foreground">{desps.length} items</span>
+                              <span className="text-[11px] font-medium tabular-nums text-foreground">{fmtNum(totalTec)} und</span>
+                            </button>
+                            {isTecExpanded && (
+                              <div className="bg-background">
+                                <table className="w-full text-[13px]">
+                                  <tbody className="divide-y divide-border">
+                                    {desps.map((d) => (
+                                      <tr key={d.id} className="group">
+                                        <td className="px-4 py-2.5 pr-3">
+                                          <p className="text-[12px] font-medium text-foreground">{d.producto}</p>
+                                          <p className="font-mono text-[10px] text-muted-foreground">SKU: {d.sku}</p>
+                                        </td>
+                                        <td className="py-2.5 pr-3 text-[11px] text-muted-foreground">
+                                          {d.destino ? (
+                                            <span className="inline-flex items-center gap-1">
+                                              <MapPin className="h-2.5 w-2.5" {...ICON_PROPS} /> {d.destino}
+                                            </span>
+                                          ) : "—"}
+                                        </td>
+                                        <td className="py-2.5 pr-3 text-[10px] tabular-nums text-muted-foreground">
+                                          {new Date(d.fecha).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
+                                        </td>
+                                        <td className="py-2.5 pr-3 text-right">
+                                          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium tabular-nums text-foreground">
+                                            <span className="h-1 w-1 rounded-full bg-muted-foreground" />
+                                            {fmtNum(d.cantidad)}
                                           </span>
-                                        ) : "—"}
-                                      </td>
-                                      <td className="py-2 pr-3 text-[10px] tabular-nums text-muted-foreground">
-                                        {new Date(d.fecha).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
-                                      </td>
-                                      <td className="py-2 text-right">
-                                        <span className="inline-flex min-w-[40px] justify-center rounded-md bg-rose-500/15 px-2 py-0.5 text-[11px] font-bold tabular-nums text-rose-400">
-                                          -{fmtNum(d.cantidad)}
-                                        </span>
-                                      </td>
-                                      <td className="py-2 pl-2 text-right">
-                                        <button
-                                          onClick={() => deleteDespacho(d.id)}
-                                          title="Eliminar (devuelve stock)"
-                                          className="press rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-                                        >
-                                          <Trash2 className="h-3 w-3" />
-                                        </button>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                                        </td>
+                                        <td className="py-2.5 pl-2 text-right">
+                                          <button
+                                            onClick={() => deleteDespacho(d.id)}
+                                            title="Eliminar (devuelve stock)"
+                                            className="rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                                          >
+                                            <Trash2 className="h-3 w-3" {...ICON_PROPS} />
+                                          </button>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
       {/* Dialog PEGAR/SUBIR DESPACHOS + IA */}
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
-        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto scroll-thin rounded-xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base font-bold">
-              <Sparkles className="h-5 w-5 text-primary" /> Analizar despachos con IA
+        <DialogContent className="max-h-[90vh] max-w-4xl gap-0 overflow-y-auto rounded-lg p-0">
+          <DialogHeader className="border-b border-border px-5 py-4">
+            <DialogTitle className="flex items-center gap-2 text-[15px] font-semibold">
+              <ClipboardPaste className="h-4 w-4 text-foreground" {...ICON_PROPS} /> Analizar despachos con IA
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-[12px]">
               Pega o sube tus despachos. La IA los analizará, validará el stock y los registrará automáticamente.
             </DialogDescription>
           </DialogHeader>
 
-          {/* Formatos (compacto) */}
-          <div className="rounded-lg border border-border bg-muted/30 px-3 py-2">
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-              Formatos: SKU*cantidad · Destinatario | SKU*cantidad · Destinatario [TAB] SKU*cantidad (de Excel)
-            </p>
-          </div>
-
-          {/* Textarea con altura limitada */}
-          <Textarea
-            value={bulkText}
-            onChange={(e) => { setBulkText(e.target.value); setResultadoIA(null); }}
-            placeholder={"Pega tus despachos aquí (uno por línea):\n\nJ. Pérez|1066990*20\nM. Luna|1002900*50\n..."}
-            className="max-h-[200px] rounded-lg font-mono text-[12px] leading-relaxed shadow-inner"
-            autoFocus
-          />
-
-          {/* Análisis IA en vivo (compacto, con scroll) */}
-          {lineasParseadas.length > 0 && !resultadoIA && (
-            <div className="rounded-lg border border-border bg-muted/30">
-              <div className="flex items-center justify-between border-b border-border px-3 py-2">
-                <p className="flex items-center gap-1.5 text-[11px] font-bold text-foreground">
-                  <Sparkles className="h-3.5 w-3.5 text-primary" /> Análisis automático
-                </p>
-                <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold">
-                  <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-emerald-400">
-                    <Check className="h-2.5 w-2.5" /> {validacion.validos.length} válidos
-                  </span>
-                  {validacion.invalidos.length > 0 && (
-                    <span className="flex items-center gap-1 rounded-full bg-rose-500/15 px-2 py-0.5 text-rose-400">
-                      <AlertTriangle className="h-2.5 w-2.5" /> {validacion.invalidos.length} error
-                    </span>
-                  )}
-                  <span className="rounded-full bg-cyan-500/15 px-2 py-0.5 text-cyan-300">
-                    {fmtNum(validacion.validos.reduce((s, d) => s + d.cantidad, 0))} und
-                  </span>
-                </div>
-              </div>
-              {/* Errores (máximo 80px) */}
-              {validacion.invalidos.length > 0 && (
-                <div className="max-h-[80px] overflow-y-auto scroll-thin px-3 py-2">
-                  {validacion.invalidos.slice(0, 8).map((inv, i) => (
-                    <div key={i} className="flex items-center gap-2 py-0.5 text-[10px]">
-                      <AlertTriangle className="h-2.5 w-2.5 shrink-0 text-rose-400" />
-                      {inv.d.tecnico && <span className="text-muted-foreground">{inv.d.tecnico}:</span>}
-                      <code className="font-mono text-foreground">{inv.d.sku || "(vacío)"}</code>
-                      <span className="text-rose-400">— {inv.razon}</span>
-                    </div>
-                  ))}
-                  {validacion.invalidos.length > 8 && (
-                    <p className="mt-1 text-[9px] italic text-muted-foreground">+ {validacion.invalidos.length - 8} más…</p>
-                  )}
-                </div>
-              )}
+          <div className="flex flex-col gap-4 px-5 py-4">
+            {/* Formatos */}
+            <div className="rounded-md border border-border bg-muted/30 px-3 py-2">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                Formatos: SKU*cantidad · Destinatario | SKU*cantidad · Destinatario [TAB] SKU*cantidad (de Excel)
+              </p>
             </div>
-          )}
 
-          {/* Resultado final IA (compacto) */}
-          {resultadoIA && (
-            <div className="space-y-2">
-              <div className={cn("rounded-lg border p-3", resultadoIA.ok > 0 ? "border-emerald-500/30 bg-emerald-500/10" : "border-rose-500/30 bg-rose-500/10")}>
-                <p className={cn("flex items-center gap-2 text-[13px] font-bold", resultadoIA.ok > 0 ? "text-emerald-400" : "text-rose-400")}>
-                  {resultadoIA.ok > 0 ? <Check className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-                  {resultadoIA.ok > 0
-                    ? `¡Listo! ${resultadoIA.ok} despachos registrados y stock descontado`
-                    : "No se pudieron registrar despachos"}
-                </p>
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  {fmtNum(resultadoIA.totalUnidades)} unidades descontadas del inventario
-                  {resultadoIA.fail > 0 && ` · ${resultadoIA.fail} con error`}
-                </p>
-              </div>
+            {/* Textarea */}
+            <Textarea
+              value={bulkText}
+              onChange={(e) => { setBulkText(e.target.value); setResultadoIA(null); }}
+              placeholder={"Pega tus despachos aquí (uno por línea):\n\nJ. Pérez|1066990*20\nM. Luna|1002900*50\n..."}
+              className="max-h-[200px] rounded-md border-border bg-background font-mono text-[12px] leading-relaxed"
+              autoFocus
+            />
 
-              {/* Resumen por técnico (máximo 150px con scroll) */}
-              {Object.keys(resultadoIA.porTecnico).length > 0 && (
-                <div className="rounded-lg border border-border bg-muted/30 p-3">
-                  <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Desglose por destinatario</p>
-                  <div className="grid max-h-[150px] grid-cols-1 gap-1.5 overflow-y-auto scroll-thin sm:grid-cols-2">
-                    {Object.entries(resultadoIA.porTecnico)
-                      .sort((a, b) => b[1] - a[1])
-                      .map(([tecnico, unidades]) => (
-                        <div key={tecnico} className="flex items-center justify-between rounded-md bg-card px-2 py-1 text-[11px]">
-                          <span className="truncate text-foreground">{tecnico}</span>
-                          <span className="shrink-0 rounded-md bg-primary/10 px-1.5 py-0.5 font-bold tabular-nums text-primary">{fmtNum(unidades)} und</span>
-                        </div>
-                      ))}
+            {/* Análisis IA en vivo */}
+            {lineasParseadas.length > 0 && !resultadoIA && (
+              <div className="rounded-md border border-border">
+                <div className="flex items-center justify-between border-b border-border px-3 py-2">
+                  <p className="flex items-center gap-1.5 text-[11px] font-medium text-foreground">
+                    <ClipboardPaste className="h-3.5 w-3.5 text-muted-foreground" {...ICON_PROPS} /> Análisis automático
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3 text-[10px] font-medium">
+                    <span className="flex items-center gap-1 text-foreground">
+                      <Check className="h-3 w-3" {...ICON_PROPS} /> {validacion.validos.length} válidos
+                    </span>
+                    {validacion.invalidos.length > 0 && (
+                      <span className="flex items-center gap-1 text-destructive">
+                        <AlertTriangle className="h-3 w-3" {...ICON_PROPS} /> {validacion.invalidos.length} error
+                      </span>
+                    )}
+                    <span className="tabular-nums text-muted-foreground">
+                      {fmtNum(validacion.validos.reduce((s, d) => s + d.cantidad, 0))} und
+                    </span>
                   </div>
                 </div>
-              )}
-            </div>
-          )}
+                {validacion.invalidos.length > 0 && (
+                  <div className="max-h-[80px] overflow-y-auto px-3 py-2">
+                    {validacion.invalidos.slice(0, 8).map((inv, i) => (
+                      <div key={i} className="flex items-center gap-2 py-0.5 text-[10px]">
+                        <AlertTriangle className="h-2.5 w-2.5 shrink-0 text-destructive" {...ICON_PROPS} />
+                        {inv.d.tecnico && <span className="text-muted-foreground">{inv.d.tecnico}:</span>}
+                        <code className="font-mono text-foreground">{inv.d.sku || "(vacío)"}</code>
+                        <span className="text-destructive">— {inv.razon}</span>
+                      </div>
+                    ))}
+                    {validacion.invalidos.length > 8 && (
+                      <p className="mt-1 text-[9px] italic text-muted-foreground">+ {validacion.invalidos.length - 8} más…</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
-          <DialogFooter className="sticky bottom-0 bg-card">
-            <Button variant="outline" onClick={() => setBulkOpen(false)} className="rounded-lg">Cancelar</Button>
+            {/* Resultado final IA */}
+            {resultadoIA && (
+              <div className="space-y-2">
+                <div className={cn(
+                  "rounded-md border px-3 py-2.5",
+                  resultadoIA.ok > 0 ? "border-border bg-muted/30" : "border-destructive/30 bg-destructive/5"
+                )}>
+                  <p className={cn(
+                    "flex items-center gap-2 text-[13px] font-medium",
+                    resultadoIA.ok > 0 ? "text-foreground" : "text-destructive"
+                  )}>
+                    {resultadoIA.ok > 0
+                      ? <Check className="h-4 w-4" {...ICON_PROPS} />
+                      : <AlertTriangle className="h-4 w-4" {...ICON_PROPS} />}
+                    {resultadoIA.ok > 0
+                      ? `${resultadoIA.ok} despachos registrados · stock descontado`
+                      : "No se pudieron registrar despachos"}
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {fmtNum(resultadoIA.totalUnidades)} unidades descontadas del inventario
+                    {resultadoIA.fail > 0 && ` · ${resultadoIA.fail} con error`}
+                  </p>
+                </div>
+
+                {Object.keys(resultadoIA.porTecnico).length > 0 && (
+                  <div className="rounded-md border border-border px-3 py-2.5">
+                    <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                      Desglose por destinatario
+                    </p>
+                    <div className="grid max-h-[150px] grid-cols-1 gap-px overflow-y-auto bg-border sm:grid-cols-2">
+                      {Object.entries(resultadoIA.porTecnico)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([tecnico, unidades]) => (
+                          <div key={tecnico} className="flex items-center justify-between bg-background px-2 py-1.5 text-[11px]">
+                            <span className="truncate text-foreground">{tecnico}</span>
+                            <span className="shrink-0 font-medium tabular-nums text-foreground">{fmtNum(unidades)} und</span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="sticky bottom-0 gap-2 border-t border-border bg-background px-5 py-3">
+            <Button
+              variant="outline"
+              onClick={() => setBulkOpen(false)}
+              className="h-9 rounded-md border-border bg-background text-[13px] font-medium text-foreground hover:bg-muted"
+            >
+              Cancelar
+            </Button>
             <Button
               onClick={analizarYRegistrar}
               disabled={validacion.validos.length === 0 || analizando}
-              className="btn-spacecom rounded-lg border-0"
+              className="h-9 rounded-md bg-foreground text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
             >
               {analizando ? (
-                <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> Analizando…</>
+                <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" {...ICON_PROPS} /> Analizando…</>
               ) : (
-                <><Sparkles className="mr-1.5 h-4 w-4" /> Analizar y registrar {validacion.validos.length > 0 && `${validacion.validos.length}`}</>
+                <><ClipboardPaste className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Analizar y registrar {validacion.validos.length > 0 && `${validacion.validos.length}`}</>
               )}
             </Button>
           </DialogFooter>
@@ -559,12 +603,12 @@ export function DespachosView() {
 
 function StatCard({ label, value, sub, icon, highlight }: { label: string; value: string | number; sub?: string; icon: React.ReactNode; highlight?: boolean }) {
   return (
-    <div className={cn("anim-fade-up rounded-xl border bg-card p-4 shadow-sm", highlight && "border-primary/30 bg-primary/5")}>
+    <div className={cn("bg-background px-4 py-3", highlight && "bg-muted/40")}>
       <div className="flex items-center justify-between">
-        <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg", highlight ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>{icon}</span>
-        <span className="text-xl font-bold tabular-nums text-foreground">{value}</span>
+        <span className="text-muted-foreground">{icon}</span>
+        <span className="text-lg font-semibold tabular-nums text-foreground">{value}</span>
       </div>
-      <p className="mt-2 text-xs font-semibold text-muted-foreground">{label}</p>
+      <p className="mt-1.5 text-[11px] font-medium text-muted-foreground">{label}</p>
       {sub && <p className="text-[10px] text-muted-foreground/70">{sub}</p>}
     </div>
   );
