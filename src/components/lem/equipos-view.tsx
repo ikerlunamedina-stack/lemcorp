@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Cpu, Plus, Search, Pencil, Trash2, ChevronDown, Hash, ArrowRight } from "lucide-react";
+import { Plus, Search, ArrowRight } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { ESTADO_META, type EstadoEquipo, type Equipment } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -32,7 +32,6 @@ export function EquiposView() {
 
   const [query, setQuery] = useState("");
   const [estadoFilter, setEstadoFilter] = useState("todos");
-  const [expandedModel, setExpandedModel] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Equipment | null>(null);
   const [form, setForm] = useState({ serie: "", modelo: "", estado: "disponible" as EstadoEquipo, ubicacion: "", observacion: "" });
@@ -79,23 +78,27 @@ export function EquiposView() {
   };
 
   return (
-    <div className="px-6 py-6">
-      <div className="anim-fade-up mb-5 flex flex-wrap items-start justify-between gap-3">
+    <div className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6 lg:px-10">
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Equipos</h1>
-          <p className="text-sm text-muted-foreground">{equipos.length} equipo(s) · {models.length} modelo(s)</p>
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            {equipos.length} equipos · {models.length} modelos
+          </p>
+          <h1 className="mt-1 text-[28px] font-semibold tracking-tight text-foreground sm:text-[32px]">Equipos</h1>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative w-48">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar serie…" className="h-9 rounded-xl bg-muted/50 pl-8 text-sm" />
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" strokeWidth={1.5} />
+            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar serie…" className="h-9 rounded-md border-border bg-background pl-8 text-[13px]" />
           </div>
-          <Button onClick={openCreate} className="press btn-spacecom h-9 rounded-xl"><Plus className="mr-1.5 h-4 w-4" />Añadir</Button>
+          <Button onClick={openCreate} className="press h-9 rounded-md bg-foreground text-background hover:bg-foreground/90">
+            <Plus className="mr-1.5 h-4 w-4" strokeWidth={1.5} /> Añadir
+          </Button>
         </div>
       </div>
 
-      {/* Filtros */}
-      <div className="anim-fade-up mb-4 flex flex-wrap items-center gap-1.5">
+      {/* Filtros minimalistas */}
+      <div className="mb-6 flex flex-wrap items-center gap-1">
         <FilterChip active={estadoFilter === "todos"} onClick={() => setEstadoFilter("todos")} label="Todos" count={equipos.length} />
         {ESTADOS.map((est) => {
           const n = equipos.filter((e) => e.estado === est).length;
@@ -103,33 +106,39 @@ export function EquiposView() {
         })}
       </div>
 
-      {/* Lista por modelo (solo resumen, sin expandir series) */}
       {models.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-muted/30 px-4 py-12 text-center text-sm text-muted-foreground">
-          {equipos.length === 0 ? "No hay equipos. Haz clic en \"Añadir\"." : "Sin coincidencias."}
-        </div>
+        <p className="py-12 text-center text-[13px] text-muted-foreground">
+          {equipos.length === 0 ? "No hay equipos. Haz clic en Añadir." : "Sin coincidencias."}
+        </p>
       ) : (
-        <div className="space-y-2.5">
-          {models.map(([modelo, items], i) => (
-            <div key={modelo} className="anim-fade-up rounded-2xl border border-border bg-card" style={{ animationDelay: `${i * 30}ms` }}>
-              <div className="flex items-center gap-3 px-4 py-3.5">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-muted-foreground"><Cpu className="h-4 w-4" /></span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[14px] font-semibold">{modelo}</p>
-                  <p className="text-[11px] text-muted-foreground">{items.length} equipo(s) · {items.filter(e => e.estado === "disponible").length} disponibles</p>
-                </div>
-                <div className="hidden items-center gap-1.5 sm:flex">
-                  {ESTADOS.map((est) => {
-                    const n = items.filter((e) => e.estado === est).length;
-                    if (n === 0) return null;
-                    return <span key={est} className={cn("flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium", (est === "averiado" || est === "en_retiro") ? "bg-red-500/15 text-red-400" : est === "disponible" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}><EstadoIcon name={ESTADO_META[est].icon} className="h-2.5 w-2.5" /> {n}</span>;
-                  })}
-                </div>
-                <span className="rounded-full bg-foreground px-2.5 py-1 text-[11px] font-semibold text-background">{items.length}</span>
-                <button onClick={goSeries} className="press flex items-center gap-1 rounded-xl   px-3 py-2 text-[12px] font-medium text-white shadow-md  transition-all hover:-translate-y-0.5 hover:shadow-lg hover:">
-                  Ver series <ArrowRight className="h-3 w-3" />
-                </button>
+        <div className="divide-y divide-border border-y border-border">
+          {models.map(([modelo, items]) => (
+            <div key={modelo} className="anim-slide-up flex items-center gap-4 py-4">
+              <div className="min-w-0 flex-1">
+                <p className="text-[15px] font-medium text-foreground">{modelo}</p>
+                <p className="mt-0.5 text-[12px] text-muted-foreground">
+                  {items.length} equipo(s) · {items.filter((e) => e.estado === "disponible").length} disponibles
+                </p>
               </div>
+              <div className="hidden items-center gap-3 sm:flex">
+                {ESTADOS.map((est) => {
+                  const n = items.filter((e) => e.estado === est).length;
+                  if (n === 0) return null;
+                  return (
+                    <span key={est} className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                      <EstadoIcon name={ESTADO_META[est].icon} className="h-3 w-3" />
+                      {n}
+                    </span>
+                  );
+                })}
+              </div>
+              <span className="text-[15px] font-semibold tabular-nums text-foreground">{items.length}</span>
+              <button
+                onClick={goSeries}
+                className="press flex items-center gap-1 text-[12px] font-medium text-muted-foreground hover:text-foreground"
+              >
+                Ver series <ArrowRight className="h-3 w-3" strokeWidth={1.5} />
+              </button>
             </div>
           ))}
         </div>
@@ -137,40 +146,46 @@ export function EquiposView() {
 
       {/* Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Hash className="h-4 w-4" />{editing ? "Editar equipo" : "Añadir equipo"}</DialogTitle>
-            <DialogDescription>La serie es obligatoria y única.</DialogDescription>
+        <DialogContent className="rounded-lg border-border bg-background p-0">
+          <DialogHeader className="border-b border-border px-5 py-4">
+            <DialogTitle className="text-[15px] font-medium text-foreground">
+              {editing ? "Editar equipo" : "Añadir equipo"}
+            </DialogTitle>
+            <DialogDescription className="text-[12px] text-muted-foreground">
+              La serie es obligatoria y única.
+            </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 py-1">
+          <div className="grid grid-cols-2 gap-4 px-5 py-5">
             <div className="col-span-2 flex flex-col gap-1.5">
-              <Label htmlFor="eq-serie">Número de serie *</Label>
-              <Input id="eq-serie" value={form.serie} onChange={(e) => { setForm({ ...form, serie: e.target.value }); setDupError(false); }} placeholder="Ej. 48575443365E42B7" className={cn("rounded-xl font-mono", dupError && "border-destructive")} autoFocus />
-              {dupError && <p className="flex items-center gap-1 text-[11px] text-destructive"><Hash className="h-3 w-3" />Ya existe un equipo con esta serie</p>}
+              <Label htmlFor="eq-serie" className="text-[12px] font-medium text-foreground">Número de serie *</Label>
+              <Input id="eq-serie" value={form.serie} onChange={(e) => { setForm({ ...form, serie: e.target.value }); setDupError(false); }} placeholder="Ej. 48575443365E42B7" className={cn("rounded-md font-mono text-[13px]", dupError && "border-destructive")} autoFocus />
+              {dupError && <p className="text-[11px] text-destructive">Ya existe un equipo con esta serie</p>}
             </div>
             <div className="col-span-2 flex flex-col gap-1.5">
-              <Label htmlFor="eq-modelo">Modelo *</Label>
-              <Input id="eq-modelo" value={form.modelo} onChange={(e) => setForm({ ...form, modelo: e.target.value })} placeholder="Ej. ROUTER ONT HG8145X6-13 HUAWEI" className="rounded-xl" />
+              <Label htmlFor="eq-modelo" className="text-[12px] font-medium text-foreground">Modelo *</Label>
+              <Input id="eq-modelo" value={form.modelo} onChange={(e) => setForm({ ...form, modelo: e.target.value })} placeholder="Ej. ROUTER ONT HG8145X6-13 HUAWEI" className="rounded-md text-[13px]" />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Estado</Label>
+              <Label className="text-[12px] font-medium text-foreground">Estado</Label>
               <Select value={form.estado} onValueChange={(v) => setForm({ ...form, estado: v as EstadoEquipo })}>
-                <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-                <SelectContent className="rounded-xl">{ESTADOS.map((est) => <SelectItem key={est} value={est}><span className="flex items-center gap-1.5"><EstadoIcon name={ESTADO_META[est].icon} className="h-3 w-3" /> {ESTADO_META[est].label}</span></SelectItem>)}</SelectContent>
+                <SelectTrigger className="rounded-md text-[13px]"><SelectValue /></SelectTrigger>
+                <SelectContent className="rounded-md">{ESTADOS.map((est) => <SelectItem key={est} value={est}><span className="flex items-center gap-1.5"><EstadoIcon name={ESTADO_META[est].icon} className="h-3 w-3" /> {ESTADO_META[est].label}</span></SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="eq-ubic">Ubicación</Label>
-              <Input id="eq-ubic" value={form.ubicacion} onChange={(e) => setForm({ ...form, ubicacion: e.target.value })} placeholder="Almacén, Taller…" className="rounded-xl" />
+              <Label htmlFor="eq-ubic" className="text-[12px] font-medium text-foreground">Ubicación</Label>
+              <Input id="eq-ubic" value={form.ubicacion} onChange={(e) => setForm({ ...form, ubicacion: e.target.value })} placeholder="Almacén, Taller…" className="rounded-md text-[13px]" />
             </div>
             <div className="col-span-2 flex flex-col gap-1.5">
-              <Label htmlFor="eq-obs">Observación</Label>
-              <Textarea id="eq-obs" value={form.observacion} onChange={(e) => setForm({ ...form, observacion: e.target.value })} placeholder="Ej. No enciende, cliente devolvió…" className="rounded-xl min-h-[60px]" />
+              <Label htmlFor="eq-obs" className="text-[12px] font-medium text-foreground">Observación</Label>
+              <Textarea id="eq-obs" value={form.observacion} onChange={(e) => setForm({ ...form, observacion: e.target.value })} placeholder="Ej. No enciende, cliente devolvió…" className="rounded-md min-h-[60px] text-[13px]" />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">Cancelar</Button>
-            <Button onClick={handleSave} disabled={!form.serie.trim() || !form.modelo.trim()} className="rounded-xl">{editing ? "Guardar" : "Añadir"}</Button>
+          <DialogFooter className="border-t border-border px-5 py-4">
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="h-9 rounded-md border-border bg-background text-[13px] font-medium hover:bg-muted">Cancelar</Button>
+            <Button onClick={handleSave} disabled={!form.serie.trim() || !form.modelo.trim()} className="h-9 rounded-md bg-foreground text-background hover:bg-foreground/90 text-[13px] font-medium">
+              {editing ? "Guardar" : "Añadir"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -180,8 +195,17 @@ export function EquiposView() {
 
 function FilterChip({ active, onClick, label, count }: { active: boolean; onClick: () => void; label: string; count: number }) {
   return (
-    <button onClick={onClick} className={cn("press flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors", active ? "border-primary/40 bg-primary/10 text-primary" : "border-border bg-muted/40 text-muted-foreground hover:bg-accent/50")}>
-      {label}<span className="rounded-full bg-background px-1.5 text-[10px]">{count}</span>
+    <button
+      onClick={onClick}
+      className={cn(
+        "press flex items-center gap-1.5 rounded-md border px-3 py-1 text-[12px] font-medium transition-colors",
+        active
+          ? "border-foreground bg-foreground text-background"
+          : "border-border bg-background text-muted-foreground hover:text-foreground hover:bg-muted"
+      )}
+    >
+      {label}
+      <span className={cn("tabular-nums", active ? "text-background/70" : "text-muted-foreground")}>{count}</span>
     </button>
   );
 }

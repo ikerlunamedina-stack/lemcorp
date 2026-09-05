@@ -30,7 +30,6 @@ interface NavItem {
   href: string;
   icon: typeof LayoutDashboard;
   label: string;
-  /** ruta exacta para marcar activo (true) o prefijo (false, default) */
   exact?: boolean;
 }
 
@@ -57,7 +56,6 @@ function iniciales(usuario: string): string {
 export function Navbar() {
   const pathname = usePathname();
   const products = useStore((s) => s.products);
-  const empresa = useStore((s) => s.empresa);
   const settings = useStore((s) => s.settings);
   const setSetting = useStore((s) => s.setSetting);
   const bajoStockVisto = useStore((s) => s.bajoStockVisto);
@@ -75,28 +73,21 @@ export function Navbar() {
     (p) => p.minStock && p.minStock > 0 && p.quantity <= p.minStock
   ).length;
 
-  // Solo mostrar el badge si hay más productos en bajo stock que los que ya vio
   const badgeCount = Math.max(0, bajoStock - bajoStockVisto);
 
-  // Cuando entra a /notificaciones, marcamos como visto el conteo actual
   useEffect(() => {
     if (pathname === "/notificaciones" && bajoStock > 0) {
       marcarBajoStockVisto(bajoStock);
     }
   }, [pathname, bajoStock, marcarBajoStockVisto]);
 
-  // Miembro actual (sesión)
   const miembroActual = sesionUsuarioId
     ? miembros.find((m) => m.id === sesionUsuarioId)
     : null;
-  // Si no hay sesión, el usuario es el "dueño/admin" (settings.usuario)
   const nombreUsuario = miembroActual?.nombre || settings.usuario || "Iker";
-  const rolLabel = miembroActual
-    ? ROL_META[miembroActual.rol].short
-    : "Admin";
+  const rolLabel = miembroActual ? ROL_META[miembroActual.rol].short : "Admin";
   const esAdmin = !miembroActual || miembroActual.rol === "administrador";
 
-  // Filtrar items por permisos
   const navItemsVisibles = NAV_ITEMS.filter((item) => tienePermiso(item.permiso));
 
   const cycleTema = () => {
@@ -110,147 +101,145 @@ export function Navbar() {
     settings.tema === "claro" ? Sun : settings.tema === "oscuro" ? Moon : Monitor;
 
   return (
-    <header className="sticky top-0 z-40 px-2 pt-2 lg:px-4 lg:pt-3">
-      <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-2 rounded-2xl border border-border/60 bg-card/80 px-3 shadow-lg backdrop-blur-xl lg:px-6">
-      {/* Logo */}
-      <Link href="/" className="press flex shrink-0 items-center gap-2">
-        <img src="/lemcorp-logo.png" alt="LEMCORP" className="h-9 w-9 rounded-lg object-contain" />
-        <div className="flex flex-col leading-none">
-          <span className="text-[15px] font-bold tracking-tight text-foreground">LEMCORP</span>
-          <span className="mt-0.5 hidden text-[9px] font-semibold tracking-[0.15em] text-muted-foreground uppercase sm:block">Sistema de Almacén</span>
-        </div>
-      </Link>
+    <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl">
+      <div className="mx-auto flex h-12 max-w-[1400px] items-center gap-1 px-4 lg:px-6">
+        {/* Logo minimalista: texto, no imagen llamativa */}
+        <Link href="/" className="press flex shrink-0 items-center gap-2.5">
+          <span className="text-[15px] font-semibold tracking-tight text-foreground">
+            LEMCORP
+          </span>
+          <span className="hidden text-[10px] font-medium tracking-[0.18em] text-muted-foreground uppercase sm:inline">
+            WMS
+          </span>
+        </Link>
 
-      <div className="mx-1 h-7 w-px bg-border" />
+        {/* Nav desktop — texto simple, sin iconos en relleno, activo subrayado */}
+        <nav className="mx-auto hidden items-center gap-1 lg:flex">
+          {navItemsVisibles.map((item) => {
+            const active = isActive(item);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "press relative flex h-9 items-center px-3 text-[13px] font-medium transition-colors",
+                  active
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <span>{item.label}</span>
+                {active && (
+                  <span className="absolute inset-x-3 -bottom-px h-px bg-foreground" />
+                )}
+              </Link>
+            );
+          })}
+        </nav>
 
-      {/* Nav desktop */}
-      <nav className="mx-auto hidden items-center gap-0.5 lg:flex">
-        {navItemsVisibles.map((item) => {
-          const active = isActive(item);
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "press flex h-9 items-center gap-1.5 rounded-lg px-3 text-[13px] font-medium transition-colors",
-                active
-                  ? "bg-accent text-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Botón hamburguesa para móvil */}
-      <button
-        onClick={() => setDrawerOpen(true)}
-        className="press ml-auto flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-foreground transition-colors hover:bg-accent lg:hidden"
-        aria-label="Abrir menú"
-      >
-        <Menu className="h-5 w-5" />
-      </button>
-
-      {/* Zona derecha */}
-      <div className="flex items-center gap-1.5">
-        {/* Tema */}
-        <button onClick={cycleTema} title={`Tema: ${settings.tema}`} className="press flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground">
-          <TemaIcon className="h-4 w-4" />
+        {/* Botón menú móvil */}
+        <button
+          onClick={() => setDrawerOpen(true)}
+          className="press ml-auto flex h-9 w-9 items-center justify-center text-foreground lg:hidden"
+          aria-label="Abrir menú"
+        >
+          <Menu className="h-5 w-5" strokeWidth={1.5} />
         </button>
 
-        {/* Notificaciones (solo si tiene permiso) */}
-        {tienePermiso("ver_notificaciones") && (
-          <Link href="/notificaciones" className="press relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground">
-            <Bell className="h-4 w-4" />
-            {settings.lowStockAlerts && badgeCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
-                {badgeCount > 99 ? "99+" : badgeCount}
-              </span>
-            )}
-          </Link>
-        )}
+        {/* Zona derecha minimalista */}
+        <div className="flex items-center gap-0.5 lg:ml-0 ml-auto lg:ml-0">
+          {/* Tema */}
+          <button
+            onClick={cycleTema}
+            title={`Tema: ${settings.tema}`}
+            className="press flex h-9 w-9 items-center justify-center text-muted-foreground hover:text-foreground"
+          >
+            <TemaIcon className="h-4 w-4" strokeWidth={1.5} />
+          </button>
 
-        {/* Config (solo si tiene permiso) */}
-        {tienePermiso("ver_config") && (
+          {/* Notificaciones */}
+          {tienePermiso("ver_notificaciones") && (
+            <Link
+              href="/notificaciones"
+              className="press relative flex h-9 w-9 items-center justify-center text-muted-foreground hover:text-foreground"
+            >
+              <Bell className="h-4 w-4" strokeWidth={1.5} />
+              {settings.lowStockAlerts && badgeCount > 0 && (
+                <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary" />
+              )}
+            </Link>
+          )}
+
+          {/* Config */}
+          {tienePermiso("ver_config") && (
+            <Link
+              href="/config"
+              className={cn(
+                "press flex h-9 w-9 items-center justify-center transition-colors",
+                pathname?.startsWith("/config")
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <SettingsIcon className="h-4 w-4" strokeWidth={1.5} />
+            </Link>
+          )}
+
+          {/* Avatar — círculo con line-art, sin relleno */}
           <Link
             href="/config"
             className={cn(
-              "press flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
-              pathname?.startsWith("/config") ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"
+              "press ml-1.5 flex h-8 w-8 items-center justify-center rounded-full border text-[11px] font-semibold transition-colors",
+              esAdmin
+                ? "border-foreground/30 text-foreground"
+                : "border-muted-foreground/30 text-muted-foreground"
             )}
+            title={`${nombreUsuario} · ${rolLabel}`}
           >
-            <SettingsIcon className="h-4 w-4" />
+            {iniciales(nombreUsuario)}
           </Link>
-        )}
-
-        {/* Avatar con rol */}
-        <Link
-          href="/config"
-          className={cn(
-            "press relative ml-1 flex h-9 w-9 items-center justify-center rounded-full text-[11px] font-bold text-primary-foreground shadow-sm",
-            esAdmin ? "bg-primary" : "bg-muted-foreground"
-          )}
-          title={`${nombreUsuario} · ${rolLabel}`}
-        >
-          {iniciales(nombreUsuario)}
-        </Link>
+        </div>
       </div>
 
-      {/* Drawer móvil — menú deslizable desde la izquierda */}
+      {/* Drawer móvil minimalista */}
       {drawerOpen && (
         <>
-          {/* Overlay oscuro */}
           <div
-            className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm anim-drawer-overlay lg:hidden"
+            className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm anim-overlay-in lg:hidden"
             onClick={() => setDrawerOpen(false)}
           />
-          {/* Panel deslizable */}
           <aside
-            className="fixed left-0 top-0 z-[70] flex h-full w-[280px] max-w-[85vw] flex-col border-r border-border bg-card shadow-2xl anim-drawer-slide lg:hidden"
+            className="fixed left-0 top-0 z-[70] flex h-full w-[280px] max-w-[85vw] flex-col border-r border-border bg-background anim-drawer-in lg:hidden"
             style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
           >
-            {/* Cabecera del drawer */}
-            <div className="flex items-center justify-between border-b border-border p-4">
-              <div className="flex items-center gap-2.5">
-                <img src="/lemcorp-logo.png" alt="LEMCORP" className="h-9 w-9 rounded-lg object-contain" />
-                <div className="flex flex-col leading-none">
-                  <span className="text-[15px] font-bold tracking-tight text-foreground">LEMCORP</span>
-                  <span className="mt-0.5 text-[9px] font-semibold tracking-[0.15em] text-muted-foreground uppercase">Menú</span>
-                </div>
-              </div>
+            <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
+              <span className="text-[15px] font-semibold tracking-tight text-foreground">
+                LEMCORP
+              </span>
               <button
                 onClick={() => setDrawerOpen(false)}
-                className="press flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
+                className="press flex h-9 w-9 items-center justify-center text-muted-foreground hover:text-foreground"
                 aria-label="Cerrar menú"
               >
-                <X className="h-5 w-5" />
+                <X className="h-5 w-5" strokeWidth={1.5} />
               </button>
             </div>
 
-            {/* Info del usuario */}
-            <div className="flex items-center gap-3 border-b border-border p-4">
-              <div className={cn(
-                "flex h-11 w-11 items-center justify-center rounded-full text-[13px] font-bold",
-                esAdmin ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-              )}>
+            <div className="flex items-center gap-3 border-b border-border px-4 py-3.5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-foreground/25 text-[12px] font-semibold text-foreground">
                 {iniciales(nombreUsuario)}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[14px] font-bold text-foreground">{nombreUsuario}</p>
+                <p className="truncate text-[14px] font-medium text-foreground">{nombreUsuario}</p>
                 <p className="text-[11px] text-muted-foreground">{rolLabel}</p>
               </div>
             </div>
 
-            {/* Lista de navegación */}
-            <nav className="flex-1 overflow-y-auto scroll-thin p-3">
-              <p className="mb-2 px-2 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+            <nav className="flex-1 overflow-y-auto scroll-thin px-2 py-2">
+              <p className="mb-1 px-3 py-2 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
                 Navegación
               </p>
-              {navItemsVisibles.map((item, idx) => {
+              {navItemsVisibles.map((item) => {
                 const active = isActive(item);
                 const Icon = item.icon;
                 return (
@@ -259,37 +248,37 @@ export function Navbar() {
                     href={item.href}
                     onClick={() => setDrawerOpen(false)}
                     className={cn(
-                      "press anim-drawer-item flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-medium transition-colors",
+                      "press flex items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-medium transition-colors",
                       active
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                        ? "text-foreground bg-muted/50"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                     )}
-                    style={{ animationDelay: `${idx * 30}ms` }}
                   >
-                    <Icon className="h-5 w-5" />
+                    <Icon className="h-4 w-4" strokeWidth={1.5} />
                     <span>{item.label}</span>
                     {active && (
-                      <span className="ml-auto h-2 w-2 rounded-full bg-primary" />
+                      <span className="ml-auto h-1 w-1 rounded-full bg-foreground" />
                     )}
                   </Link>
                 );
               })}
             </nav>
 
-            {/* Pie del drawer */}
-            <div className="border-t border-border p-3" style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 12px)" }}>
+            <div
+              className="border-t border-border px-2 py-2"
+              style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 8px)" }}
+            >
               <button
                 onClick={cycleTema}
-                className="press flex w-full items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+                className="press flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/30"
               >
-                <TemaIcon className="h-5 w-5" />
+                <TemaIcon className="h-4 w-4" strokeWidth={1.5} />
                 <span>Tema: {settings.tema}</span>
               </button>
             </div>
           </aside>
         </>
       )}
-      </div>
     </header>
   );
 }

@@ -6,16 +6,15 @@ import {
   Search,
   Pencil,
   Trash2,
-  AlertTriangle,
   Hash,
   Download,
   ArrowDownToLine,
   Trash,
   Check,
   X,
-  FileUp,
-  Loader2,
   Upload,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import type { Product } from "@/lib/types";
@@ -28,6 +27,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+
+const ICON_PROPS = { strokeWidth: 1.5 } as const;
 
 export function InventarioView() {
   const products = useStore((s) => s.products);
@@ -182,256 +183,409 @@ export function InventarioView() {
   const invalidCount = entradaPreview.filter((p) => !p.ok || !p.producto).length;
 
   return (
-    <div className="px-6 py-6">
-      <div className="anim-fade-up mb-5 flex flex-wrap items-start justify-between gap-3">
+    <div className="px-6 py-6 anim-fade-in">
+      {/* Header */}
+      <header className="anim-slide-up mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Inventario</h1>
-          <p className="text-sm text-muted-foreground">{products.length} producto(s) · {fmtNum(totalUnidades)} unidades</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Inventario</h1>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            {products.length} producto(s) · {fmtNum(totalUnidades)} unidades
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <input ref={importFileRef} type="file" accept=".xlsx,.xls" onChange={handleImportInventario} className="hidden" />
-          <div className="relative w-48">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar SKU…" className="h-9 rounded-xl bg-muted/50 pl-8 text-sm" />
+          <div className="relative w-56">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" {...ICON_PROPS} />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar SKU o producto…"
+              className="h-9 rounded-md border-border bg-background pl-8 text-[13px]"
+            />
           </div>
-          <Button variant="outline" onClick={() => importFileRef.current?.click()} disabled={importingInv} className="press h-9 rounded-xl">
-            {importingInv ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Upload className="mr-1.5 h-4 w-4" />}
-            {importingInv ? "…" : "Importar Excel"}
+          <Button
+            variant="outline"
+            onClick={() => importFileRef.current?.click()}
+            disabled={importingInv}
+            className="h-9 rounded-md border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted"
+          >
+            {importingInv
+              ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" {...ICON_PROPS} />
+              : <Upload className="mr-1.5 h-4 w-4" {...ICON_PROPS} />}
+            {importingInv ? "Importando…" : "Importar"}
           </Button>
-          <Button variant="outline" onClick={() => setEntradaOpen(true)} className="press h-9 rounded-xl">
-            <ArrowDownToLine className="mr-1.5 h-4 w-4" /> Entrada
+          <Button
+            variant="outline"
+            onClick={() => setEntradaOpen(true)}
+            className="h-9 rounded-md border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted"
+          >
+            <ArrowDownToLine className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Entrada
           </Button>
-          <Button variant="outline" onClick={() => exportInventarioExcel()} className="press h-9 rounded-xl">
-            <Download className="mr-1.5 h-4 w-4" /> Exportar
+          <Button
+            variant="outline"
+            onClick={() => exportInventarioExcel()}
+            className="h-9 rounded-md border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted"
+          >
+            <Download className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Exportar
           </Button>
-          <Button onClick={openCreate} className="press h-9 rounded-xl">
-            <Plus className="mr-1.5 h-4 w-4" /> Añadir
+          <Button
+            onClick={openCreate}
+            className="h-9 rounded-md bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+          >
+            <Plus className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Añadir
           </Button>
         </div>
-      </div>
+      </header>
 
+      {/* Tabla inventario */}
       {filtered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-muted/30 px-4 py-12 text-center text-sm text-muted-foreground">
-          {products.length === 0 ? "No hay productos. Haz clic en \"Añadir\"." : "Sin coincidencias."}
+        <div className="anim-fade-in rounded-lg border border-dashed border-border bg-background px-4 py-16 text-center text-[13px] text-muted-foreground">
+          {products.length === 0 ? "No hay productos. Pulsa “Añadir” para crear el primero." : "Sin coincidencias."}
         </div>
       ) : (
-        <div className="anim-fade-up rounded-2xl border border-border bg-card">
-          <div className="overflow-x-auto scroll-thin">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/40 text-left text-[10px] uppercase tracking-wide text-muted-foreground">
-                  <th className="px-4 py-2.5 font-medium">SKU</th>
-                  <th className="px-4 py-2.5 font-medium">Producto</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Stock</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Mín</th>
-                  <th className="px-4 py-2.5 font-medium">UdM</th>
-                  <th className="px-4 py-2.5"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((p) => {
-                  const bajo = p.minStock !== undefined && p.minStock > 0 && p.quantity <= p.minStock;
-                  return (
-                    <tr key={p.id} className="group border-b border-border/50 last:border-0 hover:bg-accent/30 transition-colors duration-200">
-                      <td className="px-4 py-2.5"><span className="font-mono text-[12px] font-semibold">{p.sku}</span></td>
-                      <td className="px-4 py-2.5"><span className="text-[13px] font-medium">{p.name}</span></td>
-                      <td className="px-4 py-2.5 text-right">
-                        <span className={cn("inline-flex min-w-[48px] justify-center rounded-full px-2.5 py-0.5 text-[12px] font-semibold tabular-nums", bajo ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary")}>
-                          {fmtNum(p.quantity)}
-                        </span>
-                        {bajo && <AlertTriangle className="ml-1 inline h-3 w-3 text-destructive" />}
-                      </td>
-                      <td className="px-4 py-2.5 text-right text-[12px] tabular-nums text-muted-foreground">{p.minStock ? fmtNum(p.minStock) : "—"}</td>
-                      <td className="px-4 py-2.5 text-[11px] text-muted-foreground">{p.udm ?? "—"}</td>
-                      <td className="px-4 py-2.5">
-                        <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                          <button onClick={() => openEdit(p)} className="press rounded-md p-1.5 text-muted-foreground hover:bg-accent"><Pencil className="h-3.5 w-3.5" /></button>
-                          <button onClick={() => deleteProduct(p.id)} className="press rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+        <div className="anim-slide-up overflow-x-auto scroll-thin rounded-lg border border-border bg-background">
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr className="border-b border-border text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                <th className="px-4 py-2.5 font-medium">SKU</th>
+                <th className="px-4 py-2.5 font-medium">Producto</th>
+                <th className="px-4 py-2.5 text-right font-medium">Stock</th>
+                <th className="px-4 py-2.5 text-right font-medium">Mín</th>
+                <th className="px-4 py-2.5 font-medium">UdM</th>
+                <th className="px-4 py-2.5"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filtered.map((p) => {
+                const bajo = p.minStock !== undefined && p.minStock > 0 && p.quantity <= p.minStock;
+                return (
+                  <tr key={p.id} className="group transition-colors duration-150 hover:bg-muted/50">
+                    <td className="px-4 py-3">
+                      <span className="font-mono text-[12px] text-foreground">{p.sku}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="font-medium text-foreground">{p.name}</span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <span className="inline-flex items-center justify-end gap-1.5 tabular-nums text-foreground">
+                        {bajo && (
+                          <span
+                            className="h-1.5 w-1.5 rounded-full bg-destructive"
+                            aria-label="stock bajo mínimo"
+                            title="Stock bajo el mínimo"
+                          />
+                        )}
+                        {fmtNum(p.quantity)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+                      {p.minStock ? fmtNum(p.minStock) : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-[12px] text-muted-foreground">{p.udm ?? "—"}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                        <button
+                          onClick={() => openEdit(p)}
+                          aria-label="Editar producto"
+                          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                          <Pencil className="h-3.5 w-3.5" {...ICON_PROPS} />
+                        </button>
+                        <button
+                          onClick={() => deleteProduct(p.id)}
+                          aria-label="Eliminar producto"
+                          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" {...ICON_PROPS} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
       {/* Entradas recientes */}
       {entradas.length > 0 && (
-        <div className="anim-fade-up mt-4 rounded-2xl border border-border bg-card p-5">
-          <h2 className="mb-3 text-sm font-semibold">Entradas recientes</h2>
-          <div className="space-y-1.5 overflow-y-auto scroll-thin">
+        <section className="anim-slide-up mt-10">
+          <h2 className="mb-3 text-[13px] font-medium uppercase tracking-wider text-muted-foreground">
+            Entradas recientes
+          </h2>
+          <div className="divide-y divide-border rounded-lg border border-border bg-background">
             {entradas.slice(0, 15).map((e) => {
-              // Re-resolver el nombre del producto (por si se añadió al catálogo después)
               const prodActual = findProductBySku(e.sku);
               const nombreMostrar = prodActual?.name ?? e.producto;
               const enCatalogo = !!prodActual;
               return (
-                <div key={e.id} className="group flex items-center gap-2.5 rounded-xl border border-border/60 p-2">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-[11px] font-bold text-emerald-400">+{e.cantidad}</span>
+                <div key={e.id} className="group flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/40">
+                  <span className="font-mono text-[12px] tabular-nums text-foreground">+{e.cantidad}</span>
                   <div className="min-w-0 flex-1">
-                    <p className="flex items-center gap-1.5 truncate text-[12px] font-medium">
+                    <p className="flex items-center gap-2 truncate text-[13px] font-medium text-foreground">
                       {nombreMostrar}
                       {!enCatalogo && (
-                        <span className="inline-flex items-center rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-400">
-                          NO CAT.
+                        <span className="inline-flex items-center gap-1 text-[11px] font-normal text-muted-foreground">
+                          <span className="h-1 w-1 rounded-full bg-muted-foreground" />
+                          no en catálogo
                         </span>
                       )}
                     </p>
-                    <p className="font-mono text-[10px] text-muted-foreground">{e.sku}</p>
+                    <p className="font-mono text-[11px] text-muted-foreground">{e.sku}</p>
                   </div>
-                  <span className="text-[10px] text-muted-foreground">{new Date(e.fecha).toLocaleDateString("es-PE")}</span>
-                  <button onClick={() => deleteEntrada(e.id)} className="press rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"><Trash className="h-3 w-3" /></button>
+                  <span className="text-[11px] tabular-nums text-muted-foreground">
+                    {new Date(e.fecha).toLocaleDateString("es-PE")}
+                  </span>
+                  <button
+                    onClick={() => deleteEntrada(e.id)}
+                    aria-label="Eliminar entrada"
+                    className="rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                  >
+                    <Trash className="h-3.5 w-3.5" {...ICON_PROPS} />
+                  </button>
                 </div>
               );
             })}
           </div>
-        </div>
+        </section>
       )}
 
       {/* Dialog añadir/editar */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Hash className="h-4 w-4" />{editing ? "Editar producto" : "Añadir producto"}</DialogTitle>
+        <DialogContent className="rounded-lg border-border p-0">
+          <DialogHeader className="border-b border-border px-6 py-4">
+            <DialogTitle className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
+              <Hash className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+              {editing ? "Editar producto" : "Añadir producto"}
+            </DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 py-1">
+          <div className="grid grid-cols-2 gap-4 px-6 py-5">
             <div className="col-span-2 flex flex-col gap-1.5">
-              <Label htmlFor="p-sku">SKU *</Label>
-              <Input id="p-sku" value={form.sku} onChange={(e) => { setForm({ ...form, sku: e.target.value }); setDupError(false); }} placeholder="Ej. 1066990" className={cn("rounded-xl font-mono", dupError && "border-destructive")} autoFocus />
-              {dupError && <p className="flex items-center gap-1 text-[11px] text-destructive"><AlertTriangle className="h-3 w-3" />Ya existe un producto con este SKU</p>}
+              <Label htmlFor="p-sku" className="text-[12px] font-medium text-muted-foreground">SKU *</Label>
+              <Input
+                id="p-sku"
+                value={form.sku}
+                onChange={(e) => { setForm({ ...form, sku: e.target.value }); setDupError(false); }}
+                placeholder="Ej. 1066990"
+                className={cn("rounded-md border-border font-mono text-[13px]", dupError && "border-destructive")}
+                autoFocus
+              />
+              {dupError && (
+                <p className="flex items-center gap-1 text-[11px] text-destructive">
+                  <AlertCircle className="h-3 w-3" {...ICON_PROPS} />
+                  Ya existe un producto con este SKU
+                </p>
+              )}
             </div>
             <div className="col-span-2 flex flex-col gap-1.5">
-              <Label htmlFor="p-name">Nombre del producto *</Label>
-              <Input id="p-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ej. CONECTOR FIBRA OPTICA FTTH PPC" className="rounded-xl" />
+              <Label htmlFor="p-name" className="text-[12px] font-medium text-muted-foreground">Nombre del producto *</Label>
+              <Input
+                id="p-name"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="Ej. CONECTOR FIBRA OPTICA FTTH PPC"
+                className="rounded-md border-border text-[13px]"
+              />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="p-qty">Stock actual</Label>
-              <Input id="p-qty" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} placeholder="Ej. 41" inputMode="numeric" className="rounded-xl tabular-nums" />
+              <Label htmlFor="p-qty" className="text-[12px] font-medium text-muted-foreground">Stock actual</Label>
+              <Input
+                id="p-qty"
+                value={form.quantity}
+                onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+                placeholder="Ej. 41"
+                inputMode="numeric"
+                className="rounded-md border-border text-[13px] tabular-nums"
+              />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="p-min">Stock mínimo</Label>
-              <Input id="p-min" value={form.minStock} onChange={(e) => setForm({ ...form, minStock: e.target.value })} placeholder="Ej. 10" inputMode="numeric" className="rounded-xl tabular-nums" />
+              <Label htmlFor="p-min" className="text-[12px] font-medium text-muted-foreground">Stock mínimo</Label>
+              <Input
+                id="p-min"
+                value={form.minStock}
+                onChange={(e) => setForm({ ...form, minStock: e.target.value })}
+                placeholder="Ej. 10"
+                inputMode="numeric"
+                className="rounded-md border-border text-[13px] tabular-nums"
+              />
             </div>
             <div className="col-span-2 flex flex-col gap-1.5">
-              <Label htmlFor="p-udm">Unidad de medida</Label>
-              <Input id="p-udm" value={form.udm} onChange={(e) => setForm({ ...form, udm: e.target.value })} placeholder="UNIDADES, METROS…" className="rounded-xl" />
+              <Label htmlFor="p-udm" className="text-[12px] font-medium text-muted-foreground">Unidad de medida</Label>
+              <Input
+                id="p-udm"
+                value={form.udm}
+                onChange={(e) => setForm({ ...form, udm: e.target.value })}
+                placeholder="UNIDADES, METROS…"
+                className="rounded-md border-border text-[13px]"
+              />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl">Cancelar</Button>
-            <Button onClick={handleSave} disabled={!form.sku.trim() || !form.name.trim()} className="rounded-xl">{editing ? "Guardar" : "Añadir"}</Button>
+          <DialogFooter className="flex-row justify-end gap-2 border-t border-border px-6 py-4">
+            <Button
+              variant="ghost"
+              onClick={() => setDialogOpen(false)}
+              className="h-9 rounded-md px-3.5 text-[13px] font-medium hover:bg-muted"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={!form.sku.trim() || !form.name.trim()}
+              className="h-9 rounded-md bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+            >
+              {editing ? "Guardar" : "Añadir"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Dialog entrada rápida */}
       <Dialog open={entradaOpen} onOpenChange={setEntradaOpen}>
-        <DialogContent className="rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><ArrowDownToLine className="h-4 w-4" />Entrada de mercadería</DialogTitle>
-            <DialogDescription>
-              Escribe una línea por entrada con el formato: <strong>SKU*cantidad</strong><br />
-              Ejemplo: <code className="font-mono text-primary">1066990*100</code>
+        <DialogContent className="rounded-lg border-border p-0">
+          <DialogHeader className="border-b border-border px-6 py-4">
+            <DialogTitle className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
+              <ArrowDownToLine className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+              Entrada de mercadería
+            </DialogTitle>
+            <DialogDescription className="text-[13px] text-muted-foreground">
+              Escribe una línea por entrada con el formato: <span className="font-mono text-foreground">SKU*cantidad</span>. Ejemplo:{" "}
+              <span className="font-mono text-foreground">1066990*100</span>
             </DialogDescription>
           </DialogHeader>
-          <Textarea
-            value={entradaText}
-            onChange={(e) => { setEntradaText(e.target.value); setEntradaMsg(""); }}
-            placeholder={"1066990*100\n1002900*50\n4076358*5"}
-            className="min-h-[100px] rounded-xl font-mono text-[13px]"
-            autoFocus
-          />
-          {/* Live preview */}
-          {entradaPreview.length > 0 && (
-            <div className="space-y-1.5 overflow-y-auto scroll-thin">
-              {entradaPreview.map((p) => (
-                <div
-                  key={p.i}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[12px]",
-                    p.ok && p.producto
-                      ? "border-emerald-500/30 bg-emerald-500/5"
-                      : "border-red-500/30 bg-red-500/5"
-                  )}
-                >
-                  {p.ok && p.producto ? (
-                    <Check className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
-                  ) : (
-                    <X className="h-3.5 w-3.5 shrink-0 text-red-400" />
-                  )}
-                  <span className="font-mono text-[11px] font-semibold">{p.sku || "?"}</span>
-                  <span className="text-muted-foreground">×</span>
-                  <span className="tabular-nums">{isNaN(p.cantidad) ? "?" : p.cantidad}</span>
-                  <span className="min-w-0 flex-1 truncate text-muted-foreground">
-                    {p.producto ? p.producto.name : p.motivo}
+
+          <div className="px-6 py-5">
+            <Textarea
+              value={entradaText}
+              onChange={(e) => { setEntradaText(e.target.value); setEntradaMsg(""); }}
+              placeholder={"1066990*100\n1002900*50\n4076358*5"}
+              className="min-h-[120px] rounded-md border-border font-mono text-[13px]"
+              autoFocus
+            />
+
+            {/* Live preview */}
+            {entradaPreview.length > 0 && (
+              <div className="mt-4 space-y-1">
+                {entradaPreview.map((p) => (
+                  <div
+                    key={p.i}
+                    className={cn(
+                      "flex items-center gap-2 rounded-md border px-3 py-2 text-[12px]",
+                      p.ok && p.producto
+                        ? "border-border bg-muted/40"
+                        : "border-destructive/30 bg-destructive/5"
+                    )}
+                  >
+                    {p.ok && p.producto ? (
+                      <Check className="h-3.5 w-3.5 shrink-0 text-muted-foreground" {...ICON_PROPS} />
+                    ) : (
+                      <X className="h-3.5 w-3.5 shrink-0 text-destructive" {...ICON_PROPS} />
+                    )}
+                    <span className="font-mono text-[11px] text-foreground">{p.sku || "?"}</span>
+                    <span className="text-muted-foreground">×</span>
+                    <span className="tabular-nums text-foreground">{isNaN(p.cantidad) ? "?" : p.cantidad}</span>
+                    <span className="min-w-0 flex-1 truncate text-muted-foreground">
+                      {p.producto ? p.producto.name : p.motivo}
+                    </span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between pt-2 text-[11px] text-muted-foreground">
+                  <span className="inline-flex items-center gap-1">
+                    <Check className="h-3 w-3" {...ICON_PROPS} /> {validCount} válida(s)
                   </span>
+                  {invalidCount > 0 && (
+                    <span className="inline-flex items-center gap-1 text-destructive">
+                      <X className="h-3 w-3" {...ICON_PROPS} /> {invalidCount} con problema(s)
+                    </span>
+                  )}
                 </div>
-              ))}
-              <div className="flex items-center justify-between pt-1 text-[11px]">
-                <span className="flex items-center gap-1 text-emerald-400">
-                  <Check className="h-3 w-3" /> {validCount} válida(s)
-                </span>
-                {invalidCount > 0 && (
-                  <span className="flex items-center gap-1 text-red-400">
-                    <X className="h-3 w-3" /> {invalidCount} con problema(s)
-                  </span>
-                )}
               </div>
-            </div>
-          )}
-          {entradaMsg && <p className={cn("text-[12px] font-medium", entradaMsg.includes("incorrecto") ? "text-destructive" : "text-primary")}>{entradaMsg}</p>}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEntradaOpen(false)} className="rounded-xl">Cancelar</Button>
-            <Button onClick={handleEntrada} disabled={!entradaText.trim()} className="rounded-xl">Registrar entrada</Button>
+            )}
+
+            {entradaMsg && (
+              <p className={cn("mt-4 text-[12px] font-medium", entradaMsg.includes("incorrecto") ? "text-destructive" : "text-foreground")}>
+                {entradaMsg}
+              </p>
+            )}
+          </div>
+
+          <DialogFooter className="flex-row justify-end gap-2 border-t border-border px-6 py-4">
+            <Button
+              variant="ghost"
+              onClick={() => setEntradaOpen(false)}
+              className="h-9 rounded-md px-3.5 text-[13px] font-medium hover:bg-muted"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleEntrada}
+              disabled={!entradaText.trim()}
+              className="h-9 rounded-md bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+            >
+              Registrar entrada
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Dialog importar inventario completo */}
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
-        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto scroll-thin rounded-xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base font-bold">
-              <Upload className="h-5 w-5" /> Importar inventario desde Excel
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto scroll-thin rounded-lg border-border p-0">
+          <DialogHeader className="border-b border-border px-6 py-4">
+            <DialogTitle className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
+              <Upload className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+              Importar inventario desde Excel
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-[13px] text-muted-foreground">
               Se detectaron {importPreview.length} producto(s). Los que ya existen se actualizarán con el stock del Excel.
             </DialogDescription>
           </DialogHeader>
 
           {/* Resumen */}
-          <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
-            <span className="rounded-full bg-muted px-2 py-1">{importPreview.length} total</span>
-            <span className="rounded-full bg-muted px-2 py-1">{importPreview.filter(p => p.existe).length} a actualizar</span>
-            <span className="rounded-full bg-muted px-2 py-1">{importPreview.filter(p => !p.existe).length} nuevos</span>
+          <div className="flex flex-wrap gap-6 border-b border-border px-6 py-4 text-[12px]">
+            <div>
+              <span className="block text-[11px] uppercase tracking-wider text-muted-foreground">Total</span>
+              <span className="text-[15px] font-semibold tabular-nums text-foreground">{importPreview.length}</span>
+            </div>
+            <div>
+              <span className="block text-[11px] uppercase tracking-wider text-muted-foreground">A actualizar</span>
+              <span className="text-[15px] font-semibold tabular-nums text-foreground">{importPreview.filter(p => p.existe).length}</span>
+            </div>
+            <div>
+              <span className="block text-[11px] uppercase tracking-wider text-muted-foreground">Nuevos</span>
+              <span className="text-[15px] font-semibold tabular-nums text-foreground">{importPreview.filter(p => !p.existe).length}</span>
+            </div>
           </div>
 
-          {/* Vista previa con scroll */}
-          <div className="max-h-[300px] overflow-y-auto scroll-thin rounded-lg border border-border">
-            <table className="w-full text-xs">
-              <thead className="sticky top-0 bg-card">
-                <tr className="border-b border-border text-left text-[10px] uppercase text-muted-foreground">
-                  <th className="px-3 py-2">SKU</th>
-                  <th className="px-3 py-2">Producto</th>
-                  <th className="px-3 py-2 text-right">Cantidad</th>
-                  <th className="px-3 py-2">UdM</th>
-                  <th className="px-3 py-2">Estado</th>
+          {/* Vista previa */}
+          <div className="max-h-[300px] overflow-y-auto scroll-thin">
+            <table className="w-full text-[12px]">
+              <thead className="sticky top-0 bg-background">
+                <tr className="border-b border-border text-left text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <th className="px-4 py-2 font-medium">SKU</th>
+                  <th className="px-4 py-2 font-medium">Producto</th>
+                  <th className="px-4 py-2 text-right font-medium">Cantidad</th>
+                  <th className="px-4 py-2 font-medium">UdM</th>
+                  <th className="px-4 py-2 font-medium">Estado</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-border">
                 {importPreview.map((p, i) => (
-                  <tr key={i} className="border-b border-border/40">
-                    <td className="px-3 py-1.5 font-mono text-[11px]">{p.sku}</td>
-                    <td className="px-3 py-1.5 truncate max-w-[200px]">{p.nombre}</td>
-                    <td className="px-3 py-1.5 text-right font-bold tabular-nums">{fmtNum(p.cantidad)}</td>
-                    <td className="px-3 py-1.5 text-muted-foreground">{p.udm ?? "—"}</td>
-                    <td className="px-3 py-1.5">
-                      {p.existe
-                        ? <span className="rounded bg-muted px-1.5 py-0.5 text-[9px] font-medium">Actualizar</span>
-                        : <span className="rounded bg-muted px-1.5 py-0.5 text-[9px] font-medium">Nuevo</span>}
+                  <tr key={i} className="transition-colors hover:bg-muted/40">
+                    <td className="px-4 py-2 font-mono text-[11px] text-foreground">{p.sku}</td>
+                    <td className="max-w-[220px] truncate px-4 py-2 text-foreground">{p.nombre}</td>
+                    <td className="px-4 py-2 text-right font-medium tabular-nums text-foreground">{fmtNum(p.cantidad)}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{p.udm ?? "—"}</td>
+                    <td className="px-4 py-2">
+                      <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <span
+                          className={cn(
+                            "h-1.5 w-1.5 rounded-full",
+                            p.existe ? "bg-foreground/60" : "bg-foreground"
+                          )}
+                        />
+                        {p.existe ? "Actualizar" : "Nuevo"}
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -440,15 +594,27 @@ export function InventarioView() {
           </div>
 
           {importResult && (
-            <div className="rounded-lg border border-border bg-muted p-3 text-sm font-medium">
-              <Check className="mr-1.5 inline h-4 w-4" /> {importResult.msg}
+            <div className="flex items-center gap-2 border-t border-border px-6 py-3 text-[13px] text-foreground">
+              <Check className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+              {importResult.msg}
             </div>
           )}
 
-          <DialogFooter className="sticky bottom-0 bg-card">
-            <Button variant="outline" onClick={() => setImportOpen(false)} className="rounded-lg">Cancelar</Button>
-            <Button onClick={confirmImport} disabled={importPreview.length === 0 || !!importResult} className="btn-spacecom rounded-lg border-0">
-              <Check className="mr-1.5 h-4 w-4" /> Confirmar importación ({importPreview.length})
+          <DialogFooter className="sticky bottom-0 flex-row justify-end gap-2 border-t border-border bg-background px-6 py-4">
+            <Button
+              variant="ghost"
+              onClick={() => setImportOpen(false)}
+              className="h-9 rounded-md px-3.5 text-[13px] font-medium hover:bg-muted"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={confirmImport}
+              disabled={importPreview.length === 0 || !!importResult}
+              className="h-9 rounded-md bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+            >
+              <Check className="mr-1.5 h-4 w-4" {...ICON_PROPS} />
+              Confirmar importación ({importPreview.length})
             </Button>
           </DialogFooter>
         </DialogContent>
