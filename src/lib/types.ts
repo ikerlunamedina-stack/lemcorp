@@ -59,6 +59,10 @@ export interface Equipment {
   mac?: string;
   /** CM MAC (Cable Modem MAC, si aplica) */
   cmMac?: string;
+  /** MTA MAC (si aplica, para equipos de voz) */
+  mtaMac?: string;
+  /** UA (Unidad de Acceso, si aplica) */
+  ua?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -323,7 +327,7 @@ export function uid(): string {
 }
 
 // ─────────── Pistoleo ───────────
-export type PistoleoCampo = "serie" | "serie_ua" | "serie_mac" | "serie_mac_cm";
+export type PistoleoCampo = "serie" | "serie_ua" | "serie_mac" | "serie_mac_cm" | "serie_mac_mta" | "serie_mac_cm_mta";
 
 export interface PistoleoCampoMeta {
   value: PistoleoCampo;
@@ -361,6 +365,20 @@ export const PISTOLEO_CAMPOS: Record<PistoleoCampo, PistoleoCampoMeta> = {
     short: "Serie + MAC + CM MAC",
     campos: ["Serie", "MAC", "CM MAC"],
     hint: "Tres lecturas: primero serie, luego MAC, luego CM MAC",
+  },
+  serie_mac_mta: {
+    value: "serie_mac_mta",
+    label: "Serie + MAC + MTA MAC",
+    short: "Serie + MAC + MTA MAC",
+    campos: ["Serie", "MAC", "MTA MAC"],
+    hint: "Tres lecturas: primero serie, luego MAC, luego MTA MAC",
+  },
+  serie_mac_cm_mta: {
+    value: "serie_mac_cm_mta",
+    label: "Serie + MAC + CM MAC + MTA MAC",
+    short: "Serie + MAC + CM + MTA",
+    campos: ["Serie", "MAC", "CM MAC", "MTA MAC"],
+    hint: "Cuatro lecturas: serie, MAC, CM MAC, MTA MAC",
   },
 };
 

@@ -174,6 +174,7 @@ interface StoreState {
 
   // ─── Export ───
   exportInventarioExcel: () => void;
+  exportarPistoleoExcel: () => void;
 
   // ─── Config ───
   setSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
@@ -309,13 +310,23 @@ export const useStore = create<StoreState>()(
             duplicadosNoGuardados.push(serie);
             continue;
           }
-          // MAC es valores[1] cuando el modo es serie_mac o serie_mac_cm
-          // CM MAC es valores[2] cuando el modo es serie_mac_cm
-          const mac = pistoleoCampo === "serie_mac" || pistoleoCampo === "serie_mac_cm"
+          // MAC es valores[1] cuando el modo incluye MAC
+          const conMAC = pistoleoCampo === "serie_mac" || pistoleoCampo === "serie_mac_cm"
+            || pistoleoCampo === "serie_mac_mta" || pistoleoCampo === "serie_mac_cm_mta";
+          const conCM = pistoleoCampo === "serie_mac_cm" || pistoleoCampo === "serie_mac_cm_mta";
+          const conMTA = pistoleoCampo === "serie_mac_mta" || pistoleoCampo === "serie_mac_cm_mta";
+          const conUA = pistoleoCampo === "serie_ua";
+          const mac = conMAC
             ? (f.valores[1] ?? "").trim() || undefined
             : undefined;
-          const cmMac = pistoleoCampo === "serie_mac_cm"
+          const cmMac = conCM
             ? (f.valores[2] ?? "").trim() || undefined
+            : undefined;
+          const mtaMac = conMTA
+            ? (conCM ? (f.valores[3] ?? "").trim() || undefined : (f.valores[2] ?? "").trim() || undefined)
+            : undefined;
+          const ua = conUA
+            ? (f.valores[1] ?? "").trim() || undefined
             : undefined;
           const modelo = f.modeloSeleccionado?.trim()
             || pistoleoModelo.trim()
@@ -329,6 +340,8 @@ export const useStore = create<StoreState>()(
             ubicacion: "Almacén HUB",
             mac,
             cmMac,
+            mtaMac,
+            ua,
             createdAt: fechasNow,
             updatedAt: fechasNow,
           });
@@ -343,7 +356,9 @@ export const useStore = create<StoreState>()(
             duplicados: duplicadosNoGuardados,
           };
         }
-        set({ equipos: [...nuevos, ...get().equipos], pistoleoFilas: [] });
+        // Guardar en equipos pero NO borrar pistoleoFilas — el usuario decide cuándo limpiar
+        // (puede exportar a Excel después de guardar, o seguir añadiendo)
+        set({ equipos: [...nuevos, ...get().equipos] });
         return {
           ok: true,
           msg: duplicadosNoGuardados.length > 0
@@ -1117,6 +1132,150 @@ export const useStore = create<StoreState>()(
           XLSX.utils.book_append_sheet(wb, ws, "Inventario");
           XLSX.utils.book_append_sheet(wb, ws2, "Resumen por UDM");
           XLSX.writeFile(wb, `Inventario_LEMCORP_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        });
+      },
+
+      // ─── Export pistoleo a Excel (con MAC, CM MAC, MTA MAC, UA) ───
+      exportarPistoleoExcel: () => {
+        import("xlsx-js-style").then((XLSX: any) => {
+          const filas = get().pistoleoFilas;
+          const campo = get().pistoleoCampo;
+          const estado = get().pistoleoEstado;
+          const empresa = get().empresa;
+          const settings = get().settings;
+          const usuario = settings.usuario || "Iker";
+          const ahora = new Date();
+          const fechaStr = ahora.toLocaleDateString("es-PE", { timeZone: "America/Lima" });
+          const horaStr = ahora.toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit" });
+
+          // Determinar columnas según el modo
+          const tieneUA = campo === "serie_ua";
+          const tieneMAC = campo === "serie_mac" || campo === "serie_mac_cm" || campo === "serie_mac_mta" || campo === "serie_mac_cm_mta";
+          const tieneCM = campo === "serie_mac_cm" || campo === "serie_mac_cm_mta";
+          const tieneMTA = campo === "serie_mac_mta" || campo === "serie_mac_cm_mta";
+
+          // Construir encabezados
+          const headers = ["#", "Serie"];
+          if (tieneUA) headers.push("UA");
+          if (tieneMAC) headers.push("MAC");
+          if (tieneCM) headers.push("CM MAC");
+          if (tieneMTA) headers.push("MTA MAC");
+          headers.push("Modelo");
+          headers.push("Estado");
+          headers.push("Fecha captura");
+
+          // Colores corporativos
+          const C = {
+            headerBg: "1F1F1F",
+            headerFg: "FFFFFF",
+            rowAlt: "F5F5F5",
+            rowNormal: "FFFFFF",
+            border: "B0B0B0",
+          };
+          const borderAll = {
+            top: { style: "thin", color: { rgb: C.border } },
+            bottom: { style: "thin", color: { rgb: C.border } },
+            left: { style: "thin", color: { rgb: C.border } },
+            right: { style: "thin", color: { rgb: C.border } },
+          };
+
+          const rows: any[][] = [];
+          // Título
+          rows.push(["SERIES CAPTURADAS — LEMCORP"]);
+          rows.push([`Empresa: ${empresa.nombre || "Lemcorp"}  ·  Fecha: ${fechaStr}  ·  Hora: ${horaStr}  ·  Usuario: ${usuario}`]);
+          rows.push([`Modo: ${campo}  ·  Total: ${filas.length}  ·  Estado destino: ${estado}`]);
+          rows.push([]);
+          // Headers
+          rows.push(headers);
+
+          // Filas de datos
+          filas.forEach((f, i) => {
+            const row: any[] = [];
+            row.push(i + 1);
+            row.push(f.valores[0] ?? "");
+            if (tieneUA) row.push(f.valores[1] ?? "");
+            if (tieneMAC) row.push(f.valores[1] ?? "");
+            if (tieneCM) row.push(f.valores[2] ?? "");
+            if (tieneMTA) row.push(tieneCM ? (f.valores[3] ?? "") : (f.valores[2] ?? ""));
+            row.push(f.modeloSeleccionado || "");
+            row.push(estado);
+            row.push(new Date(f.timestamp).toLocaleString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }));
+            rows.push(row);
+          });
+
+          const ws = XLSX.utils.aoa_to_sheet(rows);
+          const ncols = headers.length;
+
+          // Merges para título
+          ws["!merges"] = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: ncols - 1 } },
+            { s: { r: 1, c: 0 }, e: { r: 1, c: ncols - 1 } },
+            { s: { r: 2, c: 0 }, e: { r: 2, c: ncols - 1 } },
+          ];
+
+          // Ancho columnas
+          ws["!cols"] = headers.map((h) => {
+            if (h === "#") return { wch: 5 };
+            if (h === "Serie") return { wch: 22 };
+            if (h === "MAC" || h === "CM MAC" || h === "MTA MAC") return { wch: 20 };
+            if (h === "UA") return { wch: 16 };
+            if (h === "Modelo") return { wch: 36 };
+            if (h === "Estado") return { wch: 14 };
+            return { wch: 18 };
+          });
+
+          // Estilos
+          const setStyle = (addr: string, style: any) => {
+            if (!ws[addr]) ws[addr] = { t: "s", v: "" };
+            ws[addr].s = { ...(ws[addr].s || {}), ...style };
+          };
+
+          // Título
+          setStyle("A1", {
+            font: { name: "Calibri", sz: 16, bold: true, color: { rgb: C.headerFg } },
+            fill: { fgColor: { rgb: C.headerBg } },
+            alignment: { horizontal: "center", vertical: "center" },
+          });
+          setStyle("A2", {
+            font: { name: "Calibri", sz: 10, color: { rgb: "555555" } },
+            alignment: { horizontal: "center", vertical: "center" },
+          });
+          setStyle("A3", {
+            font: { name: "Calibri", sz: 10, italic: true, color: { rgb: "555555" } },
+            alignment: { horizontal: "center", vertical: "center" },
+          });
+
+          // Headers (fila 5, índice 4)
+          const headerRow = 5;
+          for (let c = 0; c < ncols; c++) {
+            const col = XLSX.utils.encode_cell({ r: headerRow - 1, c });
+            setStyle(col, {
+              font: { name: "Calibri", sz: 11, bold: true, color: { rgb: C.headerFg } },
+              fill: { fgColor: { rgb: C.headerBg } },
+              alignment: { horizontal: "center", vertical: "center" },
+              border: borderAll,
+            });
+          }
+
+          // Filas de datos
+          for (let i = 0; i < filas.length; i++) {
+            const excelRow = headerRow + 1 + i;
+            const isAlt = i % 2 === 1;
+            const rowBg = isAlt ? C.rowAlt : C.rowNormal;
+            for (let c = 0; c < ncols; c++) {
+              const col = XLSX.utils.encode_cell({ r: excelRow - 1, c });
+              setStyle(col, {
+                font: { name: "Calibri", sz: 10, color: { rgb: "1A1A1A" } },
+                fill: { fgColor: { rgb: rowBg } },
+                alignment: { horizontal: c === 0 || c >= 5 ? "center" : "left", vertical: "center" },
+                border: borderAll,
+              });
+            }
+          }
+
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Series Capturadas");
+          XLSX.writeFile(wb, `Series_Pistoleo_LEMCORP_${new Date().toISOString().slice(0, 10)}.xlsx`);
         });
       },
 

@@ -18,6 +18,7 @@ import {
   Eye,
   Search,
   PackageSearch,
+  Download,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import {
@@ -31,7 +32,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -60,8 +60,7 @@ interface FeedbackMsg {
   ts: number;
 }
 
-function detectarModelo(serie: string, prefijoEnabled: boolean): string | null {
-  if (!prefijoEnabled) return null;
+function detectarModelo(serie: string): string | null {
   const s = serie.trim().toUpperCase();
   for (const r of REGLAS_PREFIJO) {
     if (s.startsWith(r.prefijo.toUpperCase())) return r.modelo;
@@ -69,9 +68,8 @@ function detectarModelo(serie: string, prefijoEnabled: boolean): string | null {
   return null;
 }
 
-function validarPrefijo(serie: string, prefijo: string, enabled: boolean): boolean {
-  if (!enabled) return true;
-  if (!prefijo.trim()) return true;
+function validarPrefijo(serie: string, prefijo: string): boolean {
+  if (!prefijo.trim()) return true;  // sin prefijo = no validar
   return serie.trim().toUpperCase().startsWith(prefijo.trim().toUpperCase());
 }
 
@@ -119,6 +117,7 @@ export function PistolearView() {
   const deletePistoleoFila = useStore((s) => s.deletePistoleoFila);
   const clearPistoleoFilas = useStore((s) => s.clearPistoleoFilas);
   const confirmarPistoleo = useStore((s) => s.confirmarPistoleo);
+  const exportarPistoleoExcel = useStore((s) => s.exportarPistoleoExcel);
   const { toast } = useToast();
 
   const [showConfig, setShowConfig] = useState(false);
@@ -179,7 +178,7 @@ export function PistolearView() {
     const idxEnFila = parcial.length;
     const esSerie = idxEnFila === 0;
 
-    if (esSerie && !validarPrefijo(v, settings.pistoleoPrefijo, settings.pistoleoPrefijoEnabled)) {
+    if (esSerie && !validarPrefijo(v, settings.pistoleoPrefijo)) {
       pushFeedback(false, `Rechazada: no empieza con ${settings.pistoleoPrefijo}`);
       setValor("");
       return;
@@ -209,7 +208,7 @@ export function PistolearView() {
       setParcial([]);
       const modeloDetectado = modeloSeleccionado
         || pistoleoModelo.trim()
-        || detectarModelo(v, settings.pistoleoPrefijoEnabled)
+        || detectarModelo(v)
         || "SIN MODELO";
       pushFeedback(true, `Aceptada · ${v} → ${modeloDetectado}`);
     } else {
@@ -336,7 +335,16 @@ export function PistolearView() {
   }, [products]);
 
   return (
-    <div className="anim-fade-in px-6 py-6 lg:px-8">
+    <div className="anim-fade-in px-6 py-6 lg:px-8 relative">
+      {/* Fondo elegante: patrón de puntos sutil */}
+      <div
+        className="pointer-events-none fixed inset-0 z-0 opacity-[0.025]"
+        style={{
+          backgroundImage: "radial-gradient(circle, var(--foreground) 1px, transparent 1px)",
+          backgroundSize: "24px 24px",
+        }}
+      />
+      <div className="relative z-10">
       {/* Header */}
       <header className="anim-slide-up mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
@@ -405,7 +413,7 @@ export function PistolearView() {
             )}
           </div>
 
-          {/* Prefijo (lo ingresa el usuario, ej: ZTE) */}
+          {/* Prefijo (lo ingresa el usuario, ej: ZTE) — editable, sin toggle */}
           <div>
             <div className="mb-2 flex items-center gap-2">
               <Hash className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
@@ -414,27 +422,23 @@ export function PistolearView() {
                   Prefijo de validación
                 </Label>
                 <p className="text-[11px] text-muted-foreground">
-                  Tú lo pones — ej: ZTE, ZTEATV. Solo acepta series que empiecen así.
+                  Lo pones tú — ej: ZTE, ZTEATV. Solo acepta series que empiecen así. Déjalo vacío para no validar.
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={settings.pistoleoPrefijoEnabled}
-                onCheckedChange={(v) => setSetting("pistoleoPrefijoEnabled", v)}
-              />
-              <Input
-                value={settings.pistoleoPrefijo}
-                onChange={(e) => setSetting("pistoleoPrefijo", e.target.value.toUpperCase())}
-                placeholder="Ej: ZTE"
-                className="h-9 flex-1 rounded-lg border-border bg-background font-mono uppercase text-[13px]"
-                disabled={!settings.pistoleoPrefijoEnabled}
-              />
-            </div>
-            {!settings.pistoleoPrefijoEnabled && (
-              <p className="mt-1.5 text-[11px] text-muted-foreground">
-                Activar para validar que las series empiecen con el prefijo.
-              </p>
+            <Input
+              value={settings.pistoleoPrefijo}
+              onChange={(e) => setSetting("pistoleoPrefijo", e.target.value.toUpperCase())}
+              placeholder="Ej: ZTE (vacío = no validar)"
+              className="h-9 w-full rounded-lg border-border bg-background font-mono uppercase text-[13px]"
+            />
+            {settings.pistoleoPrefijo && (
+              <button
+                onClick={() => setSetting("pistoleoPrefijo", "")}
+                className="press mt-2 inline-flex items-center gap-1 rounded-lg border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <X className="h-3 w-3" {...ICON_PROPS} /> Quitar prefijo
+              </button>
             )}
           </div>
         </div>
@@ -624,6 +628,21 @@ export function PistolearView() {
         >
           <Trash2 className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Descartar captura
         </Button>
+        <Button
+          variant="outline"
+          onClick={() => {
+            if (pistoleoFilas.length === 0) {
+              toast({ title: "No hay series para exportar", variant: "destructive" });
+              return;
+            }
+            exportarPistoleoExcel();
+            toast({ title: "Excel generado", description: `${pistoleoFilas.length} serie(s) exportadas` });
+          }}
+          disabled={pistoleoFilas.length === 0}
+          className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted disabled:opacity-40"
+        >
+          <Download className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Exportar Excel
+        </Button>
         <span className="ml-auto text-[11px] text-muted-foreground">
           Tip: pulsa{" "}
           <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-foreground">
@@ -687,7 +706,7 @@ export function PistolearView() {
                   const modeloDetectado =
                     f.modeloSeleccionado?.trim()
                     || pistoleoModelo.trim()
-                    || detectarModelo(serie, settings.pistoleoPrefijoEnabled)
+                    || detectarModelo(serie)
                     || "SIN MODELO";
                   const yaEnSistema = seriesExistentesSet.has(serie.trim().toLowerCase());
                   const dupEnLote = duplicadosEnLoteSet.has(serie.toUpperCase());
@@ -1061,6 +1080,7 @@ export function PistolearView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
