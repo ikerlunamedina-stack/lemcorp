@@ -435,10 +435,18 @@ export const useStore = create<StoreState>()(
         let count = 0;
         const newEntradas: Entrada[] = [];
         for (const line of lines) {
-          const parts = line.trim().split("*");
-          if (parts.length < 2) continue;
+          const trimmed = line.trim();
+          // Separar por * o por tab, o solo SKU (cantidad = 1)
+          let parts: string[];
+          if (trimmed.includes("*")) {
+            parts = trimmed.split("*");
+          } else if (trimmed.includes("\t")) {
+            parts = trimmed.split("\t");
+          } else {
+            parts = [trimmed, "1"];
+          }
           const sku = parts[0].trim();
-          const cantidad = parseInt(parts[1].trim(), 10);
+          const cantidad = parseInt((parts[1] ?? "1").trim(), 10);
           if (!sku || isNaN(cantidad) || cantidad <= 0) continue;
           const product = get().findProductBySku(sku);
           if (product) {
