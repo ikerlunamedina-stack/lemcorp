@@ -56,7 +56,7 @@ export function SeriesView() {
         </div>
         <div className="relative w-56">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" strokeWidth={1.5} />
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar serie, modelo, MAC…" className="h-9 rounded-md border-border bg-background pl-8 text-[13px]" />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar serie, modelo, MAC…" className="h-9 rounded-lg border-border bg-background pl-8 text-[13px]" />
         </div>
       </div>
 
@@ -121,7 +121,7 @@ export function SeriesView() {
                       variant="outline"
                       size="sm"
                       onClick={() => toggleExpandido(modelo)}
-                      className="press h-8 rounded-md border-border bg-background text-[12px] font-medium hover:bg-muted"
+                      className="press h-8 rounded-lg border-border bg-background text-[12px] font-medium hover:bg-muted"
                     >
                       Ver {items.length - SERIES_POR_MODELO_INICIAL} más
                     </Button>
@@ -134,7 +134,7 @@ export function SeriesView() {
       )}
 
       <div className="mt-8 border-t border-border pt-6">
-        <Button variant="ghost" onClick={() => router.push("/equipos")} className="press rounded-md text-[13px] font-medium text-muted-foreground hover:text-foreground">
+        <Button variant="ghost" onClick={() => router.push("/equipos")} className="press rounded-lg text-[13px] font-medium text-muted-foreground hover:text-foreground">
           Gestionar equipos <ArrowRight className="ml-1.5 h-3.5 w-3.5" strokeWidth={1.5} />
         </Button>
       </div>
@@ -147,7 +147,7 @@ function FilterChip({ active, onClick, label, count }: { active: boolean; onClic
     <button
       onClick={onClick}
       className={cn(
-        "press flex items-center gap-1.5 rounded-md border px-3 py-1 text-[12px] font-medium transition-colors",
+        "press flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors",
         active
           ? "border-foreground bg-foreground text-background"
           : "border-border bg-background text-muted-foreground hover:text-foreground hover:bg-muted"

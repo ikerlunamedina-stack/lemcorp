@@ -137,13 +137,13 @@ export function EmpresaView() {
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setEditing(false)}
-                className="press inline-flex h-7 items-center gap-1 rounded-md border border-border bg-background px-2.5 text-[12px] font-medium text-foreground hover:bg-muted"
+                className="press inline-flex h-7 items-center gap-1 rounded-lg border border-border bg-background px-2.5 text-[12px] font-medium text-foreground hover:bg-muted"
               >
                 <X className="h-3.5 w-3.5" {...ICON_PROPS} />
               </button>
               <button
                 onClick={saveEmpresa}
-                className="press inline-flex h-7 items-center gap-1 rounded-md bg-foreground px-3 text-[12px] font-medium text-background hover:bg-foreground/90"
+                className="press inline-flex h-7 items-center gap-1 rounded-lg bg-foreground px-3 text-[12px] font-medium text-background hover:bg-foreground/90"
               >
                 <Save className="h-3.5 w-3.5" {...ICON_PROPS} />
                 Guardar
@@ -152,7 +152,7 @@ export function EmpresaView() {
           ) : (
             <button
               onClick={() => { setForm(empresa); setEditing(true); }}
-              className="press inline-flex h-7 items-center gap-1 rounded-md border border-border bg-background px-2.5 text-[12px] font-medium text-foreground hover:bg-muted"
+              className="press inline-flex h-7 items-center gap-1 rounded-lg border border-border bg-background px-2.5 text-[12px] font-medium text-foreground hover:bg-muted"
             >
               <Pencil className="h-3.5 w-3.5" {...ICON_PROPS} />
               Editar
@@ -169,7 +169,7 @@ export function EmpresaView() {
                   value={form.nombre}
                   onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                   placeholder="Ej: LPS"
-                  className="h-9 rounded-md border-border bg-background"
+                  className="h-9 rounded-lg border-border bg-background"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -177,7 +177,7 @@ export function EmpresaView() {
                 <Input
                   value={form.ruc ?? ""}
                   onChange={(e) => setForm({ ...form, ruc: e.target.value })}
-                  className="h-9 rounded-md border-border bg-background"
+                  className="h-9 rounded-lg border-border bg-background"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -185,7 +185,7 @@ export function EmpresaView() {
                 <Input
                   value={form.telefono ?? ""}
                   onChange={(e) => setForm({ ...form, telefono: e.target.value })}
-                  className="h-9 rounded-md border-border bg-background"
+                  className="h-9 rounded-lg border-border bg-background"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -193,7 +193,7 @@ export function EmpresaView() {
                 <Input
                   value={form.correo ?? ""}
                   onChange={(e) => setForm({ ...form, correo: e.target.value })}
-                  className="h-9 rounded-md border-border bg-background"
+                  className="h-9 rounded-lg border-border bg-background"
                 />
               </div>
               <div className="flex flex-col gap-1.5 sm:col-span-2">
@@ -201,7 +201,7 @@ export function EmpresaView() {
                 <Input
                   value={form.direccion ?? ""}
                   onChange={(e) => setForm({ ...form, direccion: e.target.value })}
-                  className="h-9 rounded-md border-border bg-background"
+                  className="h-9 rounded-lg border-border bg-background"
                 />
               </div>
               <div className="flex flex-col gap-1.5 sm:col-span-2">
@@ -210,7 +210,7 @@ export function EmpresaView() {
                   value={form.descripcion ?? ""}
                   onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
                   placeholder={"Ej:\nLPS — CONTRATISTA DE CLARO\nPERSONAL EN CAMPO: 30\nDespacho diario: ~17 despachos\nCobertura: Lima Norte, Comas, Los Olivos\n...toda la info que necesites"}
-                  className="min-h-[140px] rounded-md border-border bg-background text-[13px] leading-relaxed"
+                  className="min-h-[140px] rounded-lg border-border bg-background text-[13px] leading-relaxed"
                 />
                 <p className="text-[11px] text-muted-foreground">
                   El almacén es de LEMCORP. Aquí registras la empresa contratista a la que despachas (ej: LPS que trabaja para Claro).
@@ -252,7 +252,7 @@ export function EmpresaView() {
           {puedeGestionarPersonal && (
             <button
               onClick={openCreateMiembro}
-              className="press inline-flex h-7 items-center gap-1 rounded-md bg-foreground px-3 text-[12px] font-medium text-background hover:bg-foreground/90"
+              className="press inline-flex h-7 items-center gap-1 rounded-lg bg-foreground px-3 text-[12px] font-medium text-background hover:bg-foreground/90"
             >
               <Plus className="h-3.5 w-3.5" {...ICON_PROPS} />
               Añadir
@@ -272,7 +272,7 @@ export function EmpresaView() {
             {puedeGestionarPersonal && (
               <button
                 onClick={openCreateMiembro}
-                className="press mx-auto mt-4 inline-flex h-8 items-center gap-1.5 rounded-md bg-foreground px-3.5 text-[12px] font-medium text-background hover:bg-foreground/90"
+                className="press mx-auto mt-4 inline-flex h-8 items-center gap-1.5 rounded-lg bg-foreground px-3.5 text-[12px] font-medium text-background hover:bg-foreground/90"
               >
                 <Plus className="h-3.5 w-3.5" {...ICON_PROPS} />
                 Añadir primer miembro
@@ -331,7 +331,7 @@ export function EmpresaView() {
                             {puedeGestionarPermisos && m.rol !== "administrador" && (
                               <button
                                 onClick={() => openPermisos(m)}
-                                className="press rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                                className="press rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                                 title="Permisos"
                               >
                                 <Shield className="h-3.5 w-3.5" {...ICON_PROPS} />
@@ -339,14 +339,14 @@ export function EmpresaView() {
                             )}
                             <button
                               onClick={() => openEditMiembro(m)}
-                              className="press rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                              className="press rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                               title="Editar"
                             >
                               <Pencil className="h-3.5 w-3.5" {...ICON_PROPS} />
                             </button>
                             <button
                               onClick={() => deleteMiembro(m.id)}
-                              className="press rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                              className="press rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                               title="Eliminar"
                             >
                               <Trash2 className="h-3.5 w-3.5" {...ICON_PROPS} />
@@ -380,7 +380,7 @@ export function EmpresaView() {
               <p className="mb-3 text-[12px] text-muted-foreground">
                 Los permisos del rol ({ROL_META[permisosDialog.rol].label}) se aplican por defecto. Puedes otorgar permisos adicionales o revocar los del rol.
               </p>
-              <ul className="divide-y divide-border overflow-hidden rounded-md border border-border">
+              <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border">
                 {(Object.keys(PERMISO_META) as Permiso[]).map((p) => {
                   const meta = PERMISO_META[p];
                   const delRol = (PERMISOS_POR_ROL[permisosDialog.rol] ?? []).includes(p);
@@ -406,7 +406,7 @@ export function EmpresaView() {
                           <button
                             onClick={() => togglePermisoRevocado(p)}
                             className={cn(
-                              "press inline-flex h-7 items-center gap-1 rounded-md border px-2.5 text-[11px] font-medium transition-colors",
+                              "press inline-flex h-7 items-center gap-1 rounded-lg border px-2.5 text-[11px] font-medium transition-colors",
                               esRevocado
                                 ? "border-border bg-muted text-muted-foreground"
                                 : "border-foreground bg-foreground text-background"
@@ -420,7 +420,7 @@ export function EmpresaView() {
                           <button
                             onClick={() => togglePermisoExtra(p)}
                             className={cn(
-                              "press inline-flex h-7 items-center gap-1 rounded-md border px-2.5 text-[11px] font-medium transition-colors",
+                              "press inline-flex h-7 items-center gap-1 rounded-lg border px-2.5 text-[11px] font-medium transition-colors",
                               esExtra
                                 ? "border-foreground bg-foreground text-background"
                                 : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -441,13 +441,13 @@ export function EmpresaView() {
             <Button
               variant="outline"
               onClick={() => setPermisosDialog(null)}
-              className="h-9 rounded-md border-border bg-background hover:bg-muted"
+              className="h-9 rounded-lg border-border bg-background hover:bg-muted"
             >
               Cancelar
             </Button>
             <button
               onClick={savePermisos}
-              className="press inline-flex h-9 items-center gap-1.5 rounded-md bg-foreground px-3.5 text-[13px] font-medium text-background hover:bg-foreground/90"
+              className="press inline-flex h-9 items-center gap-1.5 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background hover:bg-foreground/90"
             >
               <Save className="h-3.5 w-3.5" {...ICON_PROPS} />
               Guardar permisos
@@ -471,17 +471,17 @@ export function EmpresaView() {
                 <Input
                   value={miembroForm.nombre}
                   onChange={(e) => setMiembroForm({ ...miembroForm, nombre: e.target.value })}
-                  className="h-9 rounded-md border-border bg-background"
+                  className="h-9 rounded-lg border-border bg-background"
                   autoFocus
                 />
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Rol</Label>
                 <Select value={miembroForm.rol} onValueChange={(v) => setMiembroForm({ ...miembroForm, rol: v as Rol })}>
-                  <SelectTrigger className="h-9 rounded-md border-border bg-background">
+                  <SelectTrigger className="h-9 rounded-lg border-border bg-background">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="rounded-md border-border bg-background">
+                  <SelectContent className="rounded-lg border-border bg-background">
                     {ROLES.map((r) => (
                       <SelectItem key={r} value={r}>{ROL_META[r].label}</SelectItem>
                     ))}
@@ -493,7 +493,7 @@ export function EmpresaView() {
                 <Input
                   value={miembroForm.telefono}
                   onChange={(e) => setMiembroForm({ ...miembroForm, telefono: e.target.value })}
-                  className="h-9 rounded-md border-border bg-background"
+                  className="h-9 rounded-lg border-border bg-background"
                 />
               </div>
               <div className="flex flex-col gap-1.5 sm:col-span-2">
@@ -501,7 +501,7 @@ export function EmpresaView() {
                 <Input
                   value={miembroForm.correo}
                   onChange={(e) => setMiembroForm({ ...miembroForm, correo: e.target.value })}
-                  className="h-9 rounded-md border-border bg-background"
+                  className="h-9 rounded-lg border-border bg-background"
                 />
               </div>
             </div>
@@ -510,14 +510,14 @@ export function EmpresaView() {
             <Button
               variant="outline"
               onClick={() => setMiembroDialog(false)}
-              className="h-9 rounded-md border-border bg-background hover:bg-muted"
+              className="h-9 rounded-lg border-border bg-background hover:bg-muted"
             >
               Cancelar
             </Button>
             <button
               onClick={saveMiembro}
               disabled={!miembroForm.nombre.trim()}
-              className="press inline-flex h-9 items-center gap-1.5 rounded-md bg-foreground px-3.5 text-[13px] font-medium text-background hover:bg-foreground/90 disabled:opacity-40"
+              className="press inline-flex h-9 items-center gap-1.5 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background hover:bg-foreground/90 disabled:opacity-40"
             >
               {editingMiembro ? "Guardar" : "Añadir"}
             </button>

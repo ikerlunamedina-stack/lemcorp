@@ -63,7 +63,7 @@ export function BlocView() {
             onClick={handleAdd}
             disabled={!texto.trim()}
             className={cn(
-              "press inline-flex h-7 items-center gap-1.5 rounded-md px-3 text-[12px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+              "press inline-flex h-7 items-center gap-1.5 rounded-lg px-3 text-[12px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40",
               "bg-foreground text-background hover:bg-foreground/90"
             )}
           >
@@ -123,7 +123,7 @@ export function BlocView() {
                   <button
                     onClick={() => togglePinNota(n.id)}
                     className={cn(
-                      "press rounded-md p-1.5 transition-colors hover:bg-muted",
+                      "press rounded-lg p-1.5 transition-colors hover:bg-muted",
                       n.pinned
                         ? "text-foreground"
                         : "text-muted-foreground hover:text-foreground"
@@ -134,7 +134,7 @@ export function BlocView() {
                   </button>
                   <button
                     onClick={() => deleteNota(n.id)}
-                    className="press rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                    className="press rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                     title="Eliminar"
                   >
                     <Trash2 className="h-3.5 w-3.5" {...ICON_PROPS} />

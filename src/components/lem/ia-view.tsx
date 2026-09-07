@@ -410,7 +410,7 @@ export function IAView() {
           <button
             onClick={() => setShowHistory(!showHistory)}
             className={cn(
-              "press flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-[12px] font-medium transition-colors",
+              "press flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-medium transition-colors",
               showHistory
                 ? "border-foreground/20 bg-muted text-foreground"
                 : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -427,7 +427,7 @@ export function IAView() {
                 setSpeakingId(null);
                 limpiarHistorial();
               }}
-              className="press flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="press flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               title="Borrar conversación"
             >
               <Trash2 className="h-3.5 w-3.5" {...ICON_PROPS} />
@@ -473,7 +473,7 @@ export function IAView() {
                         <button
                           onClick={() => hablar(m.content, msgId)}
                           className={cn(
-                            "press ml-2 inline-flex h-5 w-5 items-center justify-center rounded-md align-middle text-current/70 transition-colors hover:text-current",
+                            "press ml-2 inline-flex h-5 w-5 items-center justify-center rounded-lg align-middle text-current/70 transition-colors hover:text-current",
                             isSpeaking && "text-current"
                           )}
                           title={isSpeaking ? "Detener voz" : "Leer en voz alta"}
@@ -609,7 +609,7 @@ export function IAView() {
                       setShowHistory(false);
                       setInput(m.content);
                     }}
-                    className="press mb-0.5 block w-full rounded-md px-2.5 py-2 text-left text-[11px] transition-colors hover:bg-muted"
+                    className="press mb-0.5 block w-full rounded-lg px-2.5 py-2 text-left text-[11px] transition-colors hover:bg-muted"
                   >
                     <p className="line-clamp-2 text-foreground">{m.content}</p>
                     <p className="mt-0.5 text-[9px] text-muted-foreground">{timeAgo(m.ts)}</p>

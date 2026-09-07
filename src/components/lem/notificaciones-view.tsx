@@ -63,7 +63,7 @@ export function NotificacionesView() {
           {leidas.length > 0 && (
             <button
               onClick={clearNotificacionesLeidas}
-              className="press inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-[12px] font-medium text-foreground hover:bg-muted"
+              className="press inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 text-[12px] font-medium text-foreground hover:bg-muted"
             >
               <CheckCheck className="h-3.5 w-3.5" {...ICON_PROPS} />
               Limpiar leídas
@@ -72,7 +72,7 @@ export function NotificacionesView() {
           {notificaciones.length > 0 && (
             <button
               onClick={clearNotificaciones}
-              className="press inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-[12px] font-medium text-muted-foreground hover:bg-muted hover:text-destructive"
+              className="press inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 text-[12px] font-medium text-muted-foreground hover:bg-muted hover:text-destructive"
             >
               <Trash2 className="h-3.5 w-3.5" {...ICON_PROPS} />
               Borrar todo
@@ -164,7 +164,7 @@ export function NotificacionesView() {
                     </div>
                     <button
                       onClick={() => markNotificacionLeida(n.id)}
-                      className="press shrink-0 rounded-md p-1.5 text-muted-foreground opacity-0 transition-all hover:bg-muted hover:text-foreground group-hover:opacity-100"
+                      className="press shrink-0 rounded-lg p-1.5 text-muted-foreground opacity-0 transition-all hover:bg-muted hover:text-foreground group-hover:opacity-100"
                       title="Marcar como leída"
                     >
                       <Check className="h-3.5 w-3.5" {...ICON_PROPS} />

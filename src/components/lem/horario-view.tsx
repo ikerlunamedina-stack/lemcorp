@@ -214,7 +214,7 @@ export function HorarioView() {
         </div>
         <Button
           onClick={openCreate}
-          className="h-9 rounded-md bg-foreground text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+          className="h-9 rounded-lg bg-foreground text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
         >
           <Plus className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Nueva actividad
         </Button>
@@ -251,7 +251,7 @@ export function HorarioView() {
           </p>
           <Button
             onClick={openCreate}
-            className="h-9 rounded-md bg-foreground text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+            className="h-9 rounded-lg bg-foreground text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
           >
             <Plus className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Agregar actividad
           </Button>
@@ -351,14 +351,14 @@ export function HorarioView() {
                       <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                         <button
                           onClick={() => openEdit(h)}
-                          className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                           title="Editar"
                         >
                           <Pencil className="h-3.5 w-3.5" {...ICON_PROPS} />
                         </button>
                         <button
                           onClick={() => handleDelete(h.id, `${DIA_SEMANA_META[selectedDia].label} ${a12h(h.horaInicio)} · ${h.actividad}`)}
-                          className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                          className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                           title="Eliminar"
                         >
                           <Trash2 className="h-3.5 w-3.5" {...ICON_PROPS} />
@@ -395,7 +395,7 @@ export function HorarioView() {
                 Día de la semana
               </Label>
               <Select value={dia} onValueChange={(v) => setDia(v as DiaSemana)}>
-                <SelectTrigger className="h-9 rounded-md border-border bg-background"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 rounded-lg border-border bg-background"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {DIAS_ORDEN.map((d) => (
                     <SelectItem key={d} value={d}>{DIA_SEMANA_META[d].label}</SelectItem>
@@ -414,7 +414,7 @@ export function HorarioView() {
                   type="time"
                   value={horaInicio}
                   onChange={(e) => setHoraInicio(e.target.value)}
-                  className="h-9 rounded-md border-border bg-background"
+                  className="h-9 rounded-lg border-border bg-background"
                 />
                 <p className="text-[10px] text-muted-foreground">{a12h(horaInicio)}</p>
               </div>
@@ -426,7 +426,7 @@ export function HorarioView() {
                   type="time"
                   value={horaFin}
                   onChange={(e) => setHoraFin(e.target.value)}
-                  className="h-9 rounded-md border-border bg-background"
+                  className="h-9 rounded-lg border-border bg-background"
                 />
                 <p className="text-[10px] text-muted-foreground">{a12h(horaFin)}</p>
               </div>
@@ -441,7 +441,7 @@ export function HorarioView() {
                 value={actividad}
                 onChange={(e) => setActividad(e.target.value)}
                 placeholder="Ej: Despacho matutino"
-                className="h-9 rounded-md border-border bg-background"
+                className="h-9 rounded-lg border-border bg-background"
                 onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
                 autoFocus
               />
@@ -453,7 +453,7 @@ export function HorarioView() {
                 Tipo de actividad
               </Label>
               <Select value={tipo} onValueChange={(v) => setTipo(v as TipoHorario)}>
-                <SelectTrigger className="h-9 rounded-md border-border bg-background"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 rounded-lg border-border bg-background"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.keys(TIPO_HORARIO_META) as TipoHorario[]).map((t) => {
                     const cfg = TIPO_HORARIO_META[t];
@@ -470,7 +470,7 @@ export function HorarioView() {
               </Select>
             </div>
 
-            <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-[11px] text-muted-foreground">
+            <div className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-[11px] text-muted-foreground">
               <BellRing className="mr-1 inline h-3 w-3" {...ICON_PROPS} />
               Al coincidir la hora de inicio, Alana te avisará con una notificación y leerá el texto en voz alta (si el TTS está activado).
             </div>
@@ -480,14 +480,14 @@ export function HorarioView() {
             <DialogClose asChild>
               <Button
                 variant="outline"
-                className="h-9 rounded-md border-border bg-background text-[13px] font-medium text-foreground hover:bg-muted"
+                className="h-9 rounded-lg border-border bg-background text-[13px] font-medium text-foreground hover:bg-muted"
               >
                 Cancelar
               </Button>
             </DialogClose>
             <Button
               onClick={handleSave}
-              className="h-9 rounded-md bg-foreground text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+              className="h-9 rounded-lg bg-foreground text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
             >
               {editingId ? (
                 <><Pencil className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Guardar cambios</>

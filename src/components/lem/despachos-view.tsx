@@ -270,7 +270,7 @@ export function DespachosView() {
             variant="outline"
             onClick={() => fileInputRef.current?.click()}
             disabled={importingExcel}
-            className="h-9 rounded-md border-border bg-background text-[13px] font-medium text-foreground hover:bg-muted"
+            className="h-9 rounded-lg border-border bg-background text-[13px] font-medium text-foreground hover:bg-muted"
           >
             {importingExcel
               ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" {...ICON_PROPS} />
@@ -279,7 +279,7 @@ export function DespachosView() {
           </Button>
           <Button
             onClick={openBulk}
-            className="h-9 rounded-md bg-foreground text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+            className="h-9 rounded-lg bg-foreground text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
           >
             <ClipboardPaste className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Pegar despachos
           </Button>
@@ -303,13 +303,13 @@ export function DespachosView() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar por producto, destinatario, destino…"
-            className="h-9 rounded-md border-border bg-background pl-9 text-[13px]"
+            className="h-9 rounded-lg border-border bg-background pl-9 text-[13px]"
           />
         </div>
         <button
           onClick={() => setFilterToday(!filterToday)}
           className={cn(
-            "flex items-center gap-1.5 rounded-md border px-3 py-1 text-[12px] font-medium transition-colors",
+            "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors",
             filterToday
               ? "border-foreground bg-foreground text-background"
               : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -439,7 +439,7 @@ export function DespachosView() {
                                           <button
                                             onClick={() => deleteDespacho(d.id)}
                                             title="Eliminar (devuelve stock)"
-                                            className="rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                                            className="rounded-lg p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
                                           >
                                             <Trash2 className="h-3 w-3" {...ICON_PROPS} />
                                           </button>
@@ -476,7 +476,7 @@ export function DespachosView() {
 
           <div className="flex flex-col gap-4 px-5 py-4">
             {/* Formatos */}
-            <div className="rounded-md border border-border bg-muted/30 px-3 py-2">
+            <div className="rounded-lg border border-border bg-muted/30 px-3 py-2">
               <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                 Formatos: SKU*cantidad · Destinatario | SKU*cantidad · Destinatario [TAB] SKU*cantidad (de Excel)
               </p>
@@ -487,13 +487,13 @@ export function DespachosView() {
               value={bulkText}
               onChange={(e) => { setBulkText(e.target.value); setResultadoIA(null); }}
               placeholder={"Pega tus despachos aquí (uno por línea):\n\nJ. Pérez|1066990*20\nM. Luna|1002900*50\n..."}
-              className="max-h-[200px] rounded-md border-border bg-background font-mono text-[12px] leading-relaxed"
+              className="max-h-[200px] rounded-lg border-border bg-background font-mono text-[12px] leading-relaxed"
               autoFocus
             />
 
             {/* Análisis IA en vivo */}
             {lineasParseadas.length > 0 && !resultadoIA && (
-              <div className="rounded-md border border-border">
+              <div className="rounded-lg border border-border">
                 <div className="flex items-center justify-between border-b border-border px-3 py-2">
                   <p className="flex items-center gap-1.5 text-[11px] font-medium text-foreground">
                     <ClipboardPaste className="h-3.5 w-3.5 text-muted-foreground" {...ICON_PROPS} /> Análisis automático
@@ -534,7 +534,7 @@ export function DespachosView() {
             {resultadoIA && (
               <div className="space-y-2">
                 <div className={cn(
-                  "rounded-md border px-3 py-2.5",
+                  "rounded-lg border px-3 py-2.5",
                   resultadoIA.ok > 0 ? "border-border bg-muted/30" : "border-destructive/30 bg-destructive/5"
                 )}>
                   <p className={cn(
@@ -555,7 +555,7 @@ export function DespachosView() {
                 </div>
 
                 {Object.keys(resultadoIA.porTecnico).length > 0 && (
-                  <div className="rounded-md border border-border px-3 py-2.5">
+                  <div className="rounded-lg border border-border px-3 py-2.5">
                     <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                       Desglose por destinatario
                     </p>
@@ -579,14 +579,14 @@ export function DespachosView() {
             <Button
               variant="outline"
               onClick={() => setBulkOpen(false)}
-              className="h-9 rounded-md border-border bg-background text-[13px] font-medium text-foreground hover:bg-muted"
+              className="h-9 rounded-lg border-border bg-background text-[13px] font-medium text-foreground hover:bg-muted"
             >
               Cancelar
             </Button>
             <Button
               onClick={analizarYRegistrar}
               disabled={validacion.validos.length === 0 || analizando}
-              className="h-9 rounded-md bg-foreground text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+              className="h-9 rounded-lg bg-foreground text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
             >
               {analizando ? (
                 <><Loader2 className="mr-1.5 h-4 w-4 animate-spin" {...ICON_PROPS} /> Analizando…</>

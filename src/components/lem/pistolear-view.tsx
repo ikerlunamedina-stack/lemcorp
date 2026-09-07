@@ -353,7 +353,7 @@ export function PistolearView() {
         <Button
           variant="outline"
           onClick={() => setShowConfig((v) => !v)}
-          className="h-9 rounded-md border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted"
+          className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted"
         >
           <Settings2 className="mr-1.5 h-4 w-4" {...ICON_PROPS} />
           {showConfig ? "Ocultar config" : "Configuración"}
@@ -384,7 +384,7 @@ export function PistolearView() {
               <select
                 value={modeloSeleccionado}
                 onChange={(e) => setModeloSeleccionado(e.target.value)}
-                className="h-9 w-full appearance-none rounded-md border border-border bg-background pl-8 pr-8 text-[13px] font-medium text-foreground outline-none focus:border-foreground"
+                className="h-9 w-full appearance-none rounded-lg border border-border bg-background pl-8 pr-8 text-[13px] font-medium text-foreground outline-none focus:border-foreground"
               >
                 <option value="">— Autodetectar por prefijo —</option>
                 {productosUnicos.map((p) => (
@@ -398,7 +398,7 @@ export function PistolearView() {
             {modeloSeleccionado && (
               <button
                 onClick={() => setModeloSeleccionado("")}
-                className="press mt-2 inline-flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="press mt-2 inline-flex items-center gap-1 rounded-lg border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 <X className="h-3 w-3" {...ICON_PROPS} /> Quitar selección
               </button>
@@ -427,7 +427,7 @@ export function PistolearView() {
                 value={settings.pistoleoPrefijo}
                 onChange={(e) => setSetting("pistoleoPrefijo", e.target.value.toUpperCase())}
                 placeholder="Ej: ZTE"
-                className="h-9 flex-1 rounded-md border-border bg-background font-mono uppercase text-[13px]"
+                className="h-9 flex-1 rounded-lg border-border bg-background font-mono uppercase text-[13px]"
                 disabled={!settings.pistoleoPrefijoEnabled}
               />
             </div>
@@ -453,7 +453,7 @@ export function PistolearView() {
                 value={pistoleoModelo}
                 onChange={(e) => setPistoleoConfig({ pistoleoModelo: e.target.value })}
                 placeholder="Se autodetecta por prefijo si lo dejas vacío"
-                className="mt-1.5 h-9 rounded-md border-border bg-background text-[13px]"
+                className="mt-1.5 h-9 rounded-lg border-border bg-background text-[13px]"
               />
               <Label className="mt-3 block text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                 Estado por defecto
@@ -462,10 +462,10 @@ export function PistolearView() {
                 value={pistoleoEstado}
                 onValueChange={(v) => setPistoleoConfig({ pistoleoEstado: v as EstadoEquipo })}
               >
-                <SelectTrigger className="mt-1.5 h-9 rounded-md border-border bg-background text-[13px]">
+                <SelectTrigger className="mt-1.5 h-9 rounded-lg border-border bg-background text-[13px]">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="rounded-md">
+                <SelectContent className="rounded-lg">
                   {ESTADOS.map((est) => (
                     <SelectItem key={est} value={est}>
                       {ESTADO_META[est].label}
@@ -484,7 +484,7 @@ export function PistolearView() {
                 {REGLAS_PREFIJO.map((r) => (
                   <div
                     key={r.prefijo}
-                    className="flex items-start gap-2 rounded-md border border-border bg-background px-2.5 py-2"
+                    className="flex items-start gap-2 rounded-lg border border-border bg-background px-2.5 py-2"
                   >
                     <CircleDot className="mt-0.5 h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
                     <div className="min-w-0 flex-1">
@@ -524,7 +524,7 @@ export function PistolearView() {
         })}
         <div className="ml-auto flex items-center gap-2 pb-2 text-[11px] text-muted-foreground">
           {hayParcial ? (
-            <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-[11px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-[11px] text-muted-foreground">
               <span className="h-1.5 w-1.5 rounded-full bg-foreground" />
               Esperando: {campoMeta.campos[parcial.length]}… ({parcial.length}/{camposEsperados})
             </span>
@@ -550,7 +550,7 @@ export function PistolearView() {
                 ? `Escanear ${campoMeta.campos[parcial.length]}… (Enter para confirmar)`
                 : `Escanear serie con el lector… (Enter para confirmar)`
             }
-            className="h-12 w-full rounded-md border border-border bg-background pl-11 pr-3 font-mono text-[15px] font-medium tracking-wide text-foreground outline-none transition-colors focus:border-foreground"
+            className="h-12 w-full rounded-lg border border-border bg-background pl-11 pr-3 font-mono text-[15px] font-medium tracking-wide text-foreground outline-none transition-colors focus:border-foreground"
             autoComplete="off"
             spellCheck={false}
           />
@@ -577,7 +577,7 @@ export function PistolearView() {
       {duplicadosSistema.length > 0 && (
         <button
           onClick={() => setShowDuplicadosModal(true)}
-          className="press anim-fade-in mb-3 flex w-full items-center gap-2.5 rounded-md border border-border bg-background px-3 py-2.5 text-left transition-colors hover:bg-muted"
+          className="press anim-fade-in mb-3 flex w-full items-center gap-2.5 rounded-lg border border-border bg-background px-3 py-2.5 text-left transition-colors hover:bg-muted"
         >
           <AlertCircle className="h-4 w-4 shrink-0 text-muted-foreground" {...ICON_PROPS} />
           <div className="min-w-0 flex-1">
@@ -594,7 +594,7 @@ export function PistolearView() {
 
       {/* Banner: duplicados dentro del lote actual */}
       {duplicadosEnLote.length > 0 && (
-        <div className="anim-fade-in mb-3 flex items-center gap-2.5 rounded-md border border-border bg-background px-3 py-2.5">
+        <div className="anim-fade-in mb-3 flex items-center gap-2.5 rounded-lg border border-border bg-background px-3 py-2.5">
           <AlertCircle className="h-4 w-4 shrink-0 text-muted-foreground" {...ICON_PROPS} />
           <div className="min-w-0 flex-1">
             <p className="text-[12px] font-medium text-foreground">
@@ -612,7 +612,7 @@ export function PistolearView() {
         <Button
           onClick={handleConfirmar}
           disabled={pistoleoFilas.length === 0}
-          className="h-9 rounded-md bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90 disabled:opacity-40"
+          className="h-9 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90 disabled:opacity-40"
         >
           <Save className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Guardar en sistema ({pistoleoFilas.length})
         </Button>
@@ -620,7 +620,7 @@ export function PistolearView() {
           variant="outline"
           onClick={handleClear}
           disabled={pistoleoFilas.length === 0}
-          className="h-9 rounded-md border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted disabled:opacity-40"
+          className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted disabled:opacity-40"
         >
           <Trash2 className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Descartar captura
         </Button>
@@ -635,7 +635,7 @@ export function PistolearView() {
 
       {/* Aviso de límite */}
       {pistoleoFilas.length >= 900 && (
-        <div className="mb-4 flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2.5 text-[12px] text-muted-foreground">
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-[12px] text-muted-foreground">
           <AlertCircle className="h-3.5 w-3.5 shrink-0" {...ICON_PROPS} />
           <span>
             Límite: {pistoleoFilas.length}/1000 series por lote. {1000 - pistoleoFilas.length} restantes.
@@ -704,7 +704,7 @@ export function PistolearView() {
                               next[0] = e.target.value;
                               setEditingValores(next);
                             }}
-                            className="h-8 rounded-md border-border bg-background font-mono text-[12px]"
+                            className="h-8 rounded-lg border-border bg-background font-mono text-[12px]"
                             autoFocus
                           />
                         </td>
@@ -717,7 +717,7 @@ export function PistolearView() {
                                 next[1] = e.target.value;
                                 setEditingValores(next);
                               }}
-                              className="h-8 rounded-md border-border bg-background font-mono text-[12px]"
+                              className="h-8 rounded-lg border-border bg-background font-mono text-[12px]"
                             />
                           </td>
                         )}
@@ -730,7 +730,7 @@ export function PistolearView() {
                                 next[1] = e.target.value;
                                 setEditingValores(next);
                               }}
-                              className="h-8 rounded-md border-border bg-background font-mono text-[12px]"
+                              className="h-8 rounded-lg border-border bg-background font-mono text-[12px]"
                             />
                           </td>
                         )}
@@ -743,7 +743,7 @@ export function PistolearView() {
                                 next[2] = e.target.value;
                                 setEditingValores(next);
                               }}
-                              className="h-8 rounded-md border-border bg-background font-mono text-[12px]"
+                              className="h-8 rounded-lg border-border bg-background font-mono text-[12px]"
                             />
                           </td>
                         )}
@@ -751,7 +751,7 @@ export function PistolearView() {
                           <select
                             value={editingModelo}
                             onChange={(e) => setEditingModelo(e.target.value)}
-                            className="h-8 w-full rounded-md border border-border bg-background px-2 text-[11px] font-medium text-foreground outline-none focus:border-foreground"
+                            className="h-8 w-full rounded-lg border border-border bg-background px-2 text-[11px] font-medium text-foreground outline-none focus:border-foreground"
                           >
                             <option value="">Autodetectar</option>
                             {productosUnicos.map((p) => (
@@ -766,14 +766,14 @@ export function PistolearView() {
                           <div className="flex items-center gap-1">
                             <button
                               onClick={saveEdit}
-                              className="press rounded-md p-1.5 text-foreground hover:bg-muted"
+                              className="press rounded-lg p-1.5 text-foreground hover:bg-muted"
                               title="Guardar"
                             >
                               <Check className="h-3.5 w-3.5" {...ICON_PROPS} />
                             </button>
                             <button
                               onClick={cancelEdit}
-                              className="press rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                              className="press rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
                               title="Cancelar"
                             >
                               <X className="h-3.5 w-3.5" {...ICON_PROPS} />
@@ -853,14 +853,14 @@ export function PistolearView() {
                         <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                           <button
                             onClick={() => startEdit(f.id, f.valores, f.modeloSeleccionado)}
-                            className="press rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                            className="press rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
                             title="Editar"
                           >
                             <Pencil className="h-3.5 w-3.5" {...ICON_PROPS} />
                           </button>
                           <button
                             onClick={() => deletePistoleoFila(f.id)}
-                            className="press rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                            className="press rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                             title="Eliminar"
                           >
                             <Trash2 className="h-3.5 w-3.5" {...ICON_PROPS} />
@@ -876,7 +876,7 @@ export function PistolearView() {
               <div className="border-t border-border px-4 py-3 text-center">
                 <button
                   onClick={() => setVisibleCount((c) => c + 100)}
-                  className="press rounded-md border border-border bg-background px-4 py-2 text-[12px] font-medium text-foreground hover:bg-muted"
+                  className="press rounded-lg border border-border bg-background px-4 py-2 text-[12px] font-medium text-foreground hover:bg-muted"
                 >
                   Cargar 100 más (mostrando {filasVisibles.length} de {pistoleoFilas.length})
                 </button>
@@ -913,7 +913,7 @@ export function PistolearView() {
           </DialogHeader>
           <div className="flex flex-col gap-3 px-5 py-4">
             {/* Resumen */}
-            <div className="grid grid-cols-3 overflow-hidden rounded-md border border-border bg-background">
+            <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-border bg-background">
               <div className="border-r border-border p-3 text-center">
                 <p className="text-[20px] font-semibold tabular-nums text-foreground">{pistoleoFilas.length}</p>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total capturadas</p>
@@ -928,7 +928,7 @@ export function PistolearView() {
               </div>
             </div>
             {/* Lista scroll */}
-            <div className="max-h-64 overflow-y-auto scroll-thin rounded-md border border-border bg-background">
+            <div className="max-h-64 overflow-y-auto scroll-thin rounded-lg border border-border bg-background">
               <table className="w-full text-[13px]">
                 <thead className="sticky top-0 bg-background">
                   <tr className="border-b border-border text-left text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -985,7 +985,7 @@ export function PistolearView() {
               </table>
             </div>
             {duplicadosSistema.length > 0 && (
-              <div className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2.5 text-[12px] text-muted-foreground">
+              <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-[12px] text-muted-foreground">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0" {...ICON_PROPS} />
                 <span>
                   {duplicadosSistema.length} serie(s) ya están registradas en el sistema y se omitirán al guardar.
@@ -995,13 +995,13 @@ export function PistolearView() {
           </div>
           <DialogFooter className="border-t border-border px-5 py-4 sm:justify-end">
             <DialogClose asChild>
-              <Button variant="outline" className="h-9 rounded-md border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted">
+              <Button variant="outline" className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted">
                 Cancelar
               </Button>
             </DialogClose>
             <Button
               onClick={handleConfirmarReal}
-              className="h-9 rounded-md bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+              className="h-9 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
             >
               <Save className="mr-1.5 h-4 w-4" {...ICON_PROPS} />
               {duplicadosSistema.length > 0
@@ -1031,7 +1031,7 @@ export function PistolearView() {
                 return (
                   <li
                     key={`${s}-${i}`}
-                    className="flex items-center gap-3 rounded-md border border-border bg-background px-3 py-2.5"
+                    className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2.5"
                   >
                     <AlertCircle className="h-4 w-4 shrink-0 text-muted-foreground" {...ICON_PROPS} />
                     <div className="min-w-0 flex-1">
@@ -1054,7 +1054,7 @@ export function PistolearView() {
           </div>
           <DialogFooter className="border-t border-border px-5 py-4 sm:justify-end">
             <DialogClose asChild>
-              <Button variant="outline" className="h-9 rounded-md border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted">
+              <Button variant="outline" className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted">
                 Entendido
               </Button>
             </DialogClose>
@@ -1080,7 +1080,7 @@ function ResumenCard({
   // per minimalist design (all cards use the same border + background).
   void tone;
   return (
-    <div className="rounded-md border border-border bg-background px-3 py-2.5">
+    <div className="rounded-lg border border-border bg-background px-3 py-2.5">
       <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className={cn("mt-1 truncate text-[14px] font-medium text-foreground", mono && "font-mono")}>
         {value}

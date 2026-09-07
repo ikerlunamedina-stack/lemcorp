@@ -89,9 +89,9 @@ export function EquiposView() {
         <div className="flex items-center gap-2">
           <div className="relative w-48">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" strokeWidth={1.5} />
-            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar serie…" className="h-9 rounded-md border-border bg-background pl-8 text-[13px]" />
+            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar serie…" className="h-9 rounded-lg border-border bg-background pl-8 text-[13px]" />
           </div>
-          <Button onClick={openCreate} className="press h-9 rounded-md bg-foreground text-background hover:bg-foreground/90">
+          <Button onClick={openCreate} className="press h-9 rounded-lg bg-foreground text-background hover:bg-foreground/90">
             <Plus className="mr-1.5 h-4 w-4" strokeWidth={1.5} /> Añadir
           </Button>
         </div>
@@ -158,32 +158,32 @@ export function EquiposView() {
           <div className="grid grid-cols-2 gap-4 px-5 py-5">
             <div className="col-span-2 flex flex-col gap-1.5">
               <Label htmlFor="eq-serie" className="text-[12px] font-medium text-foreground">Número de serie *</Label>
-              <Input id="eq-serie" value={form.serie} onChange={(e) => { setForm({ ...form, serie: e.target.value }); setDupError(false); }} placeholder="Ej. 48575443365E42B7" className={cn("rounded-md font-mono text-[13px]", dupError && "border-destructive")} autoFocus />
+              <Input id="eq-serie" value={form.serie} onChange={(e) => { setForm({ ...form, serie: e.target.value }); setDupError(false); }} placeholder="Ej. 48575443365E42B7" className={cn("rounded-lg font-mono text-[13px]", dupError && "border-destructive")} autoFocus />
               {dupError && <p className="text-[11px] text-destructive">Ya existe un equipo con esta serie</p>}
             </div>
             <div className="col-span-2 flex flex-col gap-1.5">
               <Label htmlFor="eq-modelo" className="text-[12px] font-medium text-foreground">Modelo *</Label>
-              <Input id="eq-modelo" value={form.modelo} onChange={(e) => setForm({ ...form, modelo: e.target.value })} placeholder="Ej. ROUTER ONT HG8145X6-13 HUAWEI" className="rounded-md text-[13px]" />
+              <Input id="eq-modelo" value={form.modelo} onChange={(e) => setForm({ ...form, modelo: e.target.value })} placeholder="Ej. ROUTER ONT HG8145X6-13 HUAWEI" className="rounded-lg text-[13px]" />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label className="text-[12px] font-medium text-foreground">Estado</Label>
               <Select value={form.estado} onValueChange={(v) => setForm({ ...form, estado: v as EstadoEquipo })}>
-                <SelectTrigger className="rounded-md text-[13px]"><SelectValue /></SelectTrigger>
-                <SelectContent className="rounded-md">{ESTADOS.map((est) => <SelectItem key={est} value={est}><span className="flex items-center gap-1.5"><EstadoIcon name={ESTADO_META[est].icon} className="h-3 w-3" /> {ESTADO_META[est].label}</span></SelectItem>)}</SelectContent>
+                <SelectTrigger className="rounded-lg text-[13px]"><SelectValue /></SelectTrigger>
+                <SelectContent className="rounded-lg">{ESTADOS.map((est) => <SelectItem key={est} value={est}><span className="flex items-center gap-1.5"><EstadoIcon name={ESTADO_META[est].icon} className="h-3 w-3" /> {ESTADO_META[est].label}</span></SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="eq-ubic" className="text-[12px] font-medium text-foreground">Ubicación</Label>
-              <Input id="eq-ubic" value={form.ubicacion} onChange={(e) => setForm({ ...form, ubicacion: e.target.value })} placeholder="Almacén, Taller…" className="rounded-md text-[13px]" />
+              <Input id="eq-ubic" value={form.ubicacion} onChange={(e) => setForm({ ...form, ubicacion: e.target.value })} placeholder="Almacén, Taller…" className="rounded-lg text-[13px]" />
             </div>
             <div className="col-span-2 flex flex-col gap-1.5">
               <Label htmlFor="eq-obs" className="text-[12px] font-medium text-foreground">Observación</Label>
-              <Textarea id="eq-obs" value={form.observacion} onChange={(e) => setForm({ ...form, observacion: e.target.value })} placeholder="Ej. No enciende, cliente devolvió…" className="rounded-md min-h-[60px] text-[13px]" />
+              <Textarea id="eq-obs" value={form.observacion} onChange={(e) => setForm({ ...form, observacion: e.target.value })} placeholder="Ej. No enciende, cliente devolvió…" className="rounded-lg min-h-[60px] text-[13px]" />
             </div>
           </div>
           <DialogFooter className="border-t border-border px-5 py-4">
-            <Button variant="outline" onClick={() => setDialogOpen(false)} className="h-9 rounded-md border-border bg-background text-[13px] font-medium hover:bg-muted">Cancelar</Button>
-            <Button onClick={handleSave} disabled={!form.serie.trim() || !form.modelo.trim()} className="h-9 rounded-md bg-foreground text-background hover:bg-foreground/90 text-[13px] font-medium">
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="h-9 rounded-lg border-border bg-background text-[13px] font-medium hover:bg-muted">Cancelar</Button>
+            <Button onClick={handleSave} disabled={!form.serie.trim() || !form.modelo.trim()} className="h-9 rounded-lg bg-foreground text-background hover:bg-foreground/90 text-[13px] font-medium">
               {editing ? "Guardar" : "Añadir"}
             </Button>
           </DialogFooter>
@@ -198,7 +198,7 @@ function FilterChip({ active, onClick, label, count }: { active: boolean; onClic
     <button
       onClick={onClick}
       className={cn(
-        "press flex items-center gap-1.5 rounded-md border px-3 py-1 text-[12px] font-medium transition-colors",
+        "press flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors",
         active
           ? "border-foreground bg-foreground text-background"
           : "border-border bg-background text-muted-foreground hover:text-foreground hover:bg-muted"

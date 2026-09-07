@@ -190,7 +190,7 @@ export function NotificationStack() {
                 </div>
                 <button
                   onClick={() => markNotificacionLeida(n.id)}
-                  className="press shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  className="press shrink-0 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>

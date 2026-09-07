@@ -152,7 +152,7 @@ export function ConfigView() {
               value={settings.usuario}
               onChange={(e) => setSetting("usuario", e.target.value)}
               placeholder="Ej: Iker, Carlos, Antonio…"
-              className="h-9 max-w-sm rounded-md border-border bg-background"
+              className="h-9 max-w-sm rounded-lg border-border bg-background"
             />
           </div>
           {/* Tema */}
@@ -169,7 +169,7 @@ export function ConfigView() {
                     key={t.value}
                     onClick={() => setSetting("tema", t.value)}
                     className={cn(
-                      "press inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-[12px] font-medium transition-colors",
+                      "press inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-[12px] font-medium transition-colors",
                       active
                         ? "bg-foreground text-background"
                         : "border border-border bg-background text-foreground hover:bg-muted"
@@ -240,7 +240,7 @@ export function ConfigView() {
               value={settings.pistoleoPrefijo}
               onChange={(e) => setSetting("pistoleoPrefijo", e.target.value)}
               placeholder="ZTEATV"
-              className="h-9 max-w-sm rounded-md border-border bg-background font-mono uppercase disabled:opacity-50"
+              className="h-9 max-w-sm rounded-lg border-border bg-background font-mono uppercase disabled:opacity-50"
               disabled={!settings.pistoleoPrefijoEnabled}
             />
           </div>
@@ -304,14 +304,14 @@ export function ConfigView() {
             <div className="flex flex-wrap gap-2 px-4 py-3">
               <button
                 onClick={() => speak("Hola, soy Alana, asistente del almacén Lemcorp.")}
-                className="press inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-[12px] font-medium text-foreground hover:bg-muted"
+                className="press inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-[12px] font-medium text-foreground hover:bg-muted"
               >
                 <Volume2 className="h-3.5 w-3.5" {...ICON_PROPS} />
                 Probar voz
               </button>
               <button
                 onClick={() => stopSpeaking()}
-                className="press inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-[12px] font-medium text-foreground hover:bg-muted"
+                className="press inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-[12px] font-medium text-foreground hover:bg-muted"
               >
                 <Square className="h-3.5 w-3.5" {...ICON_PROPS} />
                 Detener
@@ -331,7 +331,7 @@ export function ConfigView() {
           {memoriaIA.length > 0 && (
             <button
               onClick={() => setMemConfirmOpen(true)}
-              className="press inline-flex h-7 items-center gap-1 rounded-md border border-border bg-background px-2.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+              className="press inline-flex h-7 items-center gap-1 rounded-lg border border-border bg-background px-2.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
             >
               <Trash2 className="h-3 w-3" {...ICON_PROPS} />
               Borrar todo
@@ -344,7 +344,7 @@ export function ConfigView() {
           </p>
 
           {memoriaIA.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-md border border-dashed border-border bg-background py-10 text-center">
+            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-background py-10 text-center">
               <Brain className="mb-2 h-7 w-7 text-muted-foreground/40" {...ICON_PROPS} />
               <p className="text-[12px] font-medium text-foreground">Todavía no has enseñado nada a Alana</p>
               <p className="mt-0.5 text-[11px] text-muted-foreground">
@@ -352,7 +352,7 @@ export function ConfigView() {
               </p>
             </div>
           ) : (
-            <ul className="divide-y divide-border overflow-hidden rounded-md border border-border bg-background">
+            <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-background">
               {memoriaIA.map((m, i) => (
                 <li
                   key={i}
@@ -364,7 +364,7 @@ export function ConfigView() {
                   <p className="min-w-0 flex-1 break-words text-[12px] leading-relaxed text-foreground">{m}</p>
                   <button
                     onClick={() => handleDeleteMemoria(i)}
-                    className="press shrink-0 rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                    className="press shrink-0 rounded-lg p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
                     title="Eliminar este aprendizaje"
                   >
                     <Trash2 className="h-3.5 w-3.5" {...ICON_PROPS} />
@@ -406,21 +406,21 @@ export function ConfigView() {
           <div className="flex flex-wrap gap-2 px-4 py-3">
             <button
               onClick={() => exportInventarioExcel()}
-              className="press inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-[12px] font-medium text-foreground hover:bg-muted"
+              className="press inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-[12px] font-medium text-foreground hover:bg-muted"
             >
               <Download className="h-3.5 w-3.5" {...ICON_PROPS} />
               Exportar inventario
             </button>
             <button
               onClick={() => setSeedConfirm(true)}
-              className="press inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-[12px] font-medium text-foreground hover:bg-muted"
+              className="press inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-[12px] font-medium text-foreground hover:bg-muted"
             >
               <DatabaseZap className="h-3.5 w-3.5" {...ICON_PROPS} />
               Cargar datos demo
             </button>
             <button
               onClick={() => setConfirmOpen(true)}
-              className="press inline-flex h-8 items-center gap-1.5 rounded-md border border-destructive/30 bg-background px-3 text-[12px] font-medium text-destructive transition-colors hover:bg-destructive/10"
+              className="press inline-flex h-8 items-center gap-1.5 rounded-lg border border-destructive/30 bg-background px-3 text-[12px] font-medium text-destructive transition-colors hover:bg-destructive/10"
             >
               <Trash2 className="h-3.5 w-3.5" {...ICON_PROPS} />
               Borrar todo
@@ -462,7 +462,7 @@ export function ConfigView() {
               } catch {}
               setTimeout(() => window.location.reload(), 200);
             }}
-            className="press inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-[12px] font-medium text-foreground hover:bg-muted"
+            className="press inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-[12px] font-medium text-foreground hover:bg-muted"
           >
             <Sparkles className="h-3.5 w-3.5" {...ICON_PROPS} />
             Repetir configuración inicial
@@ -486,7 +486,7 @@ export function ConfigView() {
             <Button
               variant="outline"
               onClick={() => setConfirmOpen(false)}
-              className="h-9 rounded-md border-border bg-background hover:bg-muted"
+              className="h-9 rounded-lg border-border bg-background hover:bg-muted"
             >
               Cancelar
             </Button>
@@ -496,7 +496,7 @@ export function ConfigView() {
                 setConfirmOpen(false);
                 toast({ title: "Datos borrados", description: "El sistema quedó vacío." });
               }}
-              className="press inline-flex h-9 items-center gap-1.5 rounded-md bg-destructive px-3.5 text-[13px] font-medium text-white transition-colors hover:bg-destructive/90"
+              className="press inline-flex h-9 items-center gap-1.5 rounded-lg bg-destructive px-3.5 text-[13px] font-medium text-white transition-colors hover:bg-destructive/90"
             >
               <Trash2 className="h-3.5 w-3.5" {...ICON_PROPS} />
               Sí, borrar todo
@@ -521,13 +521,13 @@ export function ConfigView() {
             <Button
               variant="outline"
               onClick={() => setSeedConfirm(false)}
-              className="h-9 rounded-md border-border bg-background hover:bg-muted"
+              className="h-9 rounded-lg border-border bg-background hover:bg-muted"
             >
               Cancelar
             </Button>
             <button
               onClick={handleSeed}
-              className="press inline-flex h-9 items-center gap-1.5 rounded-md bg-foreground px-3.5 text-[13px] font-medium text-background transition-colors hover:bg-foreground/90"
+              className="press inline-flex h-9 items-center gap-1.5 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background transition-colors hover:bg-foreground/90"
             >
               <DatabaseZap className="h-3.5 w-3.5" {...ICON_PROPS} />
               Cargar demo
@@ -552,13 +552,13 @@ export function ConfigView() {
             <Button
               variant="outline"
               onClick={() => setMemConfirmOpen(false)}
-              className="h-9 rounded-md border-border bg-background hover:bg-muted"
+              className="h-9 rounded-lg border-border bg-background hover:bg-muted"
             >
               Cancelar
             </Button>
             <button
               onClick={handleClearMemoria}
-              className="press inline-flex h-9 items-center gap-1.5 rounded-md bg-destructive px-3.5 text-[13px] font-medium text-white transition-colors hover:bg-destructive/90"
+              className="press inline-flex h-9 items-center gap-1.5 rounded-lg bg-destructive px-3.5 text-[13px] font-medium text-white transition-colors hover:bg-destructive/90"
             >
               <Trash2 className="h-3.5 w-3.5" {...ICON_PROPS} />
               Sí, borrar memoria
@@ -637,7 +637,7 @@ function SesionSelector() {
   return (
     <div className="flex flex-col gap-3">
       {/* Estado actual */}
-      <div className="flex items-center gap-3 rounded-md border border-border bg-background px-3 py-2.5">
+      <div className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2.5">
         <div
           className={cn(
             "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border text-[11px] font-medium",
@@ -657,7 +657,7 @@ function SesionSelector() {
         {miembroActual && (
           <button
             onClick={cerrarSesion}
-            className="press inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-[12px] font-medium text-foreground hover:bg-muted"
+            className="press inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 text-[12px] font-medium text-foreground hover:bg-muted"
           >
             <LogOut className="h-3.5 w-3.5" {...ICON_PROPS} />
             Cerrar sesión
@@ -671,7 +671,7 @@ function SesionSelector() {
           <Label className="mb-1.5 block text-[11px] uppercase tracking-wider text-muted-foreground">
             Iniciar sesión como
           </Label>
-          <div className="grid gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-3">
             {miembros.map((m) => {
               return (
                 <button
@@ -698,7 +698,7 @@ function SesionSelector() {
 
       {/* Info de permisos */}
       {miembroActual && (
-        <div className="rounded-md border border-border bg-muted/30 px-3 py-2.5">
+        <div className="rounded-lg border border-border bg-muted/30 px-3 py-2.5">
           <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
             Tus permisos efectivos:
           </p>
@@ -706,7 +706,7 @@ function SesionSelector() {
             {(Object.keys(PERMISO_META) as Permiso[]).filter((p) => tienePermiso(p)).map((p) => (
               <span
                 key={p}
-                className="rounded-md border border-border bg-background px-2 py-0.5 text-[10px] font-medium text-foreground"
+                className="rounded-lg border border-border bg-background px-2 py-0.5 text-[10px] font-medium text-foreground"
               >
                 {PERMISO_META[p].label}
               </span>
@@ -720,7 +720,7 @@ function SesionSelector() {
                   {(Object.keys(PERMISO_META) as Permiso[]).filter((p) => !tienePermiso(p)).map((p) => (
                     <span
                       key={p}
-                      className="rounded-md border border-border bg-background px-2 py-0.5 text-[10px] font-medium text-muted-foreground line-through"
+                      className="rounded-lg border border-border bg-background px-2 py-0.5 text-[10px] font-medium text-muted-foreground line-through"
                     >
                       {PERMISO_META[p].label}
                     </span>

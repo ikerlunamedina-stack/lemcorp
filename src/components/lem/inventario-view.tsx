@@ -200,14 +200,14 @@ export function InventarioView() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Buscar SKU o producto…"
-              className="h-9 rounded-md border-border bg-background pl-8 text-[13px]"
+              className="h-9 rounded-lg border-border bg-background pl-8 text-[13px]"
             />
           </div>
           <Button
             variant="outline"
             onClick={() => importFileRef.current?.click()}
             disabled={importingInv}
-            className="h-9 rounded-md border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted"
+            className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted"
           >
             {importingInv
               ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" {...ICON_PROPS} />
@@ -217,20 +217,20 @@ export function InventarioView() {
           <Button
             variant="outline"
             onClick={() => setEntradaOpen(true)}
-            className="h-9 rounded-md border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted"
+            className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted"
           >
             <ArrowDownToLine className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Entrada
           </Button>
           <Button
             variant="outline"
             onClick={() => exportInventarioExcel()}
-            className="h-9 rounded-md border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted"
+            className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted"
           >
             <Download className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Exportar
           </Button>
           <Button
             onClick={openCreate}
-            className="h-9 rounded-md bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+            className="h-9 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
           >
             <Plus className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Añadir
           </Button>
@@ -287,14 +287,14 @@ export function InventarioView() {
                         <button
                           onClick={() => openEdit(p)}
                           aria-label="Editar producto"
-                          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                         >
                           <Pencil className="h-3.5 w-3.5" {...ICON_PROPS} />
                         </button>
                         <button
                           onClick={() => deleteProduct(p.id)}
                           aria-label="Eliminar producto"
-                          className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                         >
                           <Trash2 className="h-3.5 w-3.5" {...ICON_PROPS} />
                         </button>
@@ -340,7 +340,7 @@ export function InventarioView() {
                   <button
                     onClick={() => deleteEntrada(e.id)}
                     aria-label="Eliminar entrada"
-                    className="rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                    className="rounded-lg p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
                   >
                     <Trash className="h-3.5 w-3.5" {...ICON_PROPS} />
                   </button>
@@ -368,7 +368,7 @@ export function InventarioView() {
                 value={form.sku}
                 onChange={(e) => { setForm({ ...form, sku: e.target.value }); setDupError(false); }}
                 placeholder="Ej. 1066990"
-                className={cn("rounded-md border-border font-mono text-[13px]", dupError && "border-destructive")}
+                className={cn("rounded-lg border-border font-mono text-[13px]", dupError && "border-destructive")}
                 autoFocus
               />
               {dupError && (
@@ -385,7 +385,7 @@ export function InventarioView() {
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="Ej. CONECTOR FIBRA OPTICA FTTH PPC"
-                className="rounded-md border-border text-[13px]"
+                className="rounded-lg border-border text-[13px]"
               />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -396,7 +396,7 @@ export function InventarioView() {
                 onChange={(e) => setForm({ ...form, quantity: e.target.value })}
                 placeholder="Ej. 41"
                 inputMode="numeric"
-                className="rounded-md border-border text-[13px] tabular-nums"
+                className="rounded-lg border-border text-[13px] tabular-nums"
               />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -407,7 +407,7 @@ export function InventarioView() {
                 onChange={(e) => setForm({ ...form, minStock: e.target.value })}
                 placeholder="Ej. 10"
                 inputMode="numeric"
-                className="rounded-md border-border text-[13px] tabular-nums"
+                className="rounded-lg border-border text-[13px] tabular-nums"
               />
             </div>
             <div className="col-span-2 flex flex-col gap-1.5">
@@ -417,7 +417,7 @@ export function InventarioView() {
                 value={form.udm}
                 onChange={(e) => setForm({ ...form, udm: e.target.value })}
                 placeholder="UNIDADES, METROS…"
-                className="rounded-md border-border text-[13px]"
+                className="rounded-lg border-border text-[13px]"
               />
             </div>
           </div>
@@ -425,14 +425,14 @@ export function InventarioView() {
             <Button
               variant="ghost"
               onClick={() => setDialogOpen(false)}
-              className="h-9 rounded-md px-3.5 text-[13px] font-medium hover:bg-muted"
+              className="h-9 rounded-lg px-3.5 text-[13px] font-medium hover:bg-muted"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleSave}
               disabled={!form.sku.trim() || !form.name.trim()}
-              className="h-9 rounded-md bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+              className="h-9 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
             >
               {editing ? "Guardar" : "Añadir"}
             </Button>
@@ -459,7 +459,7 @@ export function InventarioView() {
               value={entradaText}
               onChange={(e) => { setEntradaText(e.target.value); setEntradaMsg(""); }}
               placeholder={"1066990*100\n1002900*50\n4076358*5"}
-              className="min-h-[120px] rounded-md border-border font-mono text-[13px]"
+              className="min-h-[120px] rounded-lg border-border font-mono text-[13px]"
               autoFocus
             />
 
@@ -470,7 +470,7 @@ export function InventarioView() {
                   <div
                     key={p.i}
                     className={cn(
-                      "flex items-center gap-2 rounded-md border px-3 py-2 text-[12px]",
+                      "flex items-center gap-2 rounded-lg border px-3 py-2 text-[12px]",
                       p.ok && p.producto
                         ? "border-border bg-muted/40"
                         : "border-destructive/30 bg-destructive/5"
@@ -513,14 +513,14 @@ export function InventarioView() {
             <Button
               variant="ghost"
               onClick={() => setEntradaOpen(false)}
-              className="h-9 rounded-md px-3.5 text-[13px] font-medium hover:bg-muted"
+              className="h-9 rounded-lg px-3.5 text-[13px] font-medium hover:bg-muted"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleEntrada}
               disabled={!entradaText.trim()}
-              className="h-9 rounded-md bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+              className="h-9 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
             >
               Registrar entrada
             </Button>
@@ -604,14 +604,14 @@ export function InventarioView() {
             <Button
               variant="ghost"
               onClick={() => setImportOpen(false)}
-              className="h-9 rounded-md px-3.5 text-[13px] font-medium hover:bg-muted"
+              className="h-9 rounded-lg px-3.5 text-[13px] font-medium hover:bg-muted"
             >
               Cancelar
             </Button>
             <Button
               onClick={confirmImport}
               disabled={importPreview.length === 0 || !!importResult}
-              className="h-9 rounded-md bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+              className="h-9 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
             >
               <Check className="mr-1.5 h-4 w-4" {...ICON_PROPS} />
               Confirmar importación ({importPreview.length})
