@@ -2706,3 +2706,45 @@ Stage Summary:
 - Danger zone: the "Borrar todo" button uses `border-destructive/30 text-destructive hover:bg-destructive/10` (subtle) and the two destructive confirm dialogs use `border-destructive/30` on the dialog chrome (NOT big red).
 - "Repetir configuración inicial" button kept with the exact same `localStorage.removeItem` + `setTimeout(reload, 200)` behavior.
 - All store calls, state, handlers, toasts, TTS speak/stop, dialogs, sub-components (`Stat`, `SesionSelector`) and the new `InfoRow` helper preserve the original functionality verbatim — only className/layout/structure was touched. Two unused icon imports (`SettingsIcon`, `Palette`) were dropped as a visual-only cleanup.
+
+---
+Task ID: PREMIUM-REFINE
+Agent: main
+Task: Refinar diseño minimalista para que se sienta premium, natural y fluido (no seco/duro)
+
+Work Log:
+- Problema: el diseño minimalista estaba MUY seco/plano — no se diferenciaban bien las cosas
+- Cambios en globals.css:
+  * Background: oklch(1 0 0) blanco puro → oklch(0.985 0.002 250) blanco con tinte cálido sutil
+  * Card: sigue blanco puro (oklch 1) — ahora DESTACA contra el background gris sutil
+  * Border: oklch(0.93) → oklch(0.91) más visible para mejor separación
+  * Muted-foreground: oklch(0.45) → oklch(0.42) más oscuro para mejor legibilidad
+  * Shadows: más presentes (0.04→0.05, 0.05→0.07, 0.06→0.08, 0.08→0.10)
+  * Shadow-primary: ahora tiene tinte azul sutil para botones premium
+  * Dark mode: background 0.07→0.08, card 0.10→0.11, border 0.18→0.20 (mejor separación)
+  * Nuevas utilidades premium:
+    - .press-card: ahora con shadow-sm + translateY(-2px) + shadow-md en hover
+    - .btn-foreground: botón neutral premium con sombra
+    - .btn-primary: ahora con shadow-primary (tinte azul sutil)
+    - .glass/.glass-topbar: usa card (no background) para mejor contraste
+- Cambios en navbar.tsx:
+  * bg-background/80 → bg-card/90 + shadow-sm (navbar ahora tiene profundidad sutil)
+- Cambios en dashboard-view.tsx:
+  * KPIs: antes grid gap-px con fondo border (plano) → ahora cards individuales con border + shadow + rounded-xl + hover elevación
+  * Secciones (menor stock, entradas, equipos estado, accesos rápidos, notas): envueltas en press-card con p-6 y rounded-xl
+  * Barras de progreso: h-px (1px plano) → h-1.5 (6px redondeado, más visible)
+  * Color barras: bg-foreground/40 → bg-foreground/30 (normal) y bg-destructive/70 (bajo stock)
+  * Botones "Ver todo": text-muted-foreground → text-primary (acento azul sutil)
+  * Espaciado: space-y-10 → space-y-6 (mejor ritmo visual)
+  * Botón Exportar: bg-background → bg-card + shadow-sm
+- Verificación CSS: 98.2586% (background), 0.91 (border), 0.42 (muted), 0.08 (shadow) ✓
+
+Stage Summary:
+- Diseño ahora se siente premium: cards blancos destacan sobre fondo gris sutil ✓
+- Sombras sutiles dan profundidad sin exagerar ✓
+- Mejor jerarquía visual: secciones bien separadas en cards ✓
+- Barras de progreso más gruesas y con color (no planas) ✓
+- Borders más visibles para mejor diferenciación ✓
+- Muted-foreground más oscuro para mejor legibilidad ✓
+- Lint: 0 errores ✓
+- Subido a GitHub (c1942b8)
