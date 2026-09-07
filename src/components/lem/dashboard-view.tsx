@@ -70,19 +70,19 @@ export function DashboardView() {
         <Button
           onClick={() => exportInventarioExcel()}
           variant="outline"
-          className="press h-9 rounded-md border-border bg-background px-3 text-[13px] font-medium hover:bg-muted"
+          className="press h-9 rounded-md border-border bg-card px-3 text-[13px] font-medium shadow-sm hover:bg-muted"
         >
           <Download className="mr-1.5 h-4 w-4" strokeWidth={1.5} /> Exportar
         </Button>
       </div>
 
-      {/* KPIs — solo números grandes, sin iconos en círculos de color */}
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border lg:grid-cols-4">
+      {/* KPIs — cards premium con sombra sutil para profundidad */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {kpis.map((k, i) => (
           <button
             key={k.label}
             onClick={go(k.view)}
-            className="anim-slide-up group bg-background p-5 text-left transition-colors hover:bg-muted/50"
+            className="press-card anim-slide-up group rounded-xl border border-border bg-card p-5 text-left"
             style={{ animationDelay: `${i * 60}ms` }}
           >
             <p className="text-[32px] font-semibold tabular-nums tracking-tight text-foreground sm:text-[36px]">
@@ -95,16 +95,16 @@ export function DashboardView() {
       </div>
 
       {/* Grid principal */}
-      <div className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-3">
+      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Col izquierda */}
-        <div className="space-y-10 lg:col-span-2">
+        <div className="space-y-6 lg:col-span-2">
           {/* Productos con menor stock */}
-          <section>
-            <div className="mb-4 flex items-center justify-between">
+          <section className="press-card rounded-xl border border-border bg-card p-6">
+            <div className="mb-5 flex items-center justify-between">
               <h2 className="text-[15px] font-medium text-foreground">Productos con menor stock</h2>
               <button
                 onClick={go("inventario")}
-                className="press flex items-center gap-1 text-[12px] font-medium text-muted-foreground hover:text-foreground"
+                className="press flex items-center gap-1 text-[12px] font-medium text-primary hover:text-primary/80"
               >
                 Ver todo <ArrowRight className="h-3 w-3" strokeWidth={1.5} />
               </button>
@@ -124,11 +124,12 @@ export function DashboardView() {
                         ) : null}
                       </span>
                     </div>
-                    <div className="h-px w-full bg-muted">
+                    {/* Barra de progreso más gruesa y con color sutil */}
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                       <div
                         className={cn(
-                          "h-px transition-all",
-                          bajo ? "bg-foreground" : "bg-foreground/40"
+                          "h-full rounded-full transition-all duration-500",
+                          bajo ? "bg-destructive/70" : "bg-foreground/30"
                         )}
                         style={{ width: `${pct}%` }}
                       />
@@ -140,8 +141,8 @@ export function DashboardView() {
           </section>
 
           {/* Entradas recientes */}
-          <section>
-            <div className="mb-4 flex items-center justify-between">
+          <section className="press-card rounded-xl border border-border bg-card p-6">
+            <div className="mb-5 flex items-center justify-between">
               <h2 className="text-[15px] font-medium text-foreground">Entradas recientes</h2>
               <button
                 onClick={go("inventario")}
@@ -172,32 +173,32 @@ export function DashboardView() {
         </div>
 
         {/* Col derecha */}
-        <div className="space-y-10">
+        <div className="space-y-6">
           {/* Equipos por estado */}
           {equipos.length > 0 && (
-            <section>
-              <div className="mb-4 flex items-center justify-between">
+            <section className="press-card rounded-xl border border-border bg-card p-6">
+              <div className="mb-5 flex items-center justify-between">
                 <h2 className="text-[15px] font-medium text-foreground">Equipos por estado</h2>
                 <button
                   onClick={go("equipos")}
-                  className="press flex items-center gap-1 text-[12px] font-medium text-muted-foreground hover:text-foreground"
+                  className="press flex items-center gap-1 text-[12px] font-medium text-primary hover:text-primary/80"
                 >
                   Ver <ArrowRight className="h-3 w-3" strokeWidth={1.5} />
                 </button>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-3.5">
                 {(Object.keys(ESTADO_META) as EstadoEquipo[]).map((est) => {
                   const n = equipos.filter((e) => e.estado === est).length;
                   const meta = ESTADO_META[est];
                   const pct = equipos.length > 0 ? (n / equipos.length) * 100 : 0;
                   return (
                     <div key={est}>
-                      <div className="mb-1 flex items-baseline justify-between">
+                      <div className="mb-1.5 flex items-baseline justify-between">
                         <span className="text-[13px] text-muted-foreground">{meta.label}</span>
                         <span className="text-[13px] font-semibold tabular-nums text-foreground">{n}</span>
                       </div>
-                      <div className="h-px w-full bg-muted">
-                        <div className="h-px bg-foreground/60" style={{ width: `${pct}%` }} />
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                        <div className="h-full rounded-full bg-foreground/50 transition-all duration-500" style={{ width: `${pct}%` }} />
                       </div>
                     </div>
                   );
@@ -206,10 +207,10 @@ export function DashboardView() {
             </section>
           )}
 
-          {/* Accesos rápidos — solo texto, sin cuadros con iconos */}
-          <section>
+          {/* Accesos rápidos */}
+          <section className="press-card rounded-xl border border-border bg-card p-6">
             <h2 className="mb-4 text-[15px] font-medium text-foreground">Accesos rápidos</h2>
-            <div className="divide-y divide-border border-y border-border">
+            <div className="divide-y divide-border">
               {[
                 { label: "Asistente Alana", view: "ia" as ActiveView },
                 { label: "Series", view: "series" as ActiveView },
@@ -230,7 +231,7 @@ export function DashboardView() {
 
           {/* Notas fijadas */}
           {notas.filter((n) => n.pinned).length > 0 && (
-            <section>
+            <section className="press-card rounded-xl border border-border bg-card p-6">
               <h2 className="mb-3 text-[15px] font-medium text-foreground">Notas fijadas</h2>
               <div className="space-y-2">
                 {notas.filter((n) => n.pinned).slice(0, 3).map((n) => (

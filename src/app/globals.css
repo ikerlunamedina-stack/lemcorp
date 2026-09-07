@@ -44,13 +44,14 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   LEMCORP — DISEÑO MINIMALISTA CORPORATIVO (referencia Apple)
-   - Fondo blanco puro / negro casi negro (#0A0A0C)
-   - Acentos de marca en dosis MÍNIMAS (solo contornos, no relleno)
+   LEMCORP — DISEÑO PREMIUM CORPORATIVO (referencia Apple/Linear)
+   - Fondo blanco con tinte sutil / negro casi negro (#0A0A0C)
+   - Cards con fondo ligeramente diferente para profundidad
+   - Acentos de marca en dosis medidas (puntos, bordes activos)
    - Iconografía line-art (contornos finos, sin relleno de color)
-   - Tipografía sans-serif limpia, peso medio, mucho espacio
-   - Sin gradientes llamativos ni sombras duras
-   - Microanimaciones sutiles: fade, slide, draw-in
+   - Tipografía con jerarquía clara: pesos distintos, tamaños variados
+   - Sombras sutiles pero presentes para dar profundidad
+   - Microanimaciones fluidas: fade, slide, draw-in
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
@@ -58,25 +59,29 @@
   --font-geist-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-geist-mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
 
-  /* ====== LIGHT: blanco puro como base ====== */
-  --background: oklch(1 0 0);
+  /* ====== LIGHT: blanco con tinte cálido sutil ====== */
+  /* El background NO es blanco puro — es ligeramente gris para que los cards destaquen */
+  --background: oklch(0.985 0.002 250);
   --foreground: oklch(0.10 0 0);
+  /* Cards: blanco puro, para crear profundidad contra el background gris sutil */
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.10 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.10 0 0);
-  /* Acento de marca: azul corporativo profundo, solo para bordes finos y puntos */
+  /* Acento de marca: azul corporativo profundo */
   --primary: oklch(0.48 0.155 255);
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.96 0.002 250);
   --secondary-foreground: oklch(0.20 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.45 0 0);
-  --accent: oklch(0.97 0.002 250);
+  --muted: oklch(0.965 0.001 250);
+  /* muted-foreground más oscuro para mejor legibilidad */
+  --muted-foreground: oklch(0.42 0 0);
+  --accent: oklch(0.96 0.003 250);
   --accent-foreground: oklch(0.20 0 0);
   --destructive: oklch(0.55 0.20 25);
-  --border: oklch(0.93 0 0);
-  --input: oklch(0.94 0 0);
+  /* Borders más visibles que antes para mejor separación */
+  --border: oklch(0.91 0 0);
+  --input: oklch(0.93 0 0);
   --ring: oklch(0.48 0.155 255);
   /* Charts neutros: grises + 1 acento azul */
   --chart-1: oklch(0.20 0 0);
@@ -84,17 +89,17 @@
   --chart-3: oklch(0.70 0 0);
   --chart-4: oklch(0.48 0.155 255);
   --chart-5: oklch(0.85 0 0);
-  --sidebar: oklch(0.98 0 0);
+  --sidebar: oklch(0.99 0 0);
   --sidebar-foreground: oklch(0.10 0 0);
   --sidebar-primary: oklch(0.48 0.155 255);
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.96 0 0);
   --sidebar-accent-foreground: oklch(0.20 0 0);
-  --sidebar-border: oklch(0.93 0 0);
+  --sidebar-border: oklch(0.91 0 0);
   --sidebar-ring: oklch(0.48 0.155 255);
 
   /* Tailwind v4 color mapping */
-  --color-background: oklch(1 0 0);
+  --color-background: oklch(0.985 0.002 250);
   --color-foreground: oklch(0.10 0 0);
   --color-card: oklch(1 0 0);
   --color-card-foreground: oklch(0.10 0 0);
@@ -104,44 +109,47 @@
   --color-primary-foreground: oklch(1 0 0);
   --color-secondary: oklch(0.96 0.002 250);
   --color-secondary-foreground: oklch(0.20 0 0);
-  --color-muted: oklch(0.97 0 0);
-  --color-muted-foreground: oklch(0.45 0 0);
-  --color-accent: oklch(0.97 0.002 250);
+  --color-muted: oklch(0.965 0.001 250);
+  --color-muted-foreground: oklch(0.42 0 0);
+  --color-accent: oklch(0.96 0.003 250);
   --color-accent-foreground: oklch(0.20 0 0);
   --color-destructive: oklch(0.55 0.20 25);
-  --color-border: oklch(0.93 0 0);
-  --color-input: oklch(0.94 0 0);
+  --color-border: oklch(0.91 0 0);
+  --color-input: oklch(0.93 0 0);
   --color-ring: oklch(0.48 0.155 255);
 
-  /* Sombras MUY sutiles (sin tinte de color) */
-  --shadow-xs: 0 1px 2px 0 oklch(0 0 0 / 0.04);
-  --shadow-sm: 0 1px 3px 0 oklch(0 0 0 / 0.05), 0 1px 2px -1px oklch(0 0 0 / 0.03);
-  --shadow-md: 0 2px 6px -1px oklch(0 0 0 / 0.06), 0 1px 3px -1px oklch(0 0 0 / 0.04);
-  --shadow-lg: 0 8px 24px -4px oklch(0 0 0 / 0.08), 0 2px 8px -2px oklch(0 0 0 / 0.04);
-  --shadow-primary: 0 2px 8px -2px oklch(0.48 0.155 255 / 0.15);
+  /* Sombras sutiles pero presentes — dan profundidad premium */
+  --shadow-xs: 0 1px 2px 0 oklch(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 3px 0 oklch(0 0 0 / 0.07), 0 1px 2px -1px oklch(0 0 0 / 0.04);
+  --shadow-md: 0 4px 8px -2px oklch(0 0 0 / 0.08), 0 2px 4px -1px oklch(0 0 0 / 0.04);
+  --shadow-lg: 0 12px 24px -6px oklch(0 0 0 / 0.10), 0 4px 8px -2px oklch(0 0 0 / 0.05);
+  --shadow-primary: 0 4px 12px -2px oklch(0.48 0.155 255 / 0.20);
   --shadow-glow: none;
 }
 
 /* ====== DARK: negro casi puro #0A0A0C ====== */
 .dark {
-  --background: oklch(0.07 0 0);
+  --background: oklch(0.08 0 0);
   --foreground: oklch(0.95 0 0);
-  --card: oklch(0.10 0 0);
+  /* Cards ligeramente más claros que el background para profundidad */
+  --card: oklch(0.11 0 0);
   --card-foreground: oklch(0.95 0 0);
-  --popover: oklch(0.10 0 0);
+  --popover: oklch(0.12 0 0);
   --popover-foreground: oklch(0.95 0 0);
   /* Acento: azul brillante pero sobrio */
   --primary: oklch(0.62 0.17 255);
   --primary-foreground: oklch(0.07 0 0);
-  --secondary: oklch(0.14 0 0);
+  --secondary: oklch(0.15 0 0);
   --secondary-foreground: oklch(0.92 0 0);
-  --muted: oklch(0.14 0 0);
-  --muted-foreground: oklch(0.60 0 0);
-  --accent: oklch(0.16 0.002 250);
+  --muted: oklch(0.13 0 0);
+  /* muted-foreground más claro para legibilidad en dark */
+  --muted-foreground: oklch(0.58 0 0);
+  --accent: oklch(0.15 0.003 250);
   --accent-foreground: oklch(0.92 0 0);
   --destructive: oklch(0.60 0.20 25);
-  --border: oklch(0.18 0 0);
-  --input: oklch(0.16 0 0);
+  /* Borders más visibles en dark */
+  --border: oklch(0.20 0 0);
+  --input: oklch(0.18 0 0);
   --ring: oklch(0.62 0.17 255);
   --chart-1: oklch(0.90 0 0);
   --chart-2: oklch(0.65 0 0);
@@ -154,22 +162,22 @@
   --sidebar-primary-foreground: oklch(0.07 0 0);
   --sidebar-accent: oklch(0.14 0 0);
   --sidebar-accent-foreground: oklch(0.92 0 0);
-  --sidebar-border: oklch(0.18 0 0);
+  --sidebar-border: oklch(0.20 0 0);
   --sidebar-ring: oklch(0.62 0.17 255);
 
-  --color-background: oklch(0.07 0 0);
+  --color-background: oklch(0.08 0 0);
   --color-foreground: oklch(0.95 0 0);
-  --color-card: oklch(0.10 0 0);
+  --color-card: oklch(0.11 0 0);
   --color-card-foreground: oklch(0.95 0 0);
-  --color-popover: oklch(0.10 0 0);
+  --color-popover: oklch(0.12 0 0);
   --color-popover-foreground: oklch(0.95 0 0);
   --color-primary: oklch(0.62 0.17 255);
   --color-primary-foreground: oklch(0.07 0 0);
-  --color-secondary: oklch(0.14 0 0);
+  --color-secondary: oklch(0.15 0 0);
   --color-secondary-foreground: oklch(0.92 0 0);
-  --color-muted: oklch(0.14 0 0);
-  --color-muted-foreground: oklch(0.60 0 0);
-  --color-accent: oklch(0.16 0.002 250);
+  --color-muted: oklch(0.13 0 0);
+  --color-muted-foreground: oklch(0.58 0 0);
+  --color-accent: oklch(0.15 0.003 250);
   --color-accent-foreground: oklch(0.92 0 0);
   --color-destructive: oklch(0.60 0.20 25);
   --color-border: oklch(0.18 0 0);
@@ -189,11 +197,11 @@ html {
   color-scheme: light;
 }
 html:not(.light) {
-  background-color: oklch(0.07 0 0);
+  background-color: oklch(0.08 0 0);
   color-scheme: dark;
 }
 html.light {
-  background-color: oklch(1 0 0);
+  background-color: oklch(0.985 0.002 250);
   color-scheme: light;
 }
 
@@ -334,37 +342,39 @@ html.light {
 
 /* Glass MUY sutil (no aurora, no neón) */
 .glass {
-  background: color-mix(in oklch, var(--background) 85%, transparent);
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  background: color-mix(in oklch, var(--card) 90%, transparent);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
 }
 
 .glass-topbar {
-  background: color-mix(in oklch, var(--background) 88%, transparent);
-  backdrop-filter: blur(16px) saturate(140%);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  background: color-mix(in oklch, var(--card) 92%, transparent);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
 }
 
 /* Efecto press (tactil) */
 .press {
-  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 .press:active {
   transform: scale(0.97);
 }
 
-/* Cards con transición muy sutil */
+/* Cards premium: sombra sutil + elevación al hover */
 .press-card {
-  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease, background-color 0.2s ease;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.3s ease;
+  box-shadow: var(--shadow-sm);
 }
 .press-card:hover {
-  transform: translateY(-1px);
-  border-color: color-mix(in oklch, var(--foreground) 18%, var(--border));
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in oklch, var(--foreground) 15%, var(--border));
 }
 
 /* Glow border sutil en hover */
 .glow-border:hover {
-  border-color: color-mix(in oklch, var(--primary) 35%, var(--border));
+  border-color: color-mix(in oklch, var(--primary) 40%, var(--border));
 }
 
 /* Skeleton shimmer minimalista */
@@ -378,18 +388,37 @@ html.light {
   100% { background-position: 200% center; }
 }
 
-/* Botón primario minimalista (sin glow, sin gradiente) */
+/* Botón primario premium: sombra sutil + transición fluida */
 .btn-primary {
   background: var(--primary);
   color: var(--primary-foreground);
   font-weight: 550;
   letter-spacing: -0.01em;
-  transition: transform 0.15s ease, background-color 0.2s ease;
+  box-shadow: var(--shadow-primary);
+  transition: transform 0.15s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
 .btn-primary:hover {
   background: color-mix(in oklch, var(--primary) 88%, black);
+  box-shadow: 0 6px 16px -2px oklch(0.48 0.155 255 / 0.25);
 }
 .btn-primary:active {
+  transform: scale(0.97);
+}
+
+/* Botón foreground (primario neutral) premium */
+.btn-foreground {
+  background: var(--foreground);
+  color: var(--background);
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-foreground:hover {
+  background: color-mix(in oklch, var(--foreground) 88%, var(--background));
+  box-shadow: var(--shadow-md);
+}
+.btn-foreground:active {
   transform: scale(0.97);
 }
 

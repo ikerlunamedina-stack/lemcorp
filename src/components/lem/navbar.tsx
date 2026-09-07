@@ -101,7 +101,7 @@ export function Navbar() {
     settings.tema === "claro" ? Sun : settings.tema === "oscuro" ? Moon : Monitor;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-border bg-card/90 backdrop-blur-xl shadow-sm">
       <div className="mx-auto flex h-12 max-w-[1400px] items-center gap-1 px-4 lg:px-6">
         {/* Logo minimalista: texto, no imagen llamativa */}
         <Link href="/" className="press flex shrink-0 items-center gap-2.5">
