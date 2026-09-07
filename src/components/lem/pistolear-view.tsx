@@ -247,7 +247,7 @@ export function PistolearView() {
     setValor("");
 
     if (nuevosParcial.length >= camposEsperados) {
-      addPistoleoFila(nuevosParcial, modeloSeleccionado || undefined);
+      addPistoleoFila(nuevosParcial, modeloSeleccionado || undefined, camposMarcadosOrdenados);
       setParcial([]);
       const modeloDetectado = modeloSeleccionado
         || pistoleoModelo.trim()
@@ -337,6 +337,17 @@ export function PistolearView() {
 
   const hayParcial = parcial.length > 0;
   const feedbackVisible = feedback && Date.now() - feedback.ts < 4000;
+
+  // Todos los campos usados en todas las filas (unión) — para headers de tabla
+  const camposTabla = useMemo(() => {
+    const todos = new Set<string>(camposMarcadosOrdenados);
+    for (const f of pistoleoFilas) {
+      if (f.camposMarcados && f.camposMarcados.length > 0) {
+        for (const c of f.camposMarcados) todos.add(c);
+      }
+    }
+    return ORDEN_CAMPOS.filter((c) => todos.has(c));
+  }, [pistoleoFilas, camposMarcadosOrdenados]);
 
   // Auto-ocultar feedback después de 4 segundos
   useEffect(() => {
@@ -796,7 +807,7 @@ export function PistolearView() {
               <thead className="sticky top-0 bg-background">
                 <tr className="border-b border-border text-left text-[11px] uppercase tracking-wider text-muted-foreground">
                   <th className="px-3 py-2.5 font-medium">#</th>
-                  {camposMarcadosOrdenados.map((c) => (
+                  {camposTabla.map((c) => (
                     <th key={c} className="px-3 py-2.5 font-medium">{CAMPOS_PISTOLEO_META[c].label}</th>
                   ))}
                   <th className="px-3 py-2.5 font-medium">Modelo</th>
@@ -806,9 +817,17 @@ export function PistolearView() {
               </thead>
               <tbody className="divide-y divide-border">
                 {filasVisibles.map((f, i) => {
+                  // Campos de ESTA fila (no los globales)
+                  const camposFila = (f.camposMarcados && f.camposMarcados.length > 0)
+                    ? f.camposMarcados
+                    : camposMarcadosOrdenados;
+                  const camposOrdenFila = ORDEN_CAMPOS.filter((c) => camposFila.includes(c));
+                  const idxFila = (campo: string) => camposOrdenFila.indexOf(campo);
+                  // Mapear valores por campo de esta fila
                   const valoresPorCampo: Record<string, string> = {};
-                  camposMarcadosOrdenados.forEach((c, idx) => {
-                    valoresPorCampo[c] = f.valores[idx] ?? "";
+                  camposTabla.forEach((c) => {
+                    const idx = idxFila(c);
+                    valoresPorCampo[c] = idx >= 0 ? (f.valores[idx] ?? "") : "";
                   });
                   const serie = valoresPorCampo.serie ?? "";
                   const modeloDetectado =
@@ -823,20 +842,23 @@ export function PistolearView() {
                     return (
                       <tr key={f.id} className="bg-muted/40">
                         <td className="px-3 py-2.5 text-[11px] tabular-nums text-muted-foreground">{i + 1}</td>
-                        {camposMarcadosOrdenados.map((c, idx) => (
-                          <td key={c} className="px-3 py-2.5">
-                            <Input
-                              value={editingValores[idx] ?? ""}
-                              onChange={(e) => {
-                                const next = [...editingValores];
-                                next[idx] = e.target.value;
-                                setEditingValores(next);
-                              }}
-                              className="h-8 rounded-lg border-border bg-background font-mono text-[12px]"
-                              autoFocus={idx === 0}
-                            />
-                          </td>
-                        ))}
+                        {camposTabla.map((c, idx) => {
+                          const idxF = idxFila(c);
+                          return (
+                            <td key={c} className="px-3 py-2.5">
+                              <Input
+                                value={editingValores[idxF >= 0 ? idxF : idx] ?? ""}
+                                onChange={(e) => {
+                                  const next = [...editingValores];
+                                  next[idxF >= 0 ? idxF : idx] = e.target.value;
+                                  setEditingValores(next);
+                                }}
+                                className="h-8 rounded-lg border-border bg-background font-mono text-[12px]"
+                                autoFocus={idx === 0}
+                              />
+                            </td>
+                          );
+                        })}
                         <td className="px-3 py-2.5">
                           <select
                             value={editingModelo}
@@ -880,14 +902,16 @@ export function PistolearView() {
                       className="group transition-colors hover:bg-muted/40"
                     >
                       <td className="px-3 py-2.5 text-[11px] tabular-nums text-muted-foreground">{i + 1}</td>
-                      {camposMarcadosOrdenados.map((c, idx) => {
+                      {camposTabla.map((c) => {
                         const valor = valoresPorCampo[c] ?? "";
                         const esSerie = c === "serie";
                         const showBadge = esSerie && (yaEnSistema || (dupEnLote && !yaEnSistema));
                         return (
                           <td key={c} className="px-3 py-2.5">
                             <div className="flex items-center gap-2">
-                              <span className="font-mono text-[12px] font-medium text-foreground">{valor}</span>
+                              <span className="font-mono text-[12px] font-medium text-foreground">
+                                {valor || <span className="text-muted-foreground/40">—</span>}
+                              </span>
                               {showBadge && yaEnSistema && (
                                 <span
                                   className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide text-muted-foreground"
@@ -1003,7 +1027,7 @@ export function PistolearView() {
                 <thead className="sticky top-0 bg-background">
                   <tr className="border-b border-border text-left text-[11px] uppercase tracking-wider text-muted-foreground">
                     <th className="px-3 py-2 font-medium">#</th>
-                    {camposMarcadosOrdenados.map((c) => (
+                    {camposTabla.map((c) => (
                       <th key={c} className="px-3 py-2 font-medium">{CAMPOS_PISTOLEO_META[c].label}</th>
                     ))}
                     <th className="px-3 py-2 font-medium">Estado</th>
@@ -1011,16 +1035,23 @@ export function PistolearView() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {pistoleoFilas.map((f, i) => {
+                    // Campos de ESTA fila
+                    const camposFila = (f.camposMarcados && f.camposMarcados.length > 0)
+                      ? f.camposMarcados
+                      : camposMarcadosOrdenados;
+                    const camposOrdenFila = ORDEN_CAMPOS.filter((c) => camposFila.includes(c));
+                    const idxFila = (campo: string) => camposOrdenFila.indexOf(campo);
                     const valoresPorCampo: Record<string, string> = {};
-                    camposMarcadosOrdenados.forEach((c, idx) => {
-                      valoresPorCampo[c] = f.valores[idx] ?? "";
+                    camposTabla.forEach((c) => {
+                      const idx = idxFila(c);
+                      valoresPorCampo[c] = idx >= 0 ? (f.valores[idx] ?? "") : "";
                     });
                     const serie = valoresPorCampo.serie ?? "";
                     const yaEnSistema = seriesExistentesSet.has(serie.trim().toLowerCase());
                     return (
                       <tr key={f.id} className="transition-colors hover:bg-muted/40">
                         <td className="px-3 py-2 text-[11px] tabular-nums text-muted-foreground">{i + 1}</td>
-                        {camposMarcadosOrdenados.map((c) => (
+                        {camposTabla.map((c) => (
                           <td key={c} className="px-3 py-2 font-mono text-[12px] text-muted-foreground">
                             {valoresPorCampo[c] || "—"}
                           </td>

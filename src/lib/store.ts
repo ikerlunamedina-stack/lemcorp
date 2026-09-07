@@ -84,7 +84,7 @@ interface StoreState {
     pistoleoModeloSeleccionado: string;
     pistoleoCamposMarcados: string[];
   }>) => void;
-  addPistoleoFila: (valores: string[], modeloSeleccionado?: string) => void;
+  addPistoleoFila: (valores: string[], modeloSeleccionado?: string, camposMarcados?: string[]) => void;
   updatePistoleoFila: (id: string, valores: string[], modeloSeleccionado?: string) => void;
   deletePistoleoFila: (id: string) => void;
   clearPistoleoFilas: () => void;
@@ -264,7 +264,7 @@ export const useStore = create<StoreState>()(
 
       // ─── Pistoleo ───
       setPistoleoConfig: (patch) => set({ ...patch }),
-      addPistoleoFila: (valores, modeloSeleccionado) => {
+      addPistoleoFila: (valores, modeloSeleccionado, camposMarcados) => {
         const current = get().pistoleoFilas;
         // Límite duro de 1000 series por lote (rendimiento + cuota localStorage)
         if (current.length >= 1000) {
@@ -277,6 +277,7 @@ export const useStore = create<StoreState>()(
               valores: valores.map((v) => v.trim()),
               timestamp: Date.now(),
               modeloSeleccionado,
+              camposMarcados: camposMarcados ?? get().pistoleoCamposMarcados,
             },
             ...current,
           ],
@@ -302,28 +303,34 @@ export const useStore = create<StoreState>()(
         const filas = get().pistoleoFilas;
         if (filas.length === 0) return { ok: false, msg: "No hay series para guardar.", count: 0 };
         const { pistoleoModelo, pistoleoEstado } = get();
-        const camposMarcados = get().pistoleoCamposMarcados || ["serie"];
+        const camposMarcadosGlobal = get().pistoleoCamposMarcados || ["serie"];
         let count = 0;
         const nuevos: Equipment[] = [];
         const existentes = new Set(get().equipos.map((e) => e.serie.trim().toLowerCase()));
         const duplicadosNoGuardados: string[] = [];
         const fechasNow = Date.now();
+        const ORDEN = ["serie", "mac", "cmMac", "mtaMac", "ua"];
         for (const f of filas) {
+          // Usar los campos marcados de la fila (cada fila puede tener campos distintos)
+          const camposFila = (f.camposMarcados && f.camposMarcados.length > 0)
+            ? f.camposMarcados
+            : camposMarcadosGlobal;
+          const camposOrden = ORDEN.filter((c) => camposFila.includes(c));
+          const idx = (campo: string) => camposOrden.indexOf(campo);
+
+          // La serie SIEMPRE va en valores[0] (es el primer campo escaneado)
           const serie = (f.valores[0] ?? "").trim();
           if (!serie) continue;
           if (existentes.has(serie.toLowerCase())) {
             duplicadosNoGuardados.push(serie);
             continue;
           }
-          // Mapear los valores según los campos marcados (en orden)
-          const conMAC = camposMarcados.includes("mac");
-          const conCM = camposMarcados.includes("cmMac");
-          const conMTA = camposMarcados.includes("mtaMac");
-          const conUA = camposMarcados.includes("ua");
-          // Índices: serie=0, y los demás en el orden que aparecen en camposMarcados
-          const ORDEN = ["serie", "mac", "cmMac", "mtaMac", "ua"];
-          const camposOrden = ORDEN.filter((c) => camposMarcados.includes(c));
-          const idx = (campo: string) => camposOrden.indexOf(campo);
+
+          // Mapear cada campo a su valor según el orden de la fila
+          const conMAC = camposFila.includes("mac");
+          const conCM = camposFila.includes("cmMac");
+          const conMTA = camposFila.includes("mtaMac");
+          const conUA = camposFila.includes("ua");
           const mac = conMAC ? (f.valores[idx("mac")] ?? "").trim() || undefined : undefined;
           const cmMac = conCM ? (f.valores[idx("cmMac")] ?? "").trim() || undefined : undefined;
           const mtaMac = conMTA ? (f.valores[idx("mtaMac")] ?? "").trim() || undefined : undefined;
@@ -1147,7 +1154,6 @@ export const useStore = create<StoreState>()(
       exportarPistoleoExcel: () => {
         import("xlsx-js-style").then((XLSX: any) => {
           const filas = get().pistoleoFilas;
-          const camposMarcados = get().pistoleoCamposMarcados || ["serie"];
           const estado = get().pistoleoEstado;
           const empresa = get().empresa;
           const settings = get().settings;
@@ -1156,9 +1162,8 @@ export const useStore = create<StoreState>()(
           const fechaStr = ahora.toLocaleDateString("es-PE", { timeZone: "America/Lima" });
           const horaStr = ahora.toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit" });
 
-          // Orden de los campos marcados (respetar el orden de escaneo)
+          // Todos los campos posibles, en orden
           const ORDEN = ["serie", "mac", "cmMac", "mtaMac", "ua"];
-          const camposOrden = ORDEN.filter((c) => camposMarcados.includes(c));
           const LABELS: Record<string, string> = {
             serie: "Serie",
             mac: "MAC",
@@ -1167,9 +1172,19 @@ export const useStore = create<StoreState>()(
             ua: "UA",
           };
 
+          // Determinar qué campos aparecen en TODAS las filas combinadas (unión)
+          const todosLosCamposUsados = new Set<string>();
+          for (const f of filas) {
+            const cf = (f.camposMarcados && f.camposMarcados.length > 0)
+              ? f.camposMarcados
+              : (get().pistoleoCamposMarcados || ["serie"]);
+            for (const c of cf) todosLosCamposUsados.add(c);
+          }
+          const camposAExportar = ORDEN.filter((c) => todosLosCamposUsados.has(c));
+
           // Construir encabezados
           const headers = ["#"];
-          for (const c of camposOrden) headers.push(LABELS[c]);
+          for (const c of camposAExportar) headers.push(LABELS[c]);
           headers.push("Modelo");
           headers.push("Estado");
           headers.push("Fecha captura");
@@ -1193,17 +1208,22 @@ export const useStore = create<StoreState>()(
           // Título
           rows.push(["SERIES CAPTURADAS — LEMCORP"]);
           rows.push([`Empresa: ${empresa.nombre || "Lemcorp"}  ·  Fecha: ${fechaStr}  ·  Hora: ${horaStr}  ·  Usuario: ${usuario}`]);
-          rows.push([`Campos: ${camposOrden.map((c) => LABELS[c]).join(" · ")}  ·  Total: ${filas.length}  ·  Estado destino: ${estado}`]);
+          rows.push([`Campos: ${camposAExportar.map((c) => LABELS[c]).join(" · ")}  ·  Total: ${filas.length}  ·  Estado destino: ${estado}`]);
           rows.push([]);
           // Headers
           rows.push(headers);
 
-          // Filas de datos
+          // Filas de datos — cada fila usa SUS propios campos marcados para mapear valores
           filas.forEach((f, i) => {
+            const camposFila = (f.camposMarcados && f.camposMarcados.length > 0)
+              ? f.camposMarcados
+              : (get().pistoleoCamposMarcados || ["serie"]);
+            const camposOrdenFila = ORDEN.filter((c) => camposFila.includes(c));
+            const idxFila = (campo: string) => camposOrdenFila.indexOf(campo);
             const row: any[] = [];
             row.push(i + 1);
-            for (let k = 0; k < camposOrden.length; k++) {
-              row.push(f.valores[k] ?? "");
+            for (const c of camposAExportar) {
+              row.push(f.valores[idxFila(c)] ?? "");
             }
             row.push(f.modeloSeleccionado || "");
             row.push(estado);

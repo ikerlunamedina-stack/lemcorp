@@ -367,6 +367,11 @@ export interface FilaPistoleo {
   timestamp: number;
   /** Modelo/equipo del inventario seleccionado para esta fila (si aplica) */
   modeloSeleccionado?: string;
+  /** Campos que se pistolearon en esta fila (para mapear valores correctamente)
+   *  Guarda el orden exacto en que se escanearon los campos.
+   *  Ej: ["serie", "cmMac", "mtaMac"] si se pistoleó Serie + CM MAC + MTA MAC
+   */
+  camposMarcados?: string[];
 }
 
 // ─────────── Reglas de prefijo → modelo ───────────
