@@ -81,14 +81,54 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
           const serverPayload = result.payload as any;
           const serverSyncedAt = Number(serverPayload.__syncedAt) || 0;
           const localSyncedAt = Number(localStorage.getItem("nuclon-synced-at")) || 0;
+
+          // === PROTECCIÓN: NO sobrescribir datos locales con datos vacíos del servidor ===
+          // Si el servidor tiene 0 productos Y 0 equipos, es un servidor vacío
+          // (típico de Vercel donde SQLite se reinicia entre deploys).
+          // En ese caso, NO sobrescribimos — el usuario podría tener datos locales importantes.
+          const serverProducts = serverPayload.products ?? [];
+          const serverEquipos = serverPayload.equipos ?? [];
+          const cur = useStore.getState();
+          const localHasData = cur.products.length > 0 || cur.equipos.length > 0;
+          const serverIsEmpty = serverProducts.length === 0 && serverEquipos.length === 0;
+
+          if (serverIsEmpty && localHasData) {
+            // El servidor está vacío pero tenemos datos locales — hacer PUSH de nuestros datos
+            // al servidor (para no perderlos) en lugar de sobrescribir con vacío
+            console.log("[sync] Servidor vacío, datos locales presentes — preservando datos locales");
+            setStatus("synced");
+            // Forzar un push de los datos locales al servidor
+            pushToServer(deviceId, {
+              products: cur.products,
+              equipos: cur.equipos,
+              entradas: cur.entradas,
+              despachos: cur.despachos,
+              notas: cur.notas,
+              recordatorios: cur.recordatorios,
+              notificaciones: cur.notificaciones,
+              miembros: cur.miembros,
+              empresa: cur.empresa,
+              settings: cur.settings,
+              pistoleoFilas: cur.pistoleoFilas,
+              pistoleoModeloSeleccionado: cur.pistoleoModeloSeleccionado,
+              pistoleoCamposMarcados: cur.pistoleoCamposMarcados,
+              horario: cur.horario,
+              memoriaIA: cur.memoriaIA,
+              bajoStockVisto: cur.bajoStockVisto,
+              sesionUsuarioId: cur.sesionUsuarioId,
+              __syncedAt: Date.now(),
+            } as any).catch(() => {});
+            return;
+          }
+
           // Apply server data if it's newer than what we have locally
-          if (serverSyncedAt > localSyncedAt) {
+          // PERO solo si el servidor tiene datos reales (no vacío)
+          if (serverSyncedAt > localSyncedAt && !serverIsEmpty) {
             isApplyingRemote.current = true;
             try {
-              const cur = useStore.getState();
               useStore.setState({
-                products: serverPayload.products ?? [],
-                equipos: serverPayload.equipos ?? [],
+                products: serverProducts,
+                equipos: serverEquipos,
                 entradas: serverPayload.entradas ?? [],
                 despachos: serverPayload.despachos ?? [],
                 notas: serverPayload.notas ?? [],
@@ -101,6 +141,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
                   : cur.settings,
                 pistoleoFilas: serverPayload.pistoleoFilas ?? [],
                 pistoleoModeloSeleccionado: serverPayload.pistoleoModeloSeleccionado ?? cur.pistoleoModeloSeleccionado ?? "",
+                pistoleoCamposMarcados: serverPayload.pistoleoCamposMarcados ?? cur.pistoleoCamposMarcados ?? ["serie"],
                 horario: serverPayload.horario ?? [],
                 memoriaIA: serverPayload.memoriaIA ?? [],
                 bajoStockVisto: Number(serverPayload.bajoStockVisto) || 0,
