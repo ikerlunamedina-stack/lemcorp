@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -204,11 +205,25 @@ export function PistolearView() {
 
     const idxEnFila = parcial.length;
     const esSerie = idxEnFila === 0;
+    const campoActual = camposMarcadosOrdenados[idxEnFila];
 
-    // Validar prefijo solo si el primer campo marcado es "serie"
+    // === DETECTAR DUPLICADO EN LA MISMA LECTURA ===
+    // Si el valor actual ya fue escaneado en esta misma lectura (misma serie en MAC, CM MAC, etc.)
+    // lo rechazamos para evitar errores de doble pistoleo
+    if (parcial.some((valor) => valor.toUpperCase() === v.toUpperCase())) {
+      const msg = `Rechazada: "${v}" repetida en esta lectura (¿doble escaneo?)`;
+      pushFeedback(false, msg);
+      if (settings.vozActivada) speak("Serie repetida, revisa");
+      setValor("");
+      return;
+    }
+
+    // Validar prefijo solo si está activado y el primer campo marcado es "serie"
     const primerCampoEsSerie = camposMarcadosOrdenados[0] === "serie";
-    if (esSerie && primerCampoEsSerie && settings.pistoleoPrefijo && !validarPrefijo(v, settings.pistoleoPrefijo)) {
-      pushFeedback(false, `Rechazada: no empieza con ${settings.pistoleoPrefijo}`);
+    if (esSerie && primerCampoEsSerie && settings.pistoleoPrefijoEnabled && settings.pistoleoPrefijo && !validarPrefijo(v, settings.pistoleoPrefijo)) {
+      const msg = `Rechazada: no empieza con ${settings.pistoleoPrefijo}`;
+      pushFeedback(false, msg);
+      if (settings.vozActivada) speak(`Rechazada, no empieza con ${settings.pistoleoPrefijo}`);
       setValor("");
       return;
     }
@@ -240,7 +255,10 @@ export function PistolearView() {
         || "SIN MODELO";
       pushFeedback(true, `Aceptada · ${v} → ${modeloDetectado}`);
     } else {
-      pushFeedback(true, `Aceptada · ${v} (esperando ${CAMPOS_PISTOLEO_META[camposMarcadosOrdenados[nuevosParcial.length]].label}…)`);
+      // Mostrar qué campo se acaba de escanear + su valor
+      const campoRecienEscaneado = CAMPOS_PISTOLEO_META[campoActual].label;
+      const siguienteCampo = CAMPOS_PISTOLEO_META[camposMarcadosOrdenados[nuevosParcial.length]].label;
+      pushFeedback(true, `${campoRecienEscaneado}: ${v} — ahora escanea ${siguienteCampo}…`);
     }
   };
 
@@ -449,6 +467,45 @@ export function PistolearView() {
         </div>
       </div>
 
+      {/* Panel: prefijo de validación (con toggle on/off) */}
+      <div className="anim-slide-up mb-4 rounded-lg border border-border bg-background p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={settings.pistoleoPrefijoEnabled}
+              onCheckedChange={(v) => setSetting("pistoleoPrefijoEnabled", v)}
+            />
+            <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              Validar prefijo
+            </Label>
+          </div>
+          <div className="flex flex-1 items-center gap-2 min-w-[200px]">
+            <Input
+              value={settings.pistoleoPrefijo}
+              onChange={(e) => setSetting("pistoleoPrefijo", e.target.value.toUpperCase())}
+              placeholder="Ej: ZTE, ZTEATV (vacío = no validar)"
+              className="h-9 rounded-lg border-border bg-background font-mono uppercase text-[13px]"
+              disabled={!settings.pistoleoPrefijoEnabled}
+            />
+            {settings.pistoleoPrefijo && settings.pistoleoPrefijoEnabled && (
+              <button
+                onClick={() => setSetting("pistoleoPrefijo", "")}
+                className="press inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <X className="h-3 w-3" {...ICON_PROPS} /> Limpiar
+              </button>
+            )}
+          </div>
+        </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          {settings.pistoleoPrefijoEnabled
+            ? settings.pistoleoPrefijo
+              ? `Solo acepta series que empiecen con "${settings.pistoleoPrefijo}".`
+              : "Activado pero sin prefijo — acepta cualquier serie."
+            : "Desactivado — acepta cualquier serie sin validar el prefijo."}
+        </p>
+      </div>
+
       {/* Config panel avanzado (colapsable) */}
       {showConfig && (
         <div className="anim-slide-up mb-4 rounded-lg border border-border bg-background p-4">
@@ -576,13 +633,52 @@ export function PistolearView() {
             spellCheck={false}
           />
         </div>
+        {/* Preview en vivo: qué llevo escaneado hasta ahora */}
+        {hayParcial && (
+          <div className="mt-3 rounded-lg border border-border bg-muted/40 p-3">
+            <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              Lectura en curso ({parcial.length}/{camposEsperados})
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {camposMarcadosOrdenados.map((c, idx) => {
+                const val = parcial[idx];
+                const escaneado = val !== undefined && val !== "";
+                const esActual = idx === parcial.length;
+                return (
+                  <div
+                    key={c}
+                    className={cn(
+                      "flex items-center gap-2 rounded-full border px-3 py-1.5 text-[12px]",
+                      escaneado
+                        ? "border-foreground bg-foreground text-background"
+                        : esActual
+                          ? "border-foreground/40 bg-background text-foreground"
+                          : "border-border bg-background text-muted-foreground"
+                    )}
+                  >
+                    <span className="text-[10px] font-medium uppercase tracking-wide opacity-70">
+                      {CAMPOS_PISTOLEO_META[c].short}
+                    </span>
+                    {escaneado ? (
+                      <span className="font-mono font-medium">{val}</span>
+                    ) : esActual ? (
+                      <span className="opacity-60">escaneando…</span>
+                    ) : (
+                      <span className="opacity-40">—</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
         {/* Live feedback */}
         <div className="mt-2 h-5">
           {feedbackVisible && feedback && (
             <div
               className={cn(
                 "anim-fade-in inline-flex items-center gap-1.5 text-[12px] font-medium",
-                feedback.ok ? "text-foreground" : "text-muted-foreground"
+                feedback.ok ? "text-foreground" : "text-destructive"
               )}
             >
               {feedback.ok
