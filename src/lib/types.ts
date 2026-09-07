@@ -327,6 +327,21 @@ export function uid(): string {
 }
 
 // ─────────── Pistoleo ───────────
+// Campos disponibles para pistolear (marcables, no secuencia fija)
+export type CampoPistoleo = "serie" | "mac" | "cmMac" | "mtaMac" | "ua";
+
+export const CAMPOS_PISTOLEO_META: Record<CampoPistoleo, { label: string; short: string; placeholder: string }> = {
+  serie: { label: "Serie", short: "Serie", placeholder: "Escanear serie…" },
+  mac: { label: "MAC", short: "MAC", placeholder: "Escanear MAC…" },
+  cmMac: { label: "CM MAC", short: "CM MAC", placeholder: "Escanear CM MAC…" },
+  mtaMac: { label: "MTA MAC", short: "MTA MAC", placeholder: "Escanear MTA MAC…" },
+  ua: { label: "UA", short: "UA", placeholder: "Escanear UA…" },
+};
+
+// Orden de los campos cuando se pistolean (el orden en que se escanean)
+export const ORDEN_CAMPOS: CampoPistoleo[] = ["serie", "mac", "cmMac", "mtaMac", "ua"];
+
+// Tipo legacy para compatibilidad con el store (ahora se deriva de los campos marcados)
 export type PistoleoCampo = "serie" | "serie_ua" | "serie_mac" | "serie_mac_cm" | "serie_mac_mta" | "serie_mac_cm_mta";
 
 export interface PistoleoCampoMeta {
@@ -338,48 +353,12 @@ export interface PistoleoCampoMeta {
 }
 
 export const PISTOLEO_CAMPOS: Record<PistoleoCampo, PistoleoCampoMeta> = {
-  serie: {
-    value: "serie",
-    label: "Solo serie",
-    short: "Serie",
-    campos: ["Serie"],
-    hint: "Una sola lectura por equipo",
-  },
-  serie_ua: {
-    value: "serie_ua",
-    label: "Serie + UA",
-    short: "Serie + UA",
-    campos: ["Serie", "UA"],
-    hint: "Dos lecturas: primero serie, luego UA",
-  },
-  serie_mac: {
-    value: "serie_mac",
-    label: "Serie + MAC",
-    short: "Serie + MAC",
-    campos: ["Serie", "MAC"],
-    hint: "Dos lecturas: primero serie, luego MAC",
-  },
-  serie_mac_cm: {
-    value: "serie_mac_cm",
-    label: "Serie + MAC + CM MAC",
-    short: "Serie + MAC + CM MAC",
-    campos: ["Serie", "MAC", "CM MAC"],
-    hint: "Tres lecturas: primero serie, luego MAC, luego CM MAC",
-  },
-  serie_mac_mta: {
-    value: "serie_mac_mta",
-    label: "Serie + MAC + MTA MAC",
-    short: "Serie + MAC + MTA MAC",
-    campos: ["Serie", "MAC", "MTA MAC"],
-    hint: "Tres lecturas: primero serie, luego MAC, luego MTA MAC",
-  },
-  serie_mac_cm_mta: {
-    value: "serie_mac_cm_mta",
-    label: "Serie + MAC + CM MAC + MTA MAC",
-    short: "Serie + MAC + CM + MTA",
-    campos: ["Serie", "MAC", "CM MAC", "MTA MAC"],
-    hint: "Cuatro lecturas: serie, MAC, CM MAC, MTA MAC",
-  },
+  serie: { value: "serie", label: "Solo serie", short: "Serie", campos: ["Serie"], hint: "Una sola lectura por equipo" },
+  serie_ua: { value: "serie_ua", label: "Serie + UA", short: "Serie + UA", campos: ["Serie", "UA"], hint: "Dos lecturas" },
+  serie_mac: { value: "serie_mac", label: "Serie + MAC", short: "Serie + MAC", campos: ["Serie", "MAC"], hint: "Dos lecturas" },
+  serie_mac_cm: { value: "serie_mac_cm", label: "Serie + MAC + CM MAC", short: "Serie + MAC + CM MAC", campos: ["Serie", "MAC", "CM MAC"], hint: "Tres lecturas" },
+  serie_mac_mta: { value: "serie_mac_mta", label: "Serie + MAC + MTA MAC", short: "Serie + MAC + MTA MAC", campos: ["Serie", "MAC", "MTA MAC"], hint: "Tres lecturas" },
+  serie_mac_cm_mta: { value: "serie_mac_cm_mta", label: "Serie + MAC + CM MAC + MTA MAC", short: "Serie + MAC + CM + MTA", campos: ["Serie", "MAC", "CM MAC", "MTA MAC"], hint: "Cuatro lecturas" },
 };
 
 export interface FilaPistoleo {

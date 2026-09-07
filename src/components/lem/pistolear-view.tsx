@@ -11,7 +11,6 @@ import {
   ChevronDown,
   ChevronRight,
   Cpu,
-  Hash,
   Settings2,
   CircleDot,
   Pencil,
@@ -23,10 +22,11 @@ import {
 import { useStore } from "@/lib/store";
 import {
   ESTADO_META,
-  PISTOLEO_CAMPOS,
   REGLAS_PREFIJO,
+  CAMPOS_PISTOLEO_META,
+  ORDEN_CAMPOS,
   type EstadoEquipo,
-  type PistoleoCampo,
+  type CampoPistoleo,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { speak } from "@/lib/tts";
 
 const ICON_PROPS = { strokeWidth: 1.5 } as const;
 
@@ -103,11 +104,11 @@ function detectarDuplicadosEnLote(pistoleoFilas: { valores: string[] }[]): strin
 export function PistolearView() {
   const settings = useStore((s) => s.settings);
   const setSetting = useStore((s) => s.setSetting);
-  const pistoleoCampo = useStore((s) => s.pistoleoCampo);
   const pistoleoModelo = useStore((s) => s.pistoleoModelo);
   const pistoleoEstado = useStore((s) => s.pistoleoEstado);
   const pistoleoFilas = useStore((s) => s.pistoleoFilas);
   const pistoleoModeloSeleccionado = useStore((s) => s.pistoleoModeloSeleccionado);
+  const pistoleoCamposMarcados = useStore((s) => s.pistoleoCamposMarcados);
   const equipos = useStore((s) => s.equipos);
   const products = useStore((s) => s.products);
   const findEquipmentBySerie = useStore((s) => s.findEquipmentBySerie);
@@ -140,16 +141,32 @@ export function PistolearView() {
   const setModeloSeleccionado = (v: string) => setPistoleoConfig({ pistoleoModeloSeleccionado: v });
   const modeloSeleccionado = pistoleoModeloSeleccionado;
 
+  // Campos marcados ordenados según ORDEN_CAMPOS (serie, mac, cmMac, mtaMac, ua)
+  const camposMarcadosOrdenados = useMemo(() => {
+    return ORDEN_CAMPOS.filter((c) => pistoleoCamposMarcados.includes(c));
+  }, [pistoleoCamposMarcados]);
+
+  // Toggle de un campo marcado
+  const toggleCampoMarcado = (campo: CampoPistoleo) => {
+    const actuales = pistoleoCamposMarcados.includes(campo)
+      ? pistoleoCamposMarcados.filter((c) => c !== campo)
+      : [...pistoleoCamposMarcados, campo];
+    // No permitir quitar todos — al menos uno
+    if (actuales.length === 0) return;
+    setPistoleoConfig({ pistoleoCamposMarcados: actuales });
+    setParcial([]);
+  };
+
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const campoMeta = PISTOLEO_CAMPOS[pistoleoCampo];
-  const camposEsperados = campoMeta.campos.length;
+  // Derivar el campoMeta de los campos marcados
+  const camposEsperados = camposMarcadosOrdenados.length;
   const [parcial, setParcial] = useState<string[]>([]);
 
   // Foco automático al input
   useEffect(() => {
     inputRef.current?.focus();
-  }, [pistoleoCampo]);
+  }, [pistoleoCamposMarcados]);
 
   // Detectar duplicados en sistema cada vez que cambian las filas
   useEffect(() => {
@@ -168,6 +185,16 @@ export function PistolearView() {
     const v = raw.trim();
     if (!v) return;
 
+    // OBLIGATORIO: debe haber un equipo del inventario seleccionado
+    if (!modeloSeleccionado) {
+      const msg = "Falta seleccionar el equipo del inventario antes de pistolear.";
+      pushFeedback(false, msg);
+      // Voz de Alana (mujer) diciendo el error
+      if (settings.vozActivada) speak(msg);
+      setValor("");
+      return;
+    }
+
     // Límite de 1000 series por lote
     if (pistoleoFilas.length >= 1000) {
       pushFeedback(false, "Límite alcanzado: 1000 series por lote. Guarda primero.");
@@ -178,19 +205,20 @@ export function PistolearView() {
     const idxEnFila = parcial.length;
     const esSerie = idxEnFila === 0;
 
-    if (esSerie && !validarPrefijo(v, settings.pistoleoPrefijo)) {
+    // Validar prefijo solo si el primer campo marcado es "serie"
+    const primerCampoEsSerie = camposMarcadosOrdenados[0] === "serie";
+    if (esSerie && primerCampoEsSerie && settings.pistoleoPrefijo && !validarPrefijo(v, settings.pistoleoPrefijo)) {
       pushFeedback(false, `Rechazada: no empieza con ${settings.pistoleoPrefijo}`);
       setValor("");
       return;
     }
 
-    if (esSerie && findEquipmentBySerie(v)) {
+    if (esSerie && primerCampoEsSerie && findEquipmentBySerie(v)) {
       // Ya existe en el sistema → la añadimos igual pero marcamos como duplicada
       pushFeedback(false, `⚠ Esta serie YA está registrada en el sistema`);
-      // Aun así la añadimos para que el usuario la vea en el preview y decida
     }
 
-    if (esSerie) {
+    if (esSerie && primerCampoEsSerie) {
       const yaEnFilas = pistoleoFilas.some((f) => f.valores[0]?.toUpperCase() === v.toUpperCase());
       if (yaEnFilas) {
         pushFeedback(false, `Rechazada: ya capturada en esta sesión`);
@@ -212,7 +240,7 @@ export function PistolearView() {
         || "SIN MODELO";
       pushFeedback(true, `Aceptada · ${v} → ${modeloDetectado}`);
     } else {
-      pushFeedback(true, `Aceptada · ${v} (esperando ${campoMeta.campos[nuevosParcial.length]}…)`);
+      pushFeedback(true, `Aceptada · ${v} (esperando ${CAMPOS_PISTOLEO_META[camposMarcadosOrdenados[nuevosParcial.length]].label}…)`);
     }
   };
 
@@ -371,76 +399,53 @@ export function PistolearView() {
         </Button>
       </header>
 
-      {/* Panel de configuración rápida: equipo + prefijo (siempre visible) */}
+      {/* Panel: seleccionar equipo del inventario (OBLIGATORIO) */}
       <div className="anim-slide-up mb-4 rounded-lg border border-border bg-background p-4">
-        <div className="grid gap-5 lg:grid-cols-2">
-          {/* Equipo del inventario */}
-          <div>
-            <div className="mb-2 flex items-center gap-2">
-              <PackageSearch className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
-              <div>
-                <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                  Equipo del inventario
-                </Label>
-                <p className="text-[11px] text-muted-foreground">
-                  Al que pertenecen las series que vas a pistolear
-                </p>
-              </div>
+        <div>
+          <div className="mb-2 flex items-center gap-2">
+            <PackageSearch className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+            <div>
+              <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Equipo del inventario <span className="text-destructive">*</span>
+              </Label>
+              <p className="text-[11px] text-muted-foreground">
+                Obligatorio. Selecciona a qué equipo pertenecen las series que vas a pistolear.
+              </p>
             </div>
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" {...ICON_PROPS} />
-              <select
-                value={modeloSeleccionado}
-                onChange={(e) => setModeloSeleccionado(e.target.value)}
-                className="h-9 w-full appearance-none rounded-lg border border-border bg-background pl-8 pr-8 text-[13px] font-medium text-foreground outline-none focus:border-foreground"
-              >
-                <option value="">— Autodetectar por prefijo —</option>
-                {productosUnicos.map((p) => (
-                  <option key={p.id} value={p.name}>
-                    {p.name} {p.sku ? `· ${p.sku}` : ""}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" {...ICON_PROPS} />
-            </div>
-            {modeloSeleccionado && (
-              <button
-                onClick={() => setModeloSeleccionado("")}
-                className="press mt-2 inline-flex items-center gap-1 rounded-lg border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                <X className="h-3 w-3" {...ICON_PROPS} /> Quitar selección
-              </button>
-            )}
           </div>
-
-          {/* Prefijo (lo ingresa el usuario, ej: ZTE) — editable, sin toggle */}
-          <div>
-            <div className="mb-2 flex items-center gap-2">
-              <Hash className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
-              <div>
-                <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                  Prefijo de validación
-                </Label>
-                <p className="text-[11px] text-muted-foreground">
-                  Lo pones tú — ej: ZTE, ZTEATV. Solo acepta series que empiecen así. Déjalo vacío para no validar.
-                </p>
-              </div>
-            </div>
-            <Input
-              value={settings.pistoleoPrefijo}
-              onChange={(e) => setSetting("pistoleoPrefijo", e.target.value.toUpperCase())}
-              placeholder="Ej: ZTE (vacío = no validar)"
-              className="h-9 w-full rounded-lg border-border bg-background font-mono uppercase text-[13px]"
-            />
-            {settings.pistoleoPrefijo && (
-              <button
-                onClick={() => setSetting("pistoleoPrefijo", "")}
-                className="press mt-2 inline-flex items-center gap-1 rounded-lg border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                <X className="h-3 w-3" {...ICON_PROPS} /> Quitar prefijo
-              </button>
-            )}
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" {...ICON_PROPS} />
+            <select
+              value={modeloSeleccionado}
+              onChange={(e) => setModeloSeleccionado(e.target.value)}
+              className={cn(
+                "h-9 w-full appearance-none rounded-lg border bg-background pl-8 pr-8 text-[13px] font-medium text-foreground outline-none transition-colors",
+                modeloSeleccionado ? "border-foreground" : "border-border focus:border-foreground"
+              )}
+            >
+              <option value="">— Seleccionar equipo —</option>
+              {productosUnicos.map((p) => (
+                <option key={p.id} value={p.name}>
+                  {p.name} {p.sku ? `· ${p.sku}` : ""}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" {...ICON_PROPS} />
           </div>
+          {!modeloSeleccionado && (
+            <p className="mt-2 flex items-center gap-1.5 text-[11px] text-destructive">
+              <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
+              Selecciona un equipo para poder pistolear
+            </p>
+          )}
+          {modeloSeleccionado && (
+            <button
+              onClick={() => setModeloSeleccionado("")}
+              className="press mt-2 inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <X className="h-3 w-3" {...ICON_PROPS} /> Cambiar equipo
+            </button>
+          )}
         </div>
       </div>
 
@@ -503,40 +508,52 @@ export function PistolearView() {
         </div>
       )}
 
-      {/* Modo: botones de texto con underline */}
-      <div className="anim-slide-up mb-4 flex flex-wrap items-end gap-x-5 gap-y-2 border-b border-border">
-        {(Object.keys(PISTOLEO_CAMPOS) as PistoleoCampo[]).map((k) => {
-          const meta = PISTOLEO_CAMPOS[k];
-          const active = pistoleoCampo === k;
-          return (
-            <button
-              key={k}
-              onClick={() => {
-                setPistoleoConfig({ pistoleoCampo: k });
-                setParcial([]);
-              }}
-              className={cn(
-                "press -mb-px border-b-2 px-1 py-2 text-[13px] font-medium transition-colors",
-                active
-                  ? "border-foreground text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {meta.label}
-            </button>
-          );
-        })}
-        <div className="ml-auto flex items-center gap-2 pb-2 text-[11px] text-muted-foreground">
-          {hayParcial ? (
-            <span className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1 text-[11px] text-muted-foreground">
-              <span className="h-1.5 w-1.5 rounded-full bg-foreground" />
-              Esperando: {campoMeta.campos[parcial.length]}… ({parcial.length}/{camposEsperados})
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5">
-              Modo activo: <strong className="font-medium text-foreground">{campoMeta.label}</strong>
-            </span>
-          )}
+      {/* Marcar qué campos se van a pistolear (checkboxes) */}
+      <div className="anim-slide-up mb-4">
+        <div className="mb-2 flex items-center gap-2">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            Marcar qué vas a pistolear
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {ORDEN_CAMPOS.map((campo) => {
+            const marcado = pistoleoCamposMarcados.includes(campo);
+            return (
+              <button
+                key={campo}
+                onClick={() => toggleCampoMarcado(campo)}
+                className={cn(
+                  "press flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12px] font-medium transition-colors",
+                  marcado
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-border bg-background text-muted-foreground hover:text-foreground hover:bg-muted"
+                )}
+              >
+                <span
+                  className={cn(
+                    "flex h-4 w-4 items-center justify-center rounded-full border",
+                    marcado ? "border-background bg-background" : "border-muted-foreground"
+                  )}
+                >
+                  {marcado && <Check className="h-2.5 w-2.5 text-foreground" {...ICON_PROPS} />}
+                </span>
+                {CAMPOS_PISTOLEO_META[campo].label}
+              </button>
+            );
+          })}
+          <div className="ml-auto flex items-center gap-2 text-[11px] text-muted-foreground">
+            {hayParcial ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] text-muted-foreground">
+                <span className="h-1.5 w-1.5 rounded-full bg-foreground" />
+                Esperando: {CAMPOS_PISTOLEO_META[camposMarcadosOrdenados[parcial.length]].label}… ({parcial.length}/{camposEsperados})
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5">
+                <span>Campos marcados:</span>
+                <strong className="font-medium text-foreground">{camposMarcadosOrdenados.map((c) => CAMPOS_PISTOLEO_META[c].short).join(" · ")}</strong>
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -551,8 +568,8 @@ export function PistolearView() {
             onKeyDown={onKeyDown}
             placeholder={
               hayParcial
-                ? `Escanear ${campoMeta.campos[parcial.length]}… (Enter para confirmar)`
-                : `Escanear serie con el lector… (Enter para confirmar)`
+                ? `Escanear ${CAMPOS_PISTOLEO_META[camposMarcadosOrdenados[parcial.length]].label}… (Enter para confirmar)`
+                : `Escanear ${CAMPOS_PISTOLEO_META[camposMarcadosOrdenados[0]]?.label ?? "serie"} con el lector… (Enter para confirmar)`
             }
             className="h-12 w-full rounded-lg border border-border bg-background pl-11 pr-3 font-mono text-[15px] font-medium tracking-wide text-foreground outline-none transition-colors focus:border-foreground"
             autoComplete="off"
@@ -683,16 +700,9 @@ export function PistolearView() {
               <thead className="sticky top-0 bg-background">
                 <tr className="border-b border-border text-left text-[11px] uppercase tracking-wider text-muted-foreground">
                   <th className="px-3 py-2.5 font-medium">#</th>
-                  <th className="px-3 py-2.5 font-medium">Serie</th>
-                  {pistoleoCampo !== "serie" && pistoleoCampo !== "serie_ua" && (
-                    <th className="px-3 py-2.5 font-medium">MAC</th>
-                  )}
-                  {pistoleoCampo === "serie_ua" && (
-                    <th className="px-3 py-2.5 font-medium">UA</th>
-                  )}
-                  {pistoleoCampo === "serie_mac_cm" && (
-                    <th className="px-3 py-2.5 font-medium">CM MAC</th>
-                  )}
+                  {camposMarcadosOrdenados.map((c) => (
+                    <th key={c} className="px-3 py-2.5 font-medium">{CAMPOS_PISTOLEO_META[c].label}</th>
+                  ))}
                   <th className="px-3 py-2.5 font-medium">Modelo</th>
                   <th className="px-3 py-2.5 font-medium">Hora</th>
                   <th className="px-3 py-2.5"></th>
@@ -700,9 +710,11 @@ export function PistolearView() {
               </thead>
               <tbody className="divide-y divide-border">
                 {filasVisibles.map((f, i) => {
-                  const serie = f.valores[0] ?? "";
-                  const mac = f.valores[1] ?? "";
-                  const cmMac = f.valores[2] ?? "";
+                  const valoresPorCampo: Record<string, string> = {};
+                  camposMarcadosOrdenados.forEach((c, idx) => {
+                    valoresPorCampo[c] = f.valores[idx] ?? "";
+                  });
+                  const serie = valoresPorCampo.serie ?? "";
                   const modeloDetectado =
                     f.modeloSeleccionado?.trim()
                     || pistoleoModelo.trim()
@@ -715,57 +727,20 @@ export function PistolearView() {
                     return (
                       <tr key={f.id} className="bg-muted/40">
                         <td className="px-3 py-2.5 text-[11px] tabular-nums text-muted-foreground">{i + 1}</td>
-                        <td className="px-3 py-2.5">
-                          <Input
-                            value={editingValores[0] ?? ""}
-                            onChange={(e) => {
-                              const next = [...editingValores];
-                              next[0] = e.target.value;
-                              setEditingValores(next);
-                            }}
-                            className="h-8 rounded-lg border-border bg-background font-mono text-[12px]"
-                            autoFocus
-                          />
-                        </td>
-                        {(pistoleoCampo !== "serie" && pistoleoCampo !== "serie_ua") && (
-                          <td className="px-3 py-2.5">
+                        {camposMarcadosOrdenados.map((c, idx) => (
+                          <td key={c} className="px-3 py-2.5">
                             <Input
-                              value={editingValores[1] ?? ""}
+                              value={editingValores[idx] ?? ""}
                               onChange={(e) => {
                                 const next = [...editingValores];
-                                next[1] = e.target.value;
+                                next[idx] = e.target.value;
                                 setEditingValores(next);
                               }}
                               className="h-8 rounded-lg border-border bg-background font-mono text-[12px]"
+                              autoFocus={idx === 0}
                             />
                           </td>
-                        )}
-                        {pistoleoCampo === "serie_ua" && (
-                          <td className="px-3 py-2.5">
-                            <Input
-                              value={editingValores[1] ?? ""}
-                              onChange={(e) => {
-                                const next = [...editingValores];
-                                next[1] = e.target.value;
-                                setEditingValores(next);
-                              }}
-                              className="h-8 rounded-lg border-border bg-background font-mono text-[12px]"
-                            />
-                          </td>
-                        )}
-                        {pistoleoCampo === "serie_mac_cm" && (
-                          <td className="px-3 py-2.5">
-                            <Input
-                              value={editingValores[2] ?? ""}
-                              onChange={(e) => {
-                                const next = [...editingValores];
-                                next[2] = e.target.value;
-                                setEditingValores(next);
-                              }}
-                              className="h-8 rounded-lg border-border bg-background font-mono text-[12px]"
-                            />
-                          </td>
-                        )}
+                        ))}
                         <td className="px-3 py-2.5">
                           <select
                             value={editingModelo}
@@ -809,56 +784,36 @@ export function PistolearView() {
                       className="group transition-colors hover:bg-muted/40"
                     >
                       <td className="px-3 py-2.5 text-[11px] tabular-nums text-muted-foreground">{i + 1}</td>
-                      <td className="px-3 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-[12px] font-medium text-foreground">{serie}</span>
-                          {yaEnSistema && (
-                            <span
-                              className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide text-muted-foreground"
-                              title="Ya registrada en el sistema"
-                            >
-                              <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
-                              registrada
-                            </span>
-                          )}
-                          {dupEnLote && !yaEnSistema && (
-                            <span
-                              className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide text-muted-foreground"
-                              title="Repetida en este lote"
-                            >
-                              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
-                              repetida
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      {(pistoleoCampo !== "serie" && pistoleoCampo !== "serie_ua") && (
-                        <td className="px-3 py-2.5">
-                          {mac ? (
-                            <span className="font-mono text-[12px] text-muted-foreground">{mac}</span>
-                          ) : (
-                            <span className="text-[11px] text-muted-foreground">—</span>
-                          )}
-                        </td>
-                      )}
-                      {pistoleoCampo === "serie_ua" && (
-                        <td className="px-3 py-2.5">
-                          {mac ? (
-                            <span className="font-mono text-[12px] text-muted-foreground">{mac}</span>
-                          ) : (
-                            <span className="text-[11px] text-muted-foreground">—</span>
-                          )}
-                        </td>
-                      )}
-                      {pistoleoCampo === "serie_mac_cm" && (
-                        <td className="px-3 py-2.5">
-                          {cmMac ? (
-                            <span className="font-mono text-[12px] text-muted-foreground">{cmMac}</span>
-                          ) : (
-                            <span className="text-[11px] text-muted-foreground">—</span>
-                          )}
-                        </td>
-                      )}
+                      {camposMarcadosOrdenados.map((c, idx) => {
+                        const valor = valoresPorCampo[c] ?? "";
+                        const esSerie = c === "serie";
+                        const showBadge = esSerie && (yaEnSistema || (dupEnLote && !yaEnSistema));
+                        return (
+                          <td key={c} className="px-3 py-2.5">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-[12px] font-medium text-foreground">{valor}</span>
+                              {showBadge && yaEnSistema && (
+                                <span
+                                  className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide text-muted-foreground"
+                                  title="Ya registrada en el sistema"
+                                >
+                                  <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
+                                  registrada
+                                </span>
+                              )}
+                              {showBadge && dupEnLote && !yaEnSistema && (
+                                <span
+                                  className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide text-muted-foreground"
+                                  title="Repetida en este lote"
+                                >
+                                  <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
+                                  repetida
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        );
+                      })}
                       <td className="px-3 py-2.5">
                         <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-foreground">
                           <Cpu className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
@@ -914,7 +869,7 @@ export function PistolearView() {
           mono
           tone="info"
         />
-        <ResumenCard label="Modo" value={campoMeta.short} tone="warn" />
+        <ResumenCard label="Campos" value={camposMarcadosOrdenados.map((c) => CAMPOS_PISTOLEO_META[c].short).join(" · ")} tone="warn" />
         <ResumenCard label="Estado destino" value={ESTADO_META[pistoleoEstado].short} tone="ok" />
       </div>
 
@@ -952,38 +907,28 @@ export function PistolearView() {
                 <thead className="sticky top-0 bg-background">
                   <tr className="border-b border-border text-left text-[11px] uppercase tracking-wider text-muted-foreground">
                     <th className="px-3 py-2 font-medium">#</th>
-                    <th className="px-3 py-2 font-medium">Serie</th>
-                    {pistoleoCampo !== "serie" && pistoleoCampo !== "serie_ua" && (
-                      <th className="px-3 py-2 font-medium">MAC</th>
-                    )}
-                    {pistoleoCampo === "serie_ua" && (
-                      <th className="px-3 py-2 font-medium">UA</th>
-                    )}
-                    {pistoleoCampo === "serie_mac_cm" && (
-                      <th className="px-3 py-2 font-medium">CM MAC</th>
-                    )}
+                    {camposMarcadosOrdenados.map((c) => (
+                      <th key={c} className="px-3 py-2 font-medium">{CAMPOS_PISTOLEO_META[c].label}</th>
+                    ))}
                     <th className="px-3 py-2 font-medium">Estado</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {pistoleoFilas.map((f, i) => {
-                    const serie = f.valores[0] ?? "";
-                    const mac = f.valores[1] ?? "";
-                    const cmMac = f.valores[2] ?? "";
+                    const valoresPorCampo: Record<string, string> = {};
+                    camposMarcadosOrdenados.forEach((c, idx) => {
+                      valoresPorCampo[c] = f.valores[idx] ?? "";
+                    });
+                    const serie = valoresPorCampo.serie ?? "";
                     const yaEnSistema = seriesExistentesSet.has(serie.trim().toLowerCase());
                     return (
                       <tr key={f.id} className="transition-colors hover:bg-muted/40">
                         <td className="px-3 py-2 text-[11px] tabular-nums text-muted-foreground">{i + 1}</td>
-                        <td className="px-3 py-2 font-mono text-[12px] font-medium text-foreground">{serie}</td>
-                        {(pistoleoCampo !== "serie" && pistoleoCampo !== "serie_ua") && (
-                          <td className="px-3 py-2 font-mono text-[12px] text-muted-foreground">{mac || "—"}</td>
-                        )}
-                        {pistoleoCampo === "serie_ua" && (
-                          <td className="px-3 py-2 font-mono text-[12px] text-muted-foreground">{mac || "—"}</td>
-                        )}
-                        {pistoleoCampo === "serie_mac_cm" && (
-                          <td className="px-3 py-2 font-mono text-[12px] text-muted-foreground">{cmMac || "—"}</td>
-                        )}
+                        {camposMarcadosOrdenados.map((c) => (
+                          <td key={c} className="px-3 py-2 font-mono text-[12px] text-muted-foreground">
+                            {valoresPorCampo[c] || "—"}
+                          </td>
+                        ))}
                         <td className="px-3 py-2">
                           {yaEnSistema ? (
                             <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">

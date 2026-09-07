@@ -67,6 +67,8 @@ interface StoreState {
   pistoleoFilas: FilaPistoleo[];
   /** Equipo del inventario seleccionado para aplicar a nuevas capturas */
   pistoleoModeloSeleccionado: string;
+  /** Campos marcados para pistolear (checkboxes): serie, mac, cmMac, mtaMac, ua */
+  pistoleoCamposMarcados: string[];
 
   // ─── Acciones: navegación ───
   setActiveView: (v: ActiveView) => void;
@@ -80,6 +82,7 @@ interface StoreState {
     pistoleoModelo: string;
     pistoleoEstado: EstadoEquipo;
     pistoleoModeloSeleccionado: string;
+    pistoleoCamposMarcados: string[];
   }>) => void;
   addPistoleoFila: (valores: string[], modeloSeleccionado?: string) => void;
   updatePistoleoFila: (id: string, valores: string[], modeloSeleccionado?: string) => void;
@@ -224,6 +227,7 @@ export const useStore = create<StoreState>()(
       pistoleoEstado: "disponible",
       pistoleoFilas: [],
       pistoleoModeloSeleccionado: "",
+      pistoleoCamposMarcados: ["serie"],
 
       // ─── Navegación ───
       setActiveView: (v) => set({ activeView: v }),
@@ -297,7 +301,8 @@ export const useStore = create<StoreState>()(
       confirmarPistoleo: () => {
         const filas = get().pistoleoFilas;
         if (filas.length === 0) return { ok: false, msg: "No hay series para guardar.", count: 0 };
-        const { pistoleoModelo, pistoleoEstado, pistoleoCampo } = get();
+        const { pistoleoModelo, pistoleoEstado } = get();
+        const camposMarcados = get().pistoleoCamposMarcados || ["serie"];
         let count = 0;
         const nuevos: Equipment[] = [];
         const existentes = new Set(get().equipos.map((e) => e.serie.trim().toLowerCase()));
@@ -310,24 +315,19 @@ export const useStore = create<StoreState>()(
             duplicadosNoGuardados.push(serie);
             continue;
           }
-          // MAC es valores[1] cuando el modo incluye MAC
-          const conMAC = pistoleoCampo === "serie_mac" || pistoleoCampo === "serie_mac_cm"
-            || pistoleoCampo === "serie_mac_mta" || pistoleoCampo === "serie_mac_cm_mta";
-          const conCM = pistoleoCampo === "serie_mac_cm" || pistoleoCampo === "serie_mac_cm_mta";
-          const conMTA = pistoleoCampo === "serie_mac_mta" || pistoleoCampo === "serie_mac_cm_mta";
-          const conUA = pistoleoCampo === "serie_ua";
-          const mac = conMAC
-            ? (f.valores[1] ?? "").trim() || undefined
-            : undefined;
-          const cmMac = conCM
-            ? (f.valores[2] ?? "").trim() || undefined
-            : undefined;
-          const mtaMac = conMTA
-            ? (conCM ? (f.valores[3] ?? "").trim() || undefined : (f.valores[2] ?? "").trim() || undefined)
-            : undefined;
-          const ua = conUA
-            ? (f.valores[1] ?? "").trim() || undefined
-            : undefined;
+          // Mapear los valores según los campos marcados (en orden)
+          const conMAC = camposMarcados.includes("mac");
+          const conCM = camposMarcados.includes("cmMac");
+          const conMTA = camposMarcados.includes("mtaMac");
+          const conUA = camposMarcados.includes("ua");
+          // Índices: serie=0, y los demás en el orden que aparecen en camposMarcados
+          const ORDEN = ["serie", "mac", "cmMac", "mtaMac", "ua"];
+          const camposOrden = ORDEN.filter((c) => camposMarcados.includes(c));
+          const idx = (campo: string) => camposOrden.indexOf(campo);
+          const mac = conMAC ? (f.valores[idx("mac")] ?? "").trim() || undefined : undefined;
+          const cmMac = conCM ? (f.valores[idx("cmMac")] ?? "").trim() || undefined : undefined;
+          const mtaMac = conMTA ? (f.valores[idx("mtaMac")] ?? "").trim() || undefined : undefined;
+          const ua = conUA ? (f.valores[idx("ua")] ?? "").trim() || undefined : undefined;
           const modelo = f.modeloSeleccionado?.trim()
             || pistoleoModelo.trim()
             || detectarModeloPorPrefijo(serie)
@@ -1139,7 +1139,7 @@ export const useStore = create<StoreState>()(
       exportarPistoleoExcel: () => {
         import("xlsx-js-style").then((XLSX: any) => {
           const filas = get().pistoleoFilas;
-          const campo = get().pistoleoCampo;
+          const camposMarcados = get().pistoleoCamposMarcados || ["serie"];
           const estado = get().pistoleoEstado;
           const empresa = get().empresa;
           const settings = get().settings;
@@ -1148,18 +1148,20 @@ export const useStore = create<StoreState>()(
           const fechaStr = ahora.toLocaleDateString("es-PE", { timeZone: "America/Lima" });
           const horaStr = ahora.toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit" });
 
-          // Determinar columnas según el modo
-          const tieneUA = campo === "serie_ua";
-          const tieneMAC = campo === "serie_mac" || campo === "serie_mac_cm" || campo === "serie_mac_mta" || campo === "serie_mac_cm_mta";
-          const tieneCM = campo === "serie_mac_cm" || campo === "serie_mac_cm_mta";
-          const tieneMTA = campo === "serie_mac_mta" || campo === "serie_mac_cm_mta";
+          // Orden de los campos marcados (respetar el orden de escaneo)
+          const ORDEN = ["serie", "mac", "cmMac", "mtaMac", "ua"];
+          const camposOrden = ORDEN.filter((c) => camposMarcados.includes(c));
+          const LABELS: Record<string, string> = {
+            serie: "Serie",
+            mac: "MAC",
+            cmMac: "CM MAC",
+            mtaMac: "MTA MAC",
+            ua: "UA",
+          };
 
           // Construir encabezados
-          const headers = ["#", "Serie"];
-          if (tieneUA) headers.push("UA");
-          if (tieneMAC) headers.push("MAC");
-          if (tieneCM) headers.push("CM MAC");
-          if (tieneMTA) headers.push("MTA MAC");
+          const headers = ["#"];
+          for (const c of camposOrden) headers.push(LABELS[c]);
           headers.push("Modelo");
           headers.push("Estado");
           headers.push("Fecha captura");
@@ -1183,7 +1185,7 @@ export const useStore = create<StoreState>()(
           // Título
           rows.push(["SERIES CAPTURADAS — LEMCORP"]);
           rows.push([`Empresa: ${empresa.nombre || "Lemcorp"}  ·  Fecha: ${fechaStr}  ·  Hora: ${horaStr}  ·  Usuario: ${usuario}`]);
-          rows.push([`Modo: ${campo}  ·  Total: ${filas.length}  ·  Estado destino: ${estado}`]);
+          rows.push([`Campos: ${camposOrden.map((c) => LABELS[c]).join(" · ")}  ·  Total: ${filas.length}  ·  Estado destino: ${estado}`]);
           rows.push([]);
           // Headers
           rows.push(headers);
@@ -1192,11 +1194,9 @@ export const useStore = create<StoreState>()(
           filas.forEach((f, i) => {
             const row: any[] = [];
             row.push(i + 1);
-            row.push(f.valores[0] ?? "");
-            if (tieneUA) row.push(f.valores[1] ?? "");
-            if (tieneMAC) row.push(f.valores[1] ?? "");
-            if (tieneCM) row.push(f.valores[2] ?? "");
-            if (tieneMTA) row.push(tieneCM ? (f.valores[3] ?? "") : (f.valores[2] ?? ""));
+            for (let k = 0; k < camposOrden.length; k++) {
+              row.push(f.valores[k] ?? "");
+            }
             row.push(f.modeloSeleccionado || "");
             row.push(estado);
             row.push(new Date(f.timestamp).toLocaleString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }));
@@ -1395,6 +1395,7 @@ export const useStore = create<StoreState>()(
         pistoleoEstado: s.pistoleoEstado,
         pistoleoFilas: s.pistoleoFilas,
         pistoleoModeloSeleccionado: s.pistoleoModeloSeleccionado,
+        pistoleoCamposMarcados: s.pistoleoCamposMarcados,
         horario: s.horario,
         memoriaIA: s.memoriaIA,
         bajoStockVisto: s.bajoStockVisto,
@@ -1434,6 +1435,7 @@ export const useStore = create<StoreState>()(
         if (!p.pistoleoCampo) p.pistoleoCampo = "serie";
         if (!p.pistoleoModelo) p.pistoleoModelo = "";
         if (!p.pistoleoEstado) p.pistoleoEstado = "disponible";
+        if (!Array.isArray(p.pistoleoCamposMarcados)) p.pistoleoCamposMarcados = ["serie"];
         // Normalizar products.quantity
         p.products = p.products.map((x: any) => ({
           ...x,
