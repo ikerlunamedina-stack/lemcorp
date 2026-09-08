@@ -101,8 +101,9 @@ export function Navbar() {
     settings.tema === "claro" ? Sun : settings.tema === "oscuro" ? Moon : Monitor;
 
   return (
+    <>
     <header
-      className="sticky top-0 z-40 border-b border-border bg-card/90 backdrop-blur-xl shadow-sm"
+      className="sticky top-0 z-50 border-b border-border bg-card/90 backdrop-blur-xl shadow-sm"
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       <div className="mx-auto flex h-12 max-w-[1400px] items-center gap-1 px-4 lg:px-6">
@@ -203,16 +204,17 @@ export function Navbar() {
           </button>
         </div>
       </div>
+    </header>
 
-      {/* Drawer móvil minimalista */}
+      {/* Drawer móvil minimalista — fuera del header para z-index correcto */}
       {drawerOpen && (
         <>
           <div
-            className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm anim-overlay-in lg:hidden"
+            className="fixed inset-0 z-[90] bg-black/40 backdrop-blur-sm anim-overlay-in lg:hidden"
             onClick={() => setDrawerOpen(false)}
           />
           <aside
-            className="fixed left-0 top-0 z-[70] flex h-full w-[280px] max-w-[85vw] flex-col border-r border-border bg-background anim-drawer-in lg:hidden"
+            className="fixed left-0 top-0 z-[100] flex h-full w-[300px] max-w-[85vw] flex-col border-r border-border bg-card shadow-2xl anim-drawer-in lg:hidden"
             style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
           >
             <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
@@ -282,6 +284,6 @@ export function Navbar() {
           </aside>
         </>
       )}
-    </header>
+    </>
   );
 }
