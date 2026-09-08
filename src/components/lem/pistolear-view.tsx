@@ -403,127 +403,80 @@ export function PistolearView() {
       />
       <div className="relative z-10">
       {/* Header */}
-      <header className="anim-slide-up mb-8 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-            Captura con lector óptico
-          </p>
-          <h1 className="mt-1 text-[28px] font-semibold tracking-tight text-foreground">
-            Pistolear series
-          </h1>
-          <p className="mt-1.5 text-[13px] text-muted-foreground">
-            Cada lectura envía Enter automáticamente. Escanea y se acumulan en el lote.
-          </p>
-        </div>
+      <header className="anim-slide-up mb-6 flex flex-wrap items-center justify-end gap-4">
         <Button
           variant="outline"
           onClick={() => setShowConfig((v) => !v)}
           className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted"
         >
           <Settings2 className="mr-1.5 h-4 w-4" {...ICON_PROPS} />
-          {showConfig ? "Ocultar config" : "Configuración"}
+          {showConfig ? "Ocultar" : "Configuración"}
           {showConfig
             ? <ChevronDown className="ml-1 h-3.5 w-3.5" {...ICON_PROPS} />
             : <ChevronRight className="ml-1 h-3.5 w-3.5" {...ICON_PROPS} />}
         </Button>
       </header>
 
-      {/* Panel: seleccionar equipo del inventario (OBLIGATORIO) */}
+      {/* Panel: seleccionar equipo del inventario */}
       <div className="anim-slide-up mb-4 rounded-lg border border-border bg-background p-4">
-        <div>
-          <div className="mb-2 flex items-center gap-2">
-            <PackageSearch className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
-            <div>
-              <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Equipo del inventario <span className="text-destructive">*</span>
-              </Label>
-              <p className="text-[11px] text-muted-foreground">
-                Obligatorio. Selecciona a qué equipo pertenecen las series que vas a pistolear.
-              </p>
-            </div>
-          </div>
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" {...ICON_PROPS} />
-            <select
-              value={modeloSeleccionado}
-              onChange={(e) => setModeloSeleccionado(e.target.value)}
-              className={cn(
-                "h-9 w-full appearance-none rounded-lg border bg-background pl-8 pr-8 text-[13px] font-medium text-foreground outline-none transition-colors",
-                modeloSeleccionado ? "border-foreground" : "border-border focus:border-foreground"
-              )}
-            >
-              <option value="">— Seleccionar equipo —</option>
-              {productosUnicos.map((p) => (
-                <option key={p.id} value={p.name}>
-                  {p.name} {p.sku ? `· ${p.sku}` : ""}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" {...ICON_PROPS} />
-          </div>
-          {!modeloSeleccionado && (
-            <p className="mt-2 flex items-center gap-1.5 text-[11px] text-destructive">
-              <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
-              Selecciona un equipo para poder pistolear
-            </p>
-          )}
-          {modeloSeleccionado && (
-            <button
-              onClick={() => setModeloSeleccionado("")}
-              className="press mt-2 inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-              <X className="h-3 w-3" {...ICON_PROPS} /> Cambiar equipo
-            </button>
-          )}
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" {...ICON_PROPS} />
+          <select
+            value={modeloSeleccionado}
+            onChange={(e) => setModeloSeleccionado(e.target.value)}
+            className={cn(
+              "h-10 w-full appearance-none rounded-lg border bg-background pl-8 pr-8 text-[13px] font-medium text-foreground outline-none transition-colors",
+              modeloSeleccionado ? "border-foreground" : "border-border focus:border-foreground"
+            )}
+          >
+            <option value="">Seleccionar equipo</option>
+            {productosUnicos.map((p) => (
+              <option key={p.id} value={p.name}>
+                {p.name} {p.sku ? `· ${p.sku}` : ""}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" {...ICON_PROPS} />
         </div>
+        {modeloSeleccionado && (
+          <button
+            onClick={() => setModeloSeleccionado("")}
+            className="press mt-2 inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <X className="h-3 w-3" {...ICON_PROPS} /> Cambiar
+          </button>
+        )}
       </div>
 
       {/* Panel: prefijo de validación (con toggle on/off) */}
       <div className="anim-slide-up mb-4 rounded-lg border border-border bg-background p-4">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Switch
-              checked={settings.pistoleoPrefijoEnabled}
-              onCheckedChange={(v) => setSetting("pistoleoPrefijoEnabled", v)}
-            />
-            <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-              Validar prefijo
-            </Label>
-          </div>
-          <div className="flex flex-1 items-center gap-2 min-w-[200px]">
-            <Input
-              value={settings.pistoleoPrefijo}
-              onChange={(e) => setSetting("pistoleoPrefijo", e.target.value.toUpperCase())}
-              placeholder="Ej: ZTE, ZTEATV (vacío = no validar)"
-              className="h-9 rounded-lg border-border bg-background font-mono uppercase text-[13px]"
-              disabled={!settings.pistoleoPrefijoEnabled}
-            />
-            {settings.pistoleoPrefijo && settings.pistoleoPrefijoEnabled && (
-              <button
-                onClick={() => setSetting("pistoleoPrefijo", "")}
-                className="press inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                <X className="h-3 w-3" {...ICON_PROPS} /> Limpiar
-              </button>
-            )}
-          </div>
+          <Switch
+            checked={settings.pistoleoPrefijoEnabled}
+            onCheckedChange={(v) => setSetting("pistoleoPrefijoEnabled", v)}
+          />
+          <Input
+            value={settings.pistoleoPrefijo}
+            onChange={(e) => setSetting("pistoleoPrefijo", e.target.value.toUpperCase())}
+            placeholder="Prefijo (ej: ZTE)"
+            className="h-9 flex-1 rounded-lg border-border bg-background font-mono uppercase text-[13px]"
+            disabled={!settings.pistoleoPrefijoEnabled}
+          />
+          {settings.pistoleoPrefijo && settings.pistoleoPrefijoEnabled && (
+            <button
+              onClick={() => setSetting("pistoleoPrefijo", "")}
+              className="press inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <X className="h-3 w-3" {...ICON_PROPS} /> Limpiar
+            </button>
+          )}
         </div>
-        <p className="mt-2 text-[11px] text-muted-foreground">
-          {settings.pistoleoPrefijoEnabled
-            ? settings.pistoleoPrefijo
-              ? `Solo acepta series que empiecen con "${settings.pistoleoPrefijo}".`
-              : "Activado pero sin prefijo — acepta cualquier serie."
-            : "Desactivado — acepta cualquier serie sin validar el prefijo."}
-        </p>
       </div>
 
       {/* Config panel avanzado (colapsable) — solo estado de destino */}
       {showConfig && (
         <div className="anim-slide-up mb-4 rounded-lg border border-border bg-background p-4">
           <div className="flex flex-wrap items-center gap-3">
-            <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-              Estado destino
-            </Label>
             <Select
               value={pistoleoEstado}
               onValueChange={(v) => setPistoleoConfig({ pistoleoEstado: v as EstadoEquipo })}
@@ -539,20 +492,12 @@ export function PistolearView() {
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-[11px] text-muted-foreground">
-              Las series guardadas tendrán este estado por defecto.
-            </p>
           </div>
         </div>
       )}
 
-      {/* Marcar qué campos se van a pistolear (checkboxes) */}
+      {/* Checkboxes: marcar qué campos se van a pistolear */}
       <div className="anim-slide-up mb-4">
-        <div className="mb-2 flex items-center gap-2">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-            Marcar qué vas a pistolear
-          </span>
-        </div>
         <div className="flex flex-wrap items-center gap-2">
           {ORDEN_CAMPOS.map((campo) => {
             const marcado = pistoleoCamposMarcados.includes(campo);
@@ -580,15 +525,10 @@ export function PistolearView() {
             );
           })}
           <div className="ml-auto flex items-center gap-2 text-[11px] text-muted-foreground">
-            {hayParcial ? (
+            {hayParcial && (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] text-muted-foreground">
                 <span className="h-1.5 w-1.5 rounded-full bg-foreground" />
-                Esperando: {CAMPOS_PISTOLEO_META[camposMarcadosOrdenados[parcial.length]].label}… ({parcial.length}/{camposEsperados})
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5">
-                <span>Campos marcados:</span>
-                <strong className="font-medium text-foreground">{camposMarcadosOrdenados.map((c) => CAMPOS_PISTOLEO_META[c].short).join(" · ")}</strong>
+                {parcial.length}/{camposEsperados}
               </span>
             )}
           </div>
@@ -606,8 +546,8 @@ export function PistolearView() {
             onKeyDown={onKeyDown}
             placeholder={
               hayParcial
-                ? `Escanear ${CAMPOS_PISTOLEO_META[camposMarcadosOrdenados[parcial.length]].label}… (Enter para confirmar)`
-                : `Escanear ${CAMPOS_PISTOLEO_META[camposMarcadosOrdenados[0]]?.label ?? "serie"} con el lector… (Enter para confirmar)`
+                ? CAMPOS_PISTOLEO_META[camposMarcadosOrdenados[parcial.length]].label
+                : CAMPOS_PISTOLEO_META[camposMarcadosOrdenados[0]]?.label ?? "Serie"
             }
             className="h-12 w-full rounded-lg border border-border bg-background pl-11 pr-3 font-mono text-[15px] font-medium tracking-wide text-foreground outline-none transition-colors focus:border-foreground"
             autoComplete="off"
@@ -617,9 +557,6 @@ export function PistolearView() {
         {/* Preview en vivo: qué llevo escaneado hasta ahora */}
         {hayParcial && (
           <div className="mt-3 rounded-lg border border-border bg-muted/40 p-3">
-            <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-              Lectura en curso ({parcial.length}/{camposEsperados})
-            </p>
             <div className="flex flex-wrap gap-2">
               {camposMarcadosOrdenados.map((c, idx) => {
                 const val = parcial[idx];
@@ -643,7 +580,7 @@ export function PistolearView() {
                     {escaneado ? (
                       <span className="font-mono font-medium">{val}</span>
                     ) : esActual ? (
-                      <span className="opacity-60">escaneando…</span>
+                      <span className="opacity-60">···</span>
                     ) : (
                       <span className="opacity-40">—</span>
                     )}
@@ -680,10 +617,7 @@ export function PistolearView() {
           <AlertCircle className="h-4 w-4 shrink-0 text-muted-foreground" {...ICON_PROPS} />
           <div className="min-w-0 flex-1">
             <p className="text-[12px] font-medium text-foreground">
-              {duplicadosSistema.length} serie(s) ya están registradas en tu sistema
-            </p>
-            <p className="text-[11px] text-muted-foreground">
-              Toca este mensaje para ver el detalle.
+              {duplicadosSistema.length} ya registradas
             </p>
           </div>
           <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" {...ICON_PROPS} />
@@ -696,10 +630,7 @@ export function PistolearView() {
           <AlertCircle className="h-4 w-4 shrink-0 text-muted-foreground" {...ICON_PROPS} />
           <div className="min-w-0 flex-1">
             <p className="text-[12px] font-medium text-foreground">
-              {duplicadosEnLote.length} serie(s) repetida(s) en esta sesión
-            </p>
-            <p className="text-[11px] text-muted-foreground">
-              Revisa la tabla y elimina los duplicados antes de guardar.
+              {duplicadosEnLote.length} repetida(s)
             </p>
           </div>
         </div>
@@ -712,7 +643,7 @@ export function PistolearView() {
           disabled={pistoleoFilas.length === 0}
           className="h-9 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90 disabled:opacity-40"
         >
-          <Save className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Guardar en sistema ({pistoleoFilas.length})
+          <Save className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Guardar ({pistoleoFilas.length})
         </Button>
         <Button
           variant="outline"
@@ -720,7 +651,7 @@ export function PistolearView() {
           disabled={pistoleoFilas.length === 0}
           className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted disabled:opacity-40"
         >
-          <Trash2 className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Descartar captura
+          <Trash2 className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Descartar
         </Button>
         <Button
           variant="outline"
@@ -737,39 +668,26 @@ export function PistolearView() {
         >
           <Download className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Exportar Excel
         </Button>
-        <span className="ml-auto text-[11px] text-muted-foreground">
-          Tip: pulsa{" "}
-          <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] text-foreground">
-            Esc
-          </kbd>{" "}
-          para cancelar una lectura parcial
-        </span>
       </div>
 
       {/* Aviso de límite */}
       {pistoleoFilas.length >= 900 && (
         <div className="mb-4 flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-[12px] text-muted-foreground">
           <AlertCircle className="h-3.5 w-3.5 shrink-0" {...ICON_PROPS} />
-          <span>
-            Límite: {pistoleoFilas.length}/1000 series por lote. {1000 - pistoleoFilas.length} restantes.
-            Guarda el lote actual antes de seguir capturando.
-          </span>
+          <span>{pistoleoFilas.length}/1000</span>
         </div>
       )}
 
       {/* Tabla de capturas */}
       <div className="anim-slide-up overflow-hidden rounded-lg border border-border bg-background">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h2 className="text-[13px] font-medium uppercase tracking-wider text-muted-foreground">
-            Series capturadas
-          </h2>
           <span className="text-[11px] tabular-nums text-muted-foreground">
-            {pistoleoFilas.length} captura(s)
+            {pistoleoFilas.length}
           </span>
         </div>
         {pistoleoFilas.length === 0 ? (
           <div className="px-4 py-16 text-center text-[13px] text-muted-foreground">
-            Aún no has capturado series. Escanea con el lector y aparecerán aquí.
+            —
           </div>
         ) : (
           <div className="max-h-96 overflow-y-auto scroll-thin">
@@ -942,7 +860,7 @@ export function PistolearView() {
                   onClick={() => setVisibleCount((c) => c + 100)}
                   className="press rounded-lg border border-border bg-background px-4 py-2 text-[12px] font-medium text-foreground hover:bg-muted"
                 >
-                  Cargar 100 más (mostrando {filasVisibles.length} de {pistoleoFilas.length})
+                  Cargar más
                 </button>
               </div>
             )}
@@ -969,26 +887,20 @@ export function PistolearView() {
           <DialogHeader className="border-b border-border px-5 py-4">
             <DialogTitle className="flex items-center gap-2 text-[15px] font-semibold text-foreground">
               <Eye className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
-              Vista previa — {pistoleoFilas.length} serie(s)
+              {pistoleoFilas.length} serie(s)
             </DialogTitle>
-            <DialogDescription className="text-[12px] text-muted-foreground">
-              Revisa antes de guardar en el sistema. Las series ya registradas se omitirán.
-            </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3 px-5 py-4">
             {/* Resumen */}
             <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-border bg-background">
               <div className="border-r border-border p-3 text-center">
                 <p className="text-[20px] font-semibold tabular-nums text-foreground">{pistoleoFilas.length}</p>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total capturadas</p>
               </div>
               <div className="border-r border-border p-3 text-center">
                 <p className="text-[20px] font-semibold tabular-nums text-foreground">{pistoleoFilas.length - duplicadosSistema.length}</p>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">A guardar</p>
               </div>
               <div className="p-3 text-center">
                 <p className="text-[20px] font-semibold tabular-nums text-foreground">{duplicadosSistema.length}</p>
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Ya registradas</p>
               </div>
             </div>
             {/* Lista scroll */}
@@ -1030,12 +942,10 @@ export function PistolearView() {
                           {yaEnSistema ? (
                             <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
                               <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
-                              Ya registrada
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
                               <span className="h-1.5 w-1.5 rounded-full bg-foreground" />
-                              A guardar
                             </span>
                           )}
                         </td>
@@ -1045,14 +955,6 @@ export function PistolearView() {
                 </tbody>
               </table>
             </div>
-            {duplicadosSistema.length > 0 && (
-              <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-[12px] text-muted-foreground">
-                <AlertCircle className="h-3.5 w-3.5 shrink-0" {...ICON_PROPS} />
-                <span>
-                  {duplicadosSistema.length} serie(s) ya están registradas en el sistema y se omitirán al guardar.
-                </span>
-              </div>
-            )}
           </div>
           <DialogFooter className="border-t border-border px-5 py-4 sm:justify-end">
             <DialogClose asChild>
@@ -1065,9 +967,7 @@ export function PistolearView() {
               className="h-9 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
             >
               <Save className="mr-1.5 h-4 w-4" {...ICON_PROPS} />
-              {duplicadosSistema.length > 0
-                ? `Guardar ${pistoleoFilas.length - duplicadosSistema.length} (omitir ${duplicadosSistema.length})`
-                : `Guardar ${pistoleoFilas.length} serie(s)`}
+              Guardar {pistoleoFilas.length}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1079,11 +979,8 @@ export function PistolearView() {
           <DialogHeader className="border-b border-border px-5 py-4">
             <DialogTitle className="flex items-center gap-2 text-[15px] font-semibold text-foreground">
               <AlertCircle className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
-              {lastConfirmResult?.duplicados?.length ?? duplicadosSistema.length} serie(s) ya registradas
+              {lastConfirmResult?.duplicados?.length ?? duplicadosSistema.length} ya registradas
             </DialogTitle>
-            <DialogDescription className="text-[12px] text-muted-foreground">
-              Estas series ya existen en el sistema y no se guardaron de nuevo. Toca una para verla en el catálogo de equipos.
-            </DialogDescription>
           </DialogHeader>
           <div className="max-h-96 overflow-y-auto scroll-thin px-5 py-4">
             <ul className="flex flex-col gap-1.5">
