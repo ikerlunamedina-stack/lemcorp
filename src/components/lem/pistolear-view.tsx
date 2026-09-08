@@ -517,61 +517,31 @@ export function PistolearView() {
         </p>
       </div>
 
-      {/* Config panel avanzado (colapsable) */}
+      {/* Config panel avanzado (colapsable) — solo estado de destino */}
       {showConfig && (
         <div className="anim-slide-up mb-4 rounded-lg border border-border bg-background p-4">
-          <div className="grid gap-5 lg:grid-cols-2">
-            {/* Modelo y estado por defecto */}
-            <div className="lg:col-span-1">
-              <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Modelo por defecto (opcional)
-              </Label>
-              <Input
-                value={pistoleoModelo}
-                onChange={(e) => setPistoleoConfig({ pistoleoModelo: e.target.value })}
-                placeholder="Se autodetecta por prefijo si lo dejas vacío"
-                className="mt-1.5 h-9 rounded-lg border-border bg-background text-[13px]"
-              />
-              <Label className="mt-3 block text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Estado por defecto
-              </Label>
-              <Select
-                value={pistoleoEstado}
-                onValueChange={(v) => setPistoleoConfig({ pistoleoEstado: v as EstadoEquipo })}
-              >
-                <SelectTrigger className="mt-1.5 h-9 rounded-lg border-border bg-background text-[13px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-lg">
-                  {ESTADOS.map((est) => (
-                    <SelectItem key={est} value={est}>
-                      {ESTADO_META[est].label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Reglas de auto-detección */}
-            <div className="lg:col-span-1">
-              <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Reglas de auto-detección
-              </Label>
-              <div className="mt-1.5 space-y-1.5">
-                {REGLAS_PREFIJO.map((r) => (
-                  <div
-                    key={r.prefijo}
-                    className="flex items-start gap-2 rounded-lg border border-border bg-background px-2.5 py-2"
-                  >
-                    <CircleDot className="mt-0.5 h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-mono text-[11px] font-semibold text-foreground">{r.prefijo}</p>
-                      <p className="truncate text-[11px] text-muted-foreground">{r.modelo}</p>
-                    </div>
-                  </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              Estado destino
+            </Label>
+            <Select
+              value={pistoleoEstado}
+              onValueChange={(v) => setPistoleoConfig({ pistoleoEstado: v as EstadoEquipo })}
+            >
+              <SelectTrigger className="h-9 rounded-lg border-border bg-background text-[13px] w-auto min-w-[160px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-lg">
+                {ESTADOS.map((est) => (
+                  <SelectItem key={est} value={est}>
+                    {ESTADO_META[est].label}
+                  </SelectItem>
                 ))}
-              </div>
-            </div>
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-muted-foreground">
+              Las series guardadas tendrán este estado por defecto.
+            </p>
           </div>
         </div>
       )}
