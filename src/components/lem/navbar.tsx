@@ -101,7 +101,10 @@ export function Navbar() {
     settings.tema === "claro" ? Sun : settings.tema === "oscuro" ? Moon : Monitor;
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-card/90 backdrop-blur-xl shadow-sm">
+    <header
+      className="sticky top-0 z-40 border-b border-border bg-card/90 backdrop-blur-xl shadow-sm"
+      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+    >
       <div className="mx-auto flex h-12 max-w-[1400px] items-center gap-1 px-4 lg:px-6">
         {/* Logo minimalista: texto, no imagen llamativa */}
         <Link href="/" className="press flex shrink-0 items-center gap-2.5">
@@ -137,17 +140,8 @@ export function Navbar() {
           })}
         </nav>
 
-        {/* Botón menú móvil */}
-        <button
-          onClick={() => setDrawerOpen(true)}
-          className="press ml-auto flex h-9 w-9 items-center justify-center text-foreground lg:hidden"
-          aria-label="Abrir menú"
-        >
-          <Menu className="h-5 w-5" strokeWidth={1.5} />
-        </button>
-
-        {/* Zona derecha minimalista */}
-        <div className="flex items-center gap-0.5 lg:ml-0 ml-auto lg:ml-0">
+        {/* Zona derecha — siempre visible, alineada a la derecha */}
+        <div className="ml-auto flex items-center gap-0.5">
           {/* Tema */}
           <button
             onClick={cycleTema}
@@ -189,7 +183,7 @@ export function Navbar() {
           <Link
             href="/config"
             className={cn(
-              "press ml-1.5 flex h-8 w-8 items-center justify-center rounded-full border text-[11px] font-semibold transition-colors",
+              "press ml-1 flex h-8 w-8 items-center justify-center rounded-full border text-[11px] font-semibold transition-colors",
               esAdmin
                 ? "border-foreground/30 text-foreground"
                 : "border-muted-foreground/30 text-muted-foreground"
@@ -198,6 +192,15 @@ export function Navbar() {
           >
             {iniciales(nombreUsuario)}
           </Link>
+
+          {/* Botón menú móvil — al final, solo visible en móvil */}
+          <button
+            onClick={() => setDrawerOpen(true)}
+            className="press ml-1 flex h-9 w-9 items-center justify-center text-foreground lg:hidden"
+            aria-label="Abrir menú"
+          >
+            <Menu className="h-5 w-5" strokeWidth={1.5} />
+          </button>
         </div>
       </div>
 
