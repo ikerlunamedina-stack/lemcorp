@@ -1,32 +1,33 @@
-// Prisma schema for Nuclon WMS — multi-device sync
-// Each device pushes its full snapshot keyed by a deviceId stored in localStorage.
-// SQLite is used as a simple, file-based sync target.
+// Prisma schema for LEMCORP WMS — PostgreSQL (Neon/Supabase) multi-device sync
+// Base de datos en la nube para persistencia entre dispositivos.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-/// A device's full data snapshot. One row per device.
+/// Snapshot completo del estado de un dispositivo.
+/// Se sincroniza entre todos los dispositivos.
 model DeviceSnapshot {
   id        String   @id @default(cuid())
-  /// Identifier stored in the device's localStorage (auto-generated uuid).
+  /// Identificador del dispositivo (almacenado en localStorage del navegador).
+  /// En LEMCORP todos usan el mismo deviceId ("lemcorp-shared") para compartir datos.
   deviceId  String   @unique
-  /// Display name (browser / user agent info, optional, for debug only).
+  /// Nombre opcional para debug.
   label     String?
-  /// ISO timestamp of the last sync from the device.
+  /// Timestamp del último sync desde el dispositivo.
   updatedAt DateTime @updatedAt
-  /// Raw JSON blob of the entire store state (products, equipos, etc.)
+  /// JSON blob completo del estado del store (products, equipos, etc.)
   payload   String
 
   @@index([deviceId])
 }
 
-/// Optional: lightweight audit log of sync events for debugging.
+/// Log de eventos de sync para debugging.
 model SyncLog {
   id        String   @id @default(cuid())
   deviceId  String
