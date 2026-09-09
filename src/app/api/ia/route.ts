@@ -502,6 +502,7 @@ INSTRUCCIONES DE RESPUESTA:
         empresa: emp,
         usuario: usuarioNombre,
         memoria: memoriaAprendida,
+        historial: historialMsgs,
       });
     }
 
@@ -583,12 +584,17 @@ interface FallbackData {
   empresa: { nombre?: string };
   usuario: string;
   memoria: string[];
+  historial: Array<{ role: string; content: string }>;
 }
 
 async function generarRespuestaFallback(mensaje: string, data: FallbackData): Promise<string> {
   const msg = (mensaje || "").toLowerCase().trim();
-  const { products, equipos, despachos, miembros, empresa, usuario, memoria } = data;
+  const { products, equipos, despachos, miembros, empresa, usuario, memoria, historial } = data;
   const nombre = usuario || "Iker";
+
+  // === CONTEXTO: buscar el último mensaje del usuario en el historial ===
+  const ultimoMsgUsuario = historial.filter(m => m.role === "user").slice(-1)[0]?.content || "";
+  const segundoUltimoMsgUsuario = historial.filter(m => m.role === "user").slice(-2)[0]?.content || "";
 
   // === 1. MATEMÁTICAS (antes que todo) ===
   // Detectar operaciones: "1+1", "5 por 3", "100 entre 5", "cuanto es 10 mas 4"
@@ -679,13 +685,16 @@ async function generarRespuestaFallback(mensaje: string, data: FallbackData): Pr
     const totalUnidades = products.reduce((s, p) => s + p.quantity, 0);
     return `Tienes ${products.length} productos, ${totalUnidades.toLocaleString("es-PE")} unidades:\n${products.slice(0, 8).map(p => `• ${p.name} — ${p.quantity} ${p.udm || "und"}`).join("\n")}${products.length > 8 ? `\n...y ${products.length - 8} más` : ""}`;
   }
-  if (/equipos|aver[ií]ad|reparaci[oó]n|router|ont|decodificador/i.test(msg)) {
+  // Si el mensaje es una ACCIÓN (anota, apunta, despachando, recordatorio, bloc) — NO entrar a consultas de equipos
+  const esAccion = /anot[ae]s?|apunt[ae]s?|ponlo en bloc|pon en bloc|despachando|despacho|haceme recordar|hazme recordar|recu[eé]rdame|yo dije|acaso te dije/i.test(msg);
+
+  if (/equipos|aver[ií]ad|reparaci[oó]n|router|ont|decodificador/i.test(msg) && !esAccion) {
     if (equipos.length === 0) return `No hay equipos cargados, ${nombre}. Puedes añadirlos desde la pestaña Equipos.`;
     const disponibles = equipos.filter(e => e.estado === "disponible").length;
     const averiados = equipos.filter(e => e.estado === "averiado").length;
     return `${equipos.length} equipos: ${disponibles} disponibles, ${averiados} averiados.${averiados > 0 ? ` Hay ${averiados} que necesitan revisión.` : " Todo operativo."}`;
   }
-  if (/despacho|env[ií]o|entrega/i.test(msg)) {
+  if (/despacho|env[ií]o|entrega/i.test(msg) && !esAccion) {
     const hoy = despachos.filter(d => { try { return new Date(d.fecha).toDateString() === new Date().toDateString(); } catch { return false; } }).length;
     return `${despachos.length} despachos en total, ${hoy} hoy.${despachos.length > 0 ? `\nÚltimos:\n${despachos.slice(0, 3).map(d => `• ${d.cantidad} und — ${d.producto || d.sku}`).join("\n")}` : ""}`;
   }
@@ -697,10 +706,63 @@ async function generarRespuestaFallback(mensaje: string, data: FallbackData): Pr
   if (/a[ñn]ade|agrega|nuevo producto/i.test(msg)) {
     return `Dime: "añade 50 conectores RJ-45, SKU CONN-RJ45, mínimo 20" y lo cargo.`;
   }
-  if (/anota|apunta/i.test(msg)) {
-    const textoNota = mensaje.replace(/^(anota|apunta)\s*/i, "").trim();
-    if (textoNota.length > 3) return `Anotado: "${textoNota}"\n\n[[ACCION]]\ntipo: add_note\ntexto: ${textoNota}\n[[/ACCION]]`;
+
+  // === ANOTA / APUNTA — con contexto de conversación ===
+  if (/anot[ae]s?|apunt[ae]s?|ponlo en bloc|pon en bloc|registrar|despachando|despacho|yo dije|acaso te dije/i.test(msg)) {
+    // Extraer el texto a anotar del mensaje actual
+    let textoNota = mensaje
+      .replace(/^(anota|anotes|apunta|apuntes|ponlo en bloc|pon en bloc|registrar)\s*(que)?\s*/i, "")
+      .replace(/^(acaso te dije que anotes eso|yo dije que anotes? que|yo dije que apuntes? que)\s*/i, "")
+      .replace(/^(haceme recordar|hazme recordar|recuérdame|recuerdame)\s*/i, "")
+      .trim();
+
+    // Si el mensaje es solo "tu solo apunta" o "solo anota" — usar el contexto anterior
+    if (/^(tu solo apunta|solo apunta|tu solo anota|solo anota|solo ponlo|ponlo nada mas|apunta nada mas)$/i.test(msg) || textoNota.length < 5) {
+      // Buscar en el historial el último mensaje sustantivo del usuario
+      const msgsUsuario = historial.filter(m => m.role === "user" && m.content.trim().length > 10);
+      const ultimoSustantivo = msgsUsuario.slice(-1)[0]?.content || "";
+      if (ultimoSustantivo && !/^(tu solo|solo apunta|solo anota)/i.test(ultimoSustantivo)) {
+        textoNota = ultimoSustantivo;
+      }
+    }
+
+    // Si el usuario está corrigiendo: "yo dije que anotes que al tecnico padilla le di 4 equipos"
+    if (/yo dije|acaso te dije|te dije que/i.test(msg)) {
+      // Buscar el último "que anotes que" o "que apuntes que" y extraer lo que sigue
+      const matchCorreccion = mensaje.match(/(?:anotes?|apuntes?)\s+que\s+(.+)$/i);
+      if (matchCorreccion) {
+        // Si hay múltiples "que", tomar solo la parte después del último
+        const textoExtraido = matchCorreccion[1].trim();
+        // Si el texto extraído tiene "yo dije" o "acaso" al inicio, buscar más profundamente
+        const matchProfundo = textoExtraido.match(/(?:anotes?|apuntes?)\s+que\s+(.+)$/i);
+        if (matchProfundo) {
+          textoNota = matchProfundo[1].trim();
+        } else {
+          textoNota = textoExtraido;
+        }
+      }
+    }
+
+    // Limpiar el texto de comandos residuales
+    textoNota = textoNota
+      .replace(/^(que|de|para|en)\s+/i, "")
+      .replace(/haceme recordar|hazme recordar/gi, "")
+      .replace(/o ponlo en bloc|o pon en bloc/gi, "")
+      .trim();
+
+    if (textoNota.length > 3) {
+      return `Anotado: "${textoNota}"\n\n[[ACCION]]\ntipo: add_note\ntexto: ${textoNota}\n[[/ACCION]]`;
+    }
     return `¿Qué anoto? Dime "anota [texto]".`;
+  }
+
+  // Si el usuario dice "tu solo apunta" o similar sin más, usar contexto
+  if (/^(tu solo|solo|apunta|anota|ponlo)/i.test(msg) && msg.length < 25) {
+    const msgsUsuario = historial.filter(m => m.role === "user" && m.content.trim().length > 10);
+    const ultimoSustantivo = msgsUsuario.slice(-1)[0]?.content || "";
+    if (ultimoSustantivo && !/^(tu solo|solo|apunta|anota|ponlo)/i.test(ultimoSustantivo)) {
+      return `Anotado: "${ultimoSustantivo}"\n\n[[ACCION]]\ntipo: add_note\ntexto: ${ultimoSustantivo}\n[[/ACCION]]`;
+    }
   }
   if (/pon.*blanco|pon.*claro|modo claro/i.test(msg)) return `Listo.\n\n[[ACCION]]\ntipo: set_theme\ntema: claro\n[[/ACCION]]`;
   if (/pon.*oscuro|pon.*negro|modo oscuro/i.test(msg)) return `Listo.\n\n[[ACCION]]\ntipo: set_theme\ntema: oscuro\n[[/ACCION]]`;
