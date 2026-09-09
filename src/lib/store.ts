@@ -309,7 +309,7 @@ export const useStore = create<StoreState>()(
         const existentes = new Set(get().equipos.map((e) => e.serie.trim().toLowerCase()));
         const duplicadosNoGuardados: string[] = [];
         const fechasNow = Date.now();
-        const ORDEN = ["serie", "mac", "cmMac", "mtaMac", "ua"];
+        const ORDEN = ["serie", "cmMac", "mtaMac", "ua"];
         for (const f of filas) {
           // Usar los campos marcados de la fila (cada fila puede tener campos distintos)
           const camposFila = (f.camposMarcados && f.camposMarcados.length > 0)
@@ -327,11 +327,9 @@ export const useStore = create<StoreState>()(
           }
 
           // Mapear cada campo a su valor según el orden de la fila
-          const conMAC = camposFila.includes("mac");
           const conCM = camposFila.includes("cmMac");
           const conMTA = camposFila.includes("mtaMac");
           const conUA = camposFila.includes("ua");
-          const mac = conMAC ? (f.valores[idx("mac")] ?? "").trim() || undefined : undefined;
           const cmMac = conCM ? (f.valores[idx("cmMac")] ?? "").trim() || undefined : undefined;
           const mtaMac = conMTA ? (f.valores[idx("mtaMac")] ?? "").trim() || undefined : undefined;
           const ua = conUA ? (f.valores[idx("ua")] ?? "").trim() || undefined : undefined;
@@ -345,7 +343,6 @@ export const useStore = create<StoreState>()(
             modelo,
             estado: pistoleoEstado,
             ubicacion: "Almacén HUB",
-            mac,
             cmMac,
             mtaMac,
             ua,
@@ -1163,10 +1160,9 @@ export const useStore = create<StoreState>()(
           const horaStr = ahora.toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit" });
 
           // Todos los campos posibles, en orden
-          const ORDEN = ["serie", "mac", "cmMac", "mtaMac", "ua"];
+          const ORDEN = ["serie", "cmMac", "mtaMac", "ua"];
           const LABELS: Record<string, string> = {
             serie: "Serie",
-            mac: "MAC",
             cmMac: "CM MAC",
             mtaMac: "MTA MAC",
             ua: "UA",

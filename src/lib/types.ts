@@ -328,18 +328,17 @@ export function uid(): string {
 
 // ─────────── Pistoleo ───────────
 // Campos disponibles para pistolear (marcables, no secuencia fija)
-export type CampoPistoleo = "serie" | "mac" | "cmMac" | "mtaMac" | "ua";
+export type CampoPistoleo = "serie" | "cmMac" | "mtaMac" | "ua";
 
 export const CAMPOS_PISTOLEO_META: Record<CampoPistoleo, { label: string; short: string; placeholder: string }> = {
   serie: { label: "Serie", short: "Serie", placeholder: "Escanear serie…" },
-  mac: { label: "MAC", short: "MAC", placeholder: "Escanear MAC…" },
   cmMac: { label: "CM MAC", short: "CM MAC", placeholder: "Escanear CM MAC…" },
   mtaMac: { label: "MTA MAC", short: "MTA MAC", placeholder: "Escanear MTA MAC…" },
   ua: { label: "UA", short: "UA", placeholder: "Escanear UA…" },
 };
 
 // Orden de los campos cuando se pistolean (el orden en que se escanean)
-export const ORDEN_CAMPOS: CampoPistoleo[] = ["serie", "mac", "cmMac", "mtaMac", "ua"];
+export const ORDEN_CAMPOS: CampoPistoleo[] = ["serie", "cmMac", "mtaMac", "ua"];
 
 // Tipo legacy para compatibilidad con el store (ahora se deriva de los campos marcados)
 export type PistoleoCampo = "serie" | "serie_ua" | "serie_mac" | "serie_mac_cm" | "serie_mac_mta" | "serie_mac_cm_mta";
