@@ -82,7 +82,7 @@ export function DashboardView() {
           <button
             key={k.label}
             onClick={go(k.view)}
-            className="press-card anim-slide-up group rounded-2xl border border-border bg-card p-5 text-left"
+            className="press-card anim-slide-up group rounded-2xl bg-card shadow-sm p-5 text-left"
             style={{ animationDelay: `${i * 60}ms` }}
           >
             <p className="text-[32px] font-semibold tabular-nums tracking-tight text-foreground sm:text-[36px]">
@@ -99,7 +99,7 @@ export function DashboardView() {
         {/* Col izquierda */}
         <div className="space-y-6 lg:col-span-2">
           {/* Productos con menor stock */}
-          <section className="press-card rounded-2xl border border-border bg-card p-6">
+          <section className="press-card rounded-2xl bg-card shadow-sm p-6">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="text-[15px] font-medium text-foreground">Productos con menor stock</h2>
               <button
@@ -141,7 +141,7 @@ export function DashboardView() {
           </section>
 
           {/* Entradas recientes */}
-          <section className="press-card rounded-2xl border border-border bg-card p-6">
+          <section className="press-card rounded-2xl bg-card shadow-sm p-6">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="text-[15px] font-medium text-foreground">Entradas recientes</h2>
               <button
@@ -176,7 +176,7 @@ export function DashboardView() {
         <div className="space-y-6">
           {/* Equipos por estado */}
           {equipos.length > 0 && (
-            <section className="press-card rounded-2xl border border-border bg-card p-6">
+            <section className="press-card rounded-2xl bg-card shadow-sm p-6">
               <div className="mb-5 flex items-center justify-between">
                 <h2 className="text-[15px] font-medium text-foreground">Equipos por estado</h2>
                 <button
@@ -208,7 +208,7 @@ export function DashboardView() {
           )}
 
           {/* Accesos rápidos */}
-          <section className="press-card rounded-2xl border border-border bg-card p-6">
+          <section className="press-card rounded-2xl bg-card shadow-sm p-6">
             <h2 className="mb-4 text-[15px] font-medium text-foreground">Accesos rápidos</h2>
             <div className="divide-y divide-border">
               {[
@@ -231,7 +231,7 @@ export function DashboardView() {
 
           {/* Notas fijadas */}
           {notas.filter((n) => n.pinned).length > 0 && (
-            <section className="press-card rounded-2xl border border-border bg-card p-6">
+            <section className="press-card rounded-2xl bg-card shadow-sm p-6">
               <h2 className="mb-3 text-[15px] font-medium text-foreground">Notas fijadas</h2>
               <div className="space-y-2">
                 {notas.filter((n) => n.pinned).slice(0, 3).map((n) => (

@@ -176,7 +176,7 @@ export function NotificationStack() {
               className="pointer-events-auto anim-iphone-notification"
               style={{ animationDelay: `${delay}ms` }}
             >
-              <div className="flex w-[320px] max-w-[calc(100vw-2rem)] items-start gap-3 rounded-2xl border border-border bg-card/95 p-3 shadow-2xl backdrop-blur-xl">
+              <div className="flex w-[320px] max-w-[calc(100vw-2rem)] items-start gap-3 rounded-2xl bg-card shadow-sm/95 p-3 shadow-2xl backdrop-blur-xl">
                 <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-lg", cfg.color)}>
                   <Icon className="h-5 w-5" />
                 </div>

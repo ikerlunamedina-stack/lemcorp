@@ -79,7 +79,7 @@ export function BlocView() {
           No hay notas. Escribe arriba y presiona “Añadir nota”.
         </div>
       ) : (
-        <div className="anim-fade-in overflow-hidden rounded-lg border border-border bg-background">
+        <div className="anim-fade-in overflow-hidden rounded-lg bg-card shadow-sm">
           <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
             <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
               {sorted.length} {sorted.length === 1 ? "nota" : "notas"}

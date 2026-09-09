@@ -302,7 +302,7 @@ export function HorarioView() {
               </p>
             </div>
           ) : (
-            <div className="anim-fade-in mt-4 overflow-hidden rounded-lg border border-border bg-background">
+            <div className="anim-fade-in mt-4 overflow-hidden rounded-lg bg-card shadow-sm">
               <div className="divide-y divide-border">
                 {itemsSelected.map((h) => {
                   const cfg = TIPO_HORARIO_META[h.tipo];

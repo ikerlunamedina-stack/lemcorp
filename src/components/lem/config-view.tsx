@@ -131,7 +131,7 @@ export function ConfigView() {
       </div>
 
       {/* ─── Personalización ─── */}
-      <section className="anim-slide-up mb-4 overflow-hidden rounded-lg border border-border bg-background">
+      <section className="anim-slide-up mb-4 overflow-hidden rounded-lg bg-card shadow-sm">
         <div className="border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
@@ -190,7 +190,7 @@ export function ConfigView() {
       </section>
 
       {/* ─── Sesión ─── */}
-      <section className="anim-slide-up mb-4 overflow-hidden rounded-lg border border-border bg-background">
+      <section className="anim-slide-up mb-4 overflow-hidden rounded-lg bg-card shadow-sm">
         <div className="border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
             <UserCheck className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
@@ -206,7 +206,7 @@ export function ConfigView() {
       </section>
 
       {/* ─── Pistoleo ─── */}
-      <section className="anim-slide-up mb-4 overflow-hidden rounded-lg border border-border bg-background">
+      <section className="anim-slide-up mb-4 overflow-hidden rounded-lg bg-card shadow-sm">
         <div className="border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
             <ScanLine className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
@@ -248,7 +248,7 @@ export function ConfigView() {
       </section>
 
       {/* ─── Alertas ─── */}
-      <section className="anim-slide-up mb-4 overflow-hidden rounded-lg border border-border bg-background">
+      <section className="anim-slide-up mb-4 overflow-hidden rounded-lg bg-card shadow-sm">
         <div className="border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
@@ -270,7 +270,7 @@ export function ConfigView() {
       </section>
 
       {/* ─── Voz de Alana ─── */}
-      <section className="anim-slide-up mb-4 overflow-hidden rounded-lg border border-border bg-background">
+      <section className="anim-slide-up mb-4 overflow-hidden rounded-lg bg-card shadow-sm">
         <div className="border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
             {settings.voz ? (
@@ -322,7 +322,7 @@ export function ConfigView() {
       </section>
 
       {/* ─── Memoria de Alana ─── */}
-      <section className="anim-slide-up mb-4 overflow-hidden rounded-lg border border-border bg-background">
+      <section className="anim-slide-up mb-4 overflow-hidden rounded-lg bg-card shadow-sm">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
             <Brain className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
@@ -352,7 +352,7 @@ export function ConfigView() {
               </p>
             </div>
           ) : (
-            <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-background">
+            <ul className="divide-y divide-border overflow-hidden rounded-lg bg-card shadow-sm">
               {memoriaIA.map((m, i) => (
                 <li
                   key={i}
@@ -377,7 +377,7 @@ export function ConfigView() {
       </section>
 
       {/* ─── Datos del sistema ─── */}
-      <section className="anim-slide-up mb-4 overflow-hidden rounded-lg border border-border bg-background">
+      <section className="anim-slide-up mb-4 overflow-hidden rounded-lg bg-card shadow-sm">
         <div className="border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
             <Database className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
@@ -430,7 +430,7 @@ export function ConfigView() {
       </section>
 
       {/* ─── Acerca de ─── */}
-      <section className="anim-slide-up mb-4 overflow-hidden rounded-lg border border-border bg-background">
+      <section className="anim-slide-up mb-4 overflow-hidden rounded-lg bg-card shadow-sm">
         <div className="border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
             <Info className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
@@ -637,7 +637,7 @@ function SesionSelector() {
   return (
     <div className="flex flex-col gap-3">
       {/* Estado actual */}
-      <div className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2.5">
+      <div className="flex items-center gap-3 rounded-lg bg-muted/30 px-3 py-2.5">
         <div
           className={cn(
             "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border text-[11px] font-medium",

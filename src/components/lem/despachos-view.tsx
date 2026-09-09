@@ -337,7 +337,7 @@ export function DespachosView() {
           </p>
         </div>
       ) : (
-        <div className="anim-fade-in mt-4 overflow-hidden rounded-lg border border-border bg-background">
+        <div className="anim-fade-in mt-4 overflow-hidden rounded-lg bg-card shadow-sm">
           <div className="divide-y divide-border">
             {porDia.map(([dia, items]) => {
               const diaTs = new Date(dia).getTime();

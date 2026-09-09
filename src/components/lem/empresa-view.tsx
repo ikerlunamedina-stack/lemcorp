@@ -127,7 +127,7 @@ export function EmpresaView() {
       </div>
 
       {/* Info de la empresa contratista */}
-      <div className="anim-slide-up mb-6 overflow-hidden rounded-lg border border-border bg-background">
+      <div className="anim-slide-up mb-6 overflow-hidden rounded-lg bg-card shadow-sm">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
             <Truck className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
@@ -240,7 +240,7 @@ export function EmpresaView() {
       </div>
 
       {/* Personal del almacén */}
-      <div className="anim-slide-up overflow-hidden rounded-lg border border-border bg-background">
+      <div className="anim-slide-up overflow-hidden rounded-lg bg-card shadow-sm">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />

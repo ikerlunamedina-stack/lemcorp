@@ -418,7 +418,7 @@ export function PistolearView() {
       </header>
 
       {/* Panel: seleccionar equipo del inventario */}
-      <div className="anim-slide-up mb-4 rounded-lg border border-border bg-background p-4">
+      <div className="anim-slide-up mb-4 rounded-lg bg-muted/30 p-4">
         <div className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" {...ICON_PROPS} />
           <select
@@ -449,7 +449,7 @@ export function PistolearView() {
       </div>
 
       {/* Panel: prefijo de validación (con toggle on/off) */}
-      <div className="anim-slide-up mb-4 rounded-lg border border-border bg-background p-4">
+      <div className="anim-slide-up mb-4 rounded-lg bg-muted/30 p-4">
         <div className="flex flex-wrap items-center gap-3">
           <Switch
             checked={settings.pistoleoPrefijoEnabled}
@@ -475,7 +475,7 @@ export function PistolearView() {
 
       {/* Config panel avanzado (colapsable) — solo estado de destino */}
       {showConfig && (
-        <div className="anim-slide-up mb-4 rounded-lg border border-border bg-background p-4">
+        <div className="anim-slide-up mb-4 rounded-lg bg-muted/30 p-4">
           <div className="flex flex-wrap items-center gap-3">
             <Select
               value={pistoleoEstado}
@@ -612,7 +612,7 @@ export function PistolearView() {
       {duplicadosSistema.length > 0 && (
         <button
           onClick={() => setShowDuplicadosModal(true)}
-          className="press anim-fade-in mb-3 flex w-full items-center gap-2.5 rounded-lg border border-border bg-background px-3 py-2.5 text-left transition-colors hover:bg-muted"
+          className="press anim-fade-in mb-3 flex w-full items-center gap-2.5 rounded-lg bg-muted/30 px-3 py-2.5 text-left transition-colors hover:bg-muted"
         >
           <AlertCircle className="h-4 w-4 shrink-0 text-muted-foreground" {...ICON_PROPS} />
           <div className="min-w-0 flex-1">
@@ -626,7 +626,7 @@ export function PistolearView() {
 
       {/* Banner: duplicados dentro del lote actual */}
       {duplicadosEnLote.length > 0 && (
-        <div className="anim-fade-in mb-3 flex items-center gap-2.5 rounded-lg border border-border bg-background px-3 py-2.5">
+        <div className="anim-fade-in mb-3 flex items-center gap-2.5 rounded-lg bg-muted/30 px-3 py-2.5">
           <AlertCircle className="h-4 w-4 shrink-0 text-muted-foreground" {...ICON_PROPS} />
           <div className="min-w-0 flex-1">
             <p className="text-[12px] font-medium text-foreground">
@@ -672,14 +672,14 @@ export function PistolearView() {
 
       {/* Aviso de límite */}
       {pistoleoFilas.length >= 900 && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-[12px] text-muted-foreground">
+        <div className="mb-4 flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-2.5 text-[12px] text-muted-foreground">
           <AlertCircle className="h-3.5 w-3.5 shrink-0" {...ICON_PROPS} />
           <span>{pistoleoFilas.length}/1000</span>
         </div>
       )}
 
       {/* Tabla de capturas */}
-      <div className="anim-slide-up overflow-hidden rounded-lg border border-border bg-background">
+      <div className="anim-slide-up overflow-hidden rounded-lg bg-card shadow-sm">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <span className="text-[11px] tabular-nums text-muted-foreground">
             {pistoleoFilas.length}
@@ -892,7 +892,7 @@ export function PistolearView() {
           </DialogHeader>
           <div className="flex flex-col gap-3 px-5 py-4">
             {/* Resumen */}
-            <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-border bg-background">
+            <div className="grid grid-cols-3 overflow-hidden rounded-lg bg-card shadow-sm">
               <div className="border-r border-border p-3 text-center">
                 <p className="text-[20px] font-semibold tabular-nums text-foreground">{pistoleoFilas.length}</p>
               </div>
@@ -989,7 +989,7 @@ export function PistolearView() {
                 return (
                   <li
                     key={`${s}-${i}`}
-                    className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2.5"
+                    className="flex items-center gap-3 rounded-lg bg-muted/30 px-3 py-2.5"
                   >
                     <AlertCircle className="h-4 w-4 shrink-0 text-muted-foreground" {...ICON_PROPS} />
                     <div className="min-w-0 flex-1">
@@ -1039,7 +1039,7 @@ function ResumenCard({
   // per minimalist design (all cards use the same border + background).
   void tone;
   return (
-    <div className="rounded-lg border border-border bg-background px-3 py-2.5">
+    <div className="rounded-lg bg-muted/30 px-3 py-2.5">
       <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className={cn("mt-1 truncate text-[14px] font-medium text-foreground", mono && "font-mono")}>
         {value}

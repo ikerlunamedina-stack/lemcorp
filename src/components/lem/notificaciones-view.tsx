@@ -83,7 +83,7 @@ export function NotificacionesView() {
 
       {/* Alertas de stock — hairline list with small red dot */}
       {bajoStock.length > 0 && (
-        <div className="anim-slide-up mb-4 overflow-hidden rounded-lg border border-border bg-background">
+        <div className="anim-slide-up mb-4 overflow-hidden rounded-lg bg-card shadow-sm">
           <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
             <h2 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
               <AlertTriangle className="h-3.5 w-3.5" {...ICON_PROPS} />
@@ -111,7 +111,7 @@ export function NotificacionesView() {
 
       {/* Recordatorios pendientes — hairline list */}
       {recordatoriosPendientes.length > 0 && (
-        <div className="anim-slide-up mb-4 overflow-hidden rounded-lg border border-border bg-background">
+        <div className="anim-slide-up mb-4 overflow-hidden rounded-lg bg-card shadow-sm">
           <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
             <h2 className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
               <BellRing className="h-3.5 w-3.5" {...ICON_PROPS} />
@@ -145,7 +145,7 @@ export function NotificacionesView() {
           <h2 className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
             Sin leer
           </h2>
-          <div className="overflow-hidden rounded-lg border border-border bg-background">
+          <div className="overflow-hidden rounded-lg bg-card shadow-sm">
             <ul className="divide-y divide-border">
               {noLeidas.map((n) => {
                 const cfg = tipoConfig[n.tipo] || tipoConfig.info;
@@ -183,7 +183,7 @@ export function NotificacionesView() {
           <h2 className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
             Leídas
           </h2>
-          <div className="overflow-hidden rounded-lg border border-border bg-background">
+          <div className="overflow-hidden rounded-lg bg-card shadow-sm">
             <ul className="divide-y divide-border">
               {leidas.map((n) => {
                 const cfg = tipoConfig[n.tipo] || tipoConfig.info;
