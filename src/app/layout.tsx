@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/lem/theme-provider";
+import { SplashScreen } from "@/components/lem/splash-screen";
 
 export const metadata: Metadata = {
   title: "VRS — Resource Management Platform",
@@ -56,6 +57,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="antialiased font-sans" style={{ backgroundColor: "var(--background)", color: "var(--foreground)" }}>
+        <SplashScreen />
         <ThemeProvider>
           {children}
         </ThemeProvider>
