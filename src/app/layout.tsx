@@ -4,30 +4,31 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/lem/theme-provider";
 
 export const metadata: Metadata = {
-  title: "LEMCORP — Sistema de Gestión de Almacén",
+  title: "VRS — Resource Management Platform",
   description:
-    "Plataforma para gestión de inventarios, trazabilidad de equipos por serie, control de entradas y análisis con IA. Diseñado para telecomunicaciones.",
+    "Plataforma para gestión de recursos, trazabilidad de equipos por serie, control de entradas y análisis con IA.",
   keywords: [
-    "LEMCORP",
+    "VRS",
+    "Resource Management",
     "sistema de almacén",
     "software logística",
     "asistente IA almacén",
   ],
-  authors: [{ name: "LEMCORP" }],
-  creator: "LEMCORP",
-  publisher: "LEMCORP",
+  authors: [{ name: "VRS" }],
+  creator: "VRS",
+  publisher: "VRS",
   robots: { index: true, follow: true },
   openGraph: {
-    title: "LEMCORP — Sistema de Gestión de Almacén",
-    description: "Control total de tu inventario, equipos y operaciones.",
-    siteName: "LEMCORP",
+    title: "VRS — Resource Management Platform",
+    description: "Control total de tus recursos, equipos y operaciones.",
+    siteName: "VRS",
     type: "website",
     locale: "es_PE",
   },
   twitter: {
     card: "summary_large_image",
-    title: "LEMCORP",
-    description: "Sistema de gestión de almacén con IA integrada.",
+    title: "VRS",
+    description: "Resource Management Platform con IA integrada.",
   },
 };
 

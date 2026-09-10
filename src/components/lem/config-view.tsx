@@ -83,7 +83,7 @@ export function ConfigView() {
     setSetting("voz", on);
     if (on) {
       // Demo de voz
-      speak("Hola, soy Alana, asistente del almacén Lemcorp.");
+      speak("Hola, soy Alana, asistente del almacén VRS.");
       toast({
         title: "Voz activada",
         description: "Alana leerá sus respuestas y los recordatorios en voz alta.",
@@ -303,7 +303,7 @@ export function ConfigView() {
           {ttsSoportado && (
             <div className="flex flex-wrap gap-2 px-4 py-3">
               <button
-                onClick={() => speak("Hola, soy Alana, asistente del almacén Lemcorp.")}
+                onClick={() => speak("Hola, soy Alana, asistente del almacén VRS.")}
                 className="press inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-[12px] font-medium text-foreground hover:bg-muted"
               >
                 <Volume2 className="h-3.5 w-3.5" {...ICON_PROPS} />
@@ -438,10 +438,10 @@ export function ConfigView() {
           </div>
         </div>
         <div className="divide-y divide-border">
-          <InfoRow label="Sistema" value="LEMCORP · Sistema de Almacén" />
+          <InfoRow label="Sistema" value="VRS · Sistema de Almacén" />
           <InfoRow label="Asistente IA" value="Alana" />
           <InfoRow label="Versión" value="3.3.0 · ALANA" mono />
-          <InfoRow label="Propietario" value="Lemcorp" />
+          <InfoRow label="Propietario" value="VRS" />
           <InfoRow label="Entradas" value="Formato SKU*cantidad" />
           <InfoRow label="Usuario activo" value={settings.usuario || "Iker"} />
           <InfoRow label="Tema" value={settings.tema} capitalize />

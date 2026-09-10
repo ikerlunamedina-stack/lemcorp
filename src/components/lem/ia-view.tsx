@@ -123,7 +123,7 @@ export function IAView() {
       const bienvenida: ChatMsg[] = [
         {
           role: "assistant",
-          content: `¡Hola${usuario ? " " + usuario : ""}! 👋 Soy Alana, asistente del almacén Lemcorp.\n\nPuedo analizar tu inventario, recomendar compras, calcular consumos, **crear recordatorios** que te avisarán en el momento indicado, y **aprender** datos nuevos que me digas para recordarlos siempre.\n\n¿Qué necesitas hoy?`,
+          content: `¡Hola${usuario ? " " + usuario : ""}! 👋 Soy Alana, asistente del almacén VRS.\n\nPuedo analizar tu inventario, recomendar compras, calcular consumos, **crear recordatorios** que te avisarán en el momento indicado, y **aprender** datos nuevos que me digas para recordarlos siempre.\n\n¿Qué necesitas hoy?`,
           ts: Date.now(),
         },
       ];

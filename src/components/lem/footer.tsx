@@ -50,7 +50,7 @@ export function Footer() {
         <span className="font-medium text-foreground">{notas.length}</span> notas
       </span>
       <span className="ml-auto font-mono tabular-nums text-foreground">{now}</span>
-      <span className="hidden font-medium tracking-wide text-muted-foreground md:inline">LEMCORP © 2026</span>
+      <span className="hidden font-medium tracking-wide text-muted-foreground md:inline">VRS © 2026</span>
     </footer>
   );
 }

@@ -110,7 +110,7 @@ export function Navbar() {
         {/* Logo minimalista: texto, no imagen llamativa */}
         <Link href="/" className="press flex shrink-0 items-center gap-2.5">
           <span className="text-[15px] font-semibold tracking-tight text-foreground">
-            LEMCORP
+            VRS
           </span>
           <span className="hidden text-[10px] font-medium tracking-[0.18em] text-muted-foreground uppercase sm:inline">
             WMS
@@ -219,7 +219,7 @@ export function Navbar() {
           >
             <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
               <span className="text-[15px] font-semibold tracking-tight text-foreground">
-                LEMCORP
+                VRS
               </span>
               <button
                 onClick={() => setDrawerOpen(false)}
