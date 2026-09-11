@@ -1,23 +1,122 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 export function SplashScreen() {
   const [visible, setVisible] = useState(true);
   const [fading, setFading] = useState(false);
+  const [isDark, setIsDark] = useState(true);
+  const wordRef = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<HTMLDivElement>(null);
 
+  // Detectar tema
   useEffect(() => {
-    // La animación dura: 4s (logo) + 0.65s + 27 letras * 0.035s ≈ 5.6s
-    // Empezar fade-out a los 5.5s
-    const fadeTimer = setTimeout(() => setFading(true), 5500);
-    const hideTimer = setTimeout(() => setVisible(false), 6200);
+    try {
+      const raw = localStorage.getItem("lemcorp-v3");
+      let tema = "claro";
+      if (raw) {
+        const s = JSON.parse(raw);
+        tema = s?.state?.settings?.tema || "claro";
+      }
+      const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const dark = tema === "oscuro" || (tema === "sistema" && prefersDark);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsDark(dark);
+    } catch {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsDark(false);
+    }
+  }, []);
+
+  // Timeline: logo 4s + letras 2s + fade 0.7s
+  useEffect(() => {
+    const fadeTimer = setTimeout(() => setFading(true), 6500);
+    const hideTimer = setTimeout(() => setVisible(false), 7200);
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(hideTimer);
     };
   }, []);
 
+  // Bloquear scroll
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+    return () => {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+      document.body.style.touchAction = "";
+    };
+  }, []);
+
+  // Animar letras DESPUES de que React monte el DOM
+  useEffect(() => {
+    if (!wordRef.current) return;
+    const wordEl = wordRef.current;
+
+    const text = "Resource Management Platform";
+    const ICON_SETTLE = 3800;
+    const LETTER_DURATION = 0.65;
+    const LETTER_STEP = 0.035;
+
+    // Limpiar por si acaso
+    wordEl.innerHTML = "";
+
+    // Crear cada letra
+    const spans: HTMLSpanElement[] = [];
+    for (const char of text) {
+      const span = document.createElement("span");
+      span.textContent = char === " " ? "\u00A0" : char;
+      span.style.display = "inline-block";
+      span.style.opacity = "0";
+      wordEl.appendChild(span);
+      spans.push(span);
+    }
+
+    // Preparar estado inicial de las letras
+    const prepare = () => {
+      spans.forEach(span => {
+        span.style.transform = "translateY(12px) translateX(-8px)";
+        span.style.filter = "blur(5px)";
+      });
+    };
+
+    // Animar las letras
+    const animate = () => {
+      wordEl.style.opacity = "1";
+      spans.forEach((span, i) => {
+        const delay = i * LETTER_STEP;
+        span.style.transition =
+          `transform ${LETTER_DURATION}s cubic-bezier(.2,.8,.2,1) ${delay}s, ` +
+          `opacity ${LETTER_DURATION * 0.8}s ease ${delay}s, ` +
+          `filter ${LETTER_DURATION}s ease ${delay}s`;
+        span.style.transform = "translateY(0) translateX(0)";
+        span.style.opacity = "1";
+        span.style.filter = "blur(0)";
+      });
+    };
+
+    // Usar requestAnimationFrame para asegurar que el DOM está listo
+    requestAnimationFrame(() => {
+      prepare();
+      setTimeout(animate, ICON_SETTLE);
+    });
+
+    // Cleanup
+    return () => {
+      wordEl.innerHTML = "";
+    };
+  }, []);
+
   if (!visible) return null;
+
+  const bgColor = isDark ? "#09090a" : "#fafafa";
+  const strokeColor = isDark ? "#8a8d90" : "#4a4d50";
+  const centerColor = isDark ? "#93a8b2" : "#6a7d88";
+  const textColor = isDark ? "#e4e6e8" : "#1a1a1c";
+  const vignetteColor = isDark ? "rgba(0,0,0,.45)" : "rgba(255,255,255,.4)";
+  const dropShadow = isDark ? "rgba(147,168,178,.08)" : "rgba(100,120,130,.06)";
 
   return (
     <div
@@ -25,24 +124,20 @@ export function SplashScreen() {
         position: "fixed",
         inset: 0,
         zIndex: 9999,
-        background: "#09090a",
+        background: bgColor,
         opacity: fading ? 0 : 1,
         transition: "opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1)",
         pointerEvents: fading ? "none" : "auto",
+        overflow: "hidden",
+        touchAction: "none",
+        overscrollBehavior: "none",
       }}
     >
       <style>{`
-        * { box-sizing: border-box; }
-        html, body { width: 100%; height: 100%; margin: 0; }
-
         .vrs-scene {
           position: fixed;
           inset: 0;
           overflow: hidden;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          perspective: 900px;
         }
 
         .vrs-logo-container {
@@ -51,6 +146,7 @@ export function SplashScreen() {
           top: 50%;
           transform: translate(-50%, -50%);
           display: flex;
+          flex-direction: row;
           align-items: center;
           gap: 16px;
           z-index: 10;
@@ -59,7 +155,9 @@ export function SplashScreen() {
         .vrs-logo {
           width: 46px;
           height: 46px;
-          animation: vrsSquareTumble 4s cubic-bezier(.25,.1,.25,1) forwards;
+          flex-shrink: 0;
+          transform-origin: center center;
+          animation: vrsSquareTumble 4s cubic-bezier(.25,.1,.25,1) both;
         }
 
         @keyframes vrsSquareTumble {
@@ -71,7 +169,6 @@ export function SplashScreen() {
           width: 46px;
           height: 46px;
           display: block;
-          filter: drop-shadow(0 0 12px rgba(147,168,178,.08));
         }
 
         .vrs-word {
@@ -79,94 +176,62 @@ export function SplashScreen() {
           font-family: 'Manrope', sans-serif;
           font-weight: 500;
           font-size: 20px;
-          color: #e4e6e8;
           white-space: nowrap;
           opacity: 0;
+        }
+
+        @media (max-width: 640px) {
+          .vrs-logo {
+            width: 38px;
+            height: 38px;
+            animation: vrsSquareTumbleMobile 4s cubic-bezier(.25,.1,.25,1) both;
+          }
+          .vrs-icon {
+            width: 38px;
+            height: 38px;
+          }
+          .vrs-word {
+            font-size: 14px;
+          }
+        }
+
+        @keyframes vrsSquareTumbleMobile {
+          0% { transform: rotateZ(0deg) scale(3.5); }
+          100% { transform: rotateZ(720deg) scale(1); }
         }
 
         .vrs-vignette {
           position: fixed;
           inset: 0;
           pointer-events: none;
-          background: radial-gradient(circle at center, transparent 25%, rgba(0,0,0,.45) 100%);
           z-index: 50;
         }
       `}</style>
 
-      <link
-        rel="preconnect"
-        href="https://fonts.googleapis.com"
-      />
-      <link
-        href="https://fonts.googleapis.com/css2?family=Manrope:wght@500&display=swap"
-        rel="stylesheet"
-      />
-
-      <div className="vrs-scene">
+      <div className="vrs-scene" ref={sceneRef}>
         <div className="vrs-logo-container">
-          <div className="vrs-logo">
+          <div className="vrs-logo" style={{ transform: "rotateZ(0deg) scale(6)" }}>
             <svg
               className="vrs-icon"
               viewBox="0 0 46 46"
               xmlns="http://www.w3.org/2000/svg"
+              style={{ filter: `drop-shadow(0 0 12px ${dropShadow})` }}
             >
-              <rect x="2" y="2" width="12" height="12" fill="none" stroke="#8a8d90" strokeWidth="1.6" />
-              <rect x="17" y="2" width="12" height="12" fill="none" stroke="#8a8d90" strokeWidth="1.6" />
-              <rect x="32" y="2" width="12" height="12" fill="none" stroke="#8a8d90" strokeWidth="1.6" />
-              <rect x="2" y="17" width="12" height="12" fill="none" stroke="#8a8d90" strokeWidth="1.6" />
-              <rect x="17" y="17" width="12" height="12" fill="#93a8b2" />
-              <rect x="32" y="17" width="12" height="12" fill="none" stroke="#8a8d90" strokeWidth="1.6" />
-              <rect x="2" y="32" width="12" height="12" fill="none" stroke="#8a8d90" strokeWidth="1.6" />
-              <rect x="17" y="32" width="12" height="12" fill="none" stroke="#8a8d90" strokeWidth="1.6" />
-              <rect x="32" y="32" width="12" height="12" fill="none" stroke="#8a8d90" strokeWidth="1.6" />
+              <rect x="2" y="2" width="12" height="12" fill="none" stroke={strokeColor} strokeWidth="1.6" />
+              <rect x="17" y="2" width="12" height="12" fill="none" stroke={strokeColor} strokeWidth="1.6" />
+              <rect x="32" y="2" width="12" height="12" fill="none" stroke={strokeColor} strokeWidth="1.6" />
+              <rect x="2" y="17" width="12" height="12" fill="none" stroke={strokeColor} strokeWidth="1.6" />
+              <rect x="17" y="17" width="12" height="12" fill={centerColor} />
+              <rect x="32" y="17" width="12" height="12" fill="none" stroke={strokeColor} strokeWidth="1.6" />
+              <rect x="2" y="32" width="12" height="12" fill="none" stroke={strokeColor} strokeWidth="1.6" />
+              <rect x="17" y="32" width="12" height="12" fill="none" stroke={strokeColor} strokeWidth="1.6" />
+              <rect x="32" y="32" width="12" height="12" fill="none" stroke={strokeColor} strokeWidth="1.6" />
             </svg>
           </div>
-          <div className="vrs-word" id="vrs-word"></div>
+          <div className="vrs-word" ref={wordRef} style={{ color: textColor }}></div>
         </div>
-        <div className="vrs-vignette"></div>
+        <div className="vrs-vignette" style={{ background: `radial-gradient(circle at center, transparent 25%, ${vignetteColor} 100%)` }}></div>
       </div>
-
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            const text = "Resource Management Platform";
-            const wordEl = document.getElementById("vrs-word");
-            const ICON_SETTLE = 3800;
-            const LETTER_DURATION = 0.65;
-            const LETTER_STEP = 0.035;
-
-            const spans = [...text].map(char => {
-              const span = document.createElement("span");
-              span.textContent = char === " " ? "\\u00A0" : char;
-              span.style.display = "inline-block";
-              span.style.opacity = "0";
-              wordEl.appendChild(span);
-              return span;
-            });
-
-            requestAnimationFrame(() => {
-              spans.forEach(span => {
-                span.style.transform = "translateY(12px) translateX(-8px)";
-                span.style.filter = "blur(5px)";
-              });
-
-              setTimeout(() => {
-                wordEl.style.opacity = "1";
-                spans.forEach((span, i) => {
-                  const delay = i * LETTER_STEP;
-                  span.style.transition =
-                    "transform " + LETTER_DURATION + "s cubic-bezier(.2,.8,.2,1) " + delay + "s, " +
-                    "opacity " + (LETTER_DURATION * .8) + "s ease " + delay + "s, " +
-                    "filter " + LETTER_DURATION + "s ease " + delay + "s";
-                  span.style.transform = "translateY(0) translateX(0)";
-                  span.style.opacity = "1";
-                  span.style.filter = "blur(0)";
-                });
-              }, ICON_SETTLE);
-            });
-          `,
-        }}
-      />
     </div>
   );
 }
