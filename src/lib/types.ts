@@ -23,6 +23,8 @@ export interface Product {
   quantity: number;
   minStock?: number;
   udm?: string;
+  precio?: number;
+  categoria?: string;
   createdAt: number;
   updatedAt: number;
 }
