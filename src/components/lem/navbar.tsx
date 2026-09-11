@@ -136,13 +136,11 @@ export function Navbar() {
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       <div className="flex h-12 items-center gap-1 px-4 lg:px-6">
-        {/* Logo minimalista: texto, no imagen llamativa */}
-        <Link href="/" className="press flex shrink-0 items-center gap-2.5">
+        {/* Logo RMP + nombre */}
+        <Link href="/" className="press flex shrink-0 items-center gap-2">
+          <RmpLogo size={22} className="text-foreground" />
           <span className="text-[15px] font-semibold tracking-tight text-foreground">
-            VRS
-          </span>
-          <span className="hidden text-[10px] font-medium tracking-[0.18em] text-muted-foreground uppercase sm:inline">
-            WMS
+            RMP
           </span>
         </Link>
 
@@ -190,20 +188,18 @@ export function Navbar() {
                 <div className="invisible absolute left-0 top-full z-50 min-w-[200px] pt-1 opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0 translate-y-1">
                   <div className="overflow-hidden rounded-xl bg-card shadow-lg ring-1 ring-border/50">
                     {visibleItems.map((item) => {
-                      const Icon = item.icon;
                       const active = isActive(item);
                       return (
                         <Link
                           key={item.href}
                           href={item.href}
                           className={cn(
-                            "flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-medium transition-colors",
+                            "flex items-center px-3 py-2.5 text-[13px] font-medium transition-colors",
                             active
                               ? "bg-primary/10 text-primary"
                               : "text-muted-foreground hover:bg-muted hover:text-foreground"
                           )}
                         >
-                          <Icon className="h-4 w-4" strokeWidth={1.5} />
                           {item.label}
                         </Link>
                       );
@@ -298,9 +294,12 @@ export function Navbar() {
             style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
           >
             <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
-              <span className="text-[15px] font-semibold tracking-tight text-foreground">
-                VRS
-              </span>
+              <div className="flex items-center gap-2">
+                <RmpLogo size={20} className="text-foreground" />
+                <span className="text-[15px] font-semibold tracking-tight text-foreground">
+                  RMP
+                </span>
+              </div>
               <button
                 onClick={() => setDrawerOpen(false)}
                 className="press flex h-9 w-9 items-center justify-center text-muted-foreground hover:text-foreground"
