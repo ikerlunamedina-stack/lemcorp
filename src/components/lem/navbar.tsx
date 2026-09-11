@@ -21,6 +21,7 @@ import {
   Monitor,
   Menu,
   X,
+  ChevronDown,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
