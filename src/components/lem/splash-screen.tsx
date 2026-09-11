@@ -111,7 +111,7 @@ export function SplashScreen() {
 
   if (!visible) return null;
 
-  const bgColor = isDark ? "#09090a" : "#fafafa";
+  const bgColor = isDark ? "#1a1a1c" : "#fafafa";
   const strokeColor = isDark ? "#8a8d90" : "#4a4d50";
   const centerColor = isDark ? "#93a8b2" : "#6a7d88";
   const textColor = isDark ? "#e4e6e8" : "#1a1a1c";

@@ -47,6 +47,26 @@ const NAV_ITEMS: (NavItem & { permiso: Permiso })[] = [
   { href: "/notificaciones", icon: Bell, label: "Avisos", permiso: "ver_notificaciones" },
 ];
 
+// Categorías para el navbar desplegable
+const NAV_CATEGORIES = [
+  {
+    label: "Inicio",
+    items: NAV_ITEMS.filter(i => i.href === "/"),
+  },
+  {
+    label: "Almacén",
+    items: NAV_ITEMS.filter(i => ["/inventario", "/equipos", "/series", "/pistolear"].includes(i.href)),
+  },
+  {
+    label: "Operaciones",
+    items: NAV_ITEMS.filter(i => ["/despachos", "/horario"].includes(i.href)),
+  },
+  {
+    label: "Herramientas",
+    items: NAV_ITEMS.filter(i => ["/ia", "/bloc", "/empresa", "/notificaciones"].includes(i.href)),
+  },
+];
+
 function iniciales(usuario: string): string {
   const u = (usuario || "Iker").trim();
   if (u.length >= 2) return u.slice(0, 2).toUpperCase();
@@ -117,26 +137,53 @@ export function Navbar() {
           </span>
         </Link>
 
-        {/* Nav desktop — texto simple, sin iconos en relleno, activo subrayado */}
+        {/* Nav desktop — categorías desplegables */}
         <nav className="mx-auto hidden items-center gap-1 lg:flex">
-          {navItemsVisibles.map((item) => {
-            const active = isActive(item);
+          {NAV_CATEGORIES.map((cat) => {
+            const visibleItems = cat.items.filter(i => tienePermiso(i.permiso));
+            if (visibleItems.length === 0) return null;
+            const hasActive = visibleItems.some(i => isActive(i));
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "press relative flex h-9 items-center px-3 text-[13px] font-medium transition-colors",
-                  active
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <span>{item.label}</span>
-                {active && (
-                  <span className="absolute inset-x-3 -bottom-px h-px bg-foreground" />
-                )}
-              </Link>
+              <div key={cat.label} className="group relative">
+                <button
+                  className={cn(
+                    "press relative flex h-9 items-center gap-1 px-3 text-[13px] font-medium transition-colors",
+                    hasActive
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {cat.label}
+                  <ChevronDown className="h-3 w-3 opacity-50 transition-transform group-hover:opacity-100 group-hover:rotate-180" strokeWidth={1.5} />
+                  {hasActive && (
+                    <span className="absolute inset-x-3 -bottom-px h-px bg-foreground" />
+                  )}
+                </button>
+                {/* Dropdown */}
+                <div className="invisible absolute left-0 top-full z-50 min-w-[200px] pt-1 opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0 translate-y-1">
+                  <div className="overflow-hidden rounded-xl bg-card shadow-lg ring-1 ring-border/50">
+                    {visibleItems.map((item) => {
+                      const Icon = item.icon;
+                      const active = isActive(item);
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={cn(
+                            "flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-medium transition-colors",
+                            active
+                              ? "bg-primary/10 text-primary"
+                              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                          )}
+                        >
+                          <Icon className="h-4 w-4" strokeWidth={1.5} />
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             );
           })}
         </nav>
