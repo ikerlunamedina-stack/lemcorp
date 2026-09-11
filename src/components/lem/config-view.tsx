@@ -116,7 +116,7 @@ export function ConfigView() {
   };
 
   return (
-    <div className="anim-fade-in mx-auto w-full max-w-[760px] px-4 py-6 sm:px-6">
+    <div className="anim-fade-in px-4 py-6 sm:px-6">
       {/* Header */}
       <div className="anim-slide-up mb-6">
         <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">

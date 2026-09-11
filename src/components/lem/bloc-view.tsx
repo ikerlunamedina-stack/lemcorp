@@ -28,7 +28,7 @@ export function BlocView() {
   });
 
   return (
-    <div className="anim-fade-in mx-auto w-full max-w-[680px] px-4 py-6 sm:px-6">
+    <div className="anim-fade-in px-4 py-6 sm:px-6">
       {/* Header */}
       <div className="anim-slide-up mb-6 flex items-start justify-between gap-4">
         <div>

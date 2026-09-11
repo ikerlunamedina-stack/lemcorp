@@ -442,7 +442,7 @@ export function IAView() {
           ref={scrollRef}
           className="h-full overflow-y-auto scroll-thin px-4 py-5 lg:px-6"
         >
-          <div className="mx-auto max-w-3xl space-y-4">
+          <div className="space-y-4">
             {messages.map((m, i) => {
               const msgId = `ts-${m.ts}-${i}`;
               const isSpeaking = speakingId === msgId;
@@ -623,7 +623,7 @@ export function IAView() {
 
       {/* Sugerencias — thin-bordered text chips, hover = bg-muted */}
       <div className="border-t border-border px-4 py-2 sm:px-6">
-        <div className="mx-auto flex max-w-3xl flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           {SUGERENCIAS.slice(0, 6).map((s) => {
             const Icon = s.icon;
             return (
@@ -646,7 +646,7 @@ export function IAView() {
         className="border-t border-border bg-background px-4 py-3 sm:px-6"
         style={{ paddingBottom: "max(env(safe-area-inset-bottom, 0px), 12px)" }}
       >
-        <div className="mx-auto flex max-w-3xl items-end gap-2">
+        <div className="flex items-end gap-2">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}

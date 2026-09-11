@@ -46,7 +46,7 @@ export function SeriesView() {
     setExpandido((p) => ({ ...p, [modelo]: !p[modelo] }));
 
   return (
-    <div className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6 lg:px-10">
+    <div className="px-4 py-8 sm:px-6 lg:px-10">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">

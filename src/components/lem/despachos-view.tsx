@@ -251,7 +251,7 @@ export function DespachosView() {
   };
 
   return (
-    <div className="anim-fade-in mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+    <div className="anim-fade-in px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       {/* Header */}
       <div className="anim-slide-up flex flex-wrap items-end justify-between gap-3">
         <div>

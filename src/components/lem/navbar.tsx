@@ -106,7 +106,7 @@ export function Navbar() {
       className="sticky top-0 z-50 border-b border-border bg-card/90 backdrop-blur-xl shadow-sm"
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
-      <div className="mx-auto flex h-12 max-w-[1400px] items-center gap-1 px-4 lg:px-6">
+      <div className="flex h-12 items-center gap-1 px-4 lg:px-6">
         {/* Logo minimalista: texto, no imagen llamativa */}
         <Link href="/" className="press flex shrink-0 items-center gap-2.5">
           <span className="text-[15px] font-semibold tracking-tight text-foreground">
