@@ -55,7 +55,7 @@ const NAV_NEW_ITEMS: (NavNewItem & { permiso: Permiso })[] = [
 // Categorías para el navbar desplegable
 const NAV_CATEGORIES = [
   { label: "Almacén", items: NAV_ITEMS.filter(i => ["/equipos", "/series", "/pistolear"].includes(i.href)) },
-  { label: "Operaciones", items: [...NAV_ITEMS.filter(i => ["/despachos", "/horario"].includes(i.href)), ...NAV_NEW_ITEMS.filter(i => ["/transferencias", "/recepciones", "/movimientos"].includes(i.href))] },
+  { label: "Operaciones", items: [...NAV_ITEMS.filter(i => ["/horario"].includes(i.href)), ...NAV_NEW_ITEMS.filter(i => ["/transferencias", "/recepciones", "/movimientos"].includes(i.href))] },
   { label: "Finanzas", items: NAV_NEW_ITEMS.filter(i => ["/precios", "/kpis"].includes(i.href)) },
   { label: "Análisis", items: NAV_NEW_ITEMS.filter(i => ["/reportes", "/alertas"].includes(i.href)) },
   { label: "Herramientas", items: NAV_ITEMS.filter(i => ["/ia", "/bloc", "/empresa"].includes(i.href)) },
@@ -63,7 +63,7 @@ const NAV_CATEGORIES = [
 ];
 
 // Items directos en la barra (sin desplegable)
-const NAV_DIRECT = NAV_ITEMS.filter(i => i.href === "/" || i.href === "/inventario" || i.href === "/despachos" || i.href === "/notificaciones");
+const NAV_DIRECT = NAV_ITEMS.filter(i => i.href === "/" || i.href === "/inventario");
 
 // Badge NUEVO
 function NewBadge() {
