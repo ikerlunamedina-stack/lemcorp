@@ -91,7 +91,7 @@ interface StoreState {
   confirmarPistoleo: () => { ok: boolean; msg: string; count: number; duplicados?: string[] };
 
   // ─── Acciones: inventario ───
-  addProduct: (sku: string, name: string, quantity: number, minStock?: number, udm?: string) => string | null;
+  addProduct: (sku: string, name: string, quantity: number, minStock?: number, udm?: string, precio?: number, categoria?: string) => string | null;
   updateProduct: (id: string, data: Partial<Omit<Product, "id" | "createdAt">>) => void;
   deleteProduct: (id: string) => void;
   findProductBySku: (sku: string) => Product | null;
@@ -379,7 +379,7 @@ export const useStore = create<StoreState>()(
         return get().products.find((p) => p.sku.trim().toLowerCase() === norm) ?? null;
       },
 
-      addProduct: (sku, name, quantity, minStock, udm) => {
+      addProduct: (sku, name, quantity, minStock, udm, precio, categoria) => {
         const skuTrim = sku.trim();
         if (!skuTrim || !name.trim()) return null;
         if (get().findProductBySku(skuTrim)) return null;
@@ -390,6 +390,8 @@ export const useStore = create<StoreState>()(
           quantity: quantity || 0,
           minStock,
           udm,
+          precio: precio || undefined,
+          categoria: categoria?.trim() || undefined,
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };
