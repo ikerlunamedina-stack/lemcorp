@@ -35,13 +35,44 @@ const NAV_ITEMS: (NavItem & { permiso: Permiso })[] = [
   { href: "/notificaciones", icon: Bell, label: "Avisos", permiso: "ver_notificaciones" },
 ];
 
+// Items NUEVOS (con badge)
+interface NavNewItem extends NavItem {
+  isNew?: boolean;
+}
+const NAV_NEW_ITEMS: (NavNewItem & { permiso: Permiso })[] = [
+  { href: "/precios", icon: Package, label: "Precios", permiso: "ver_inventario", isNew: true },
+  { href: "/reportes", icon: BarChart3, label: "Reportes", permiso: "ver_dashboard", isNew: true },
+  { href: "/auditoria", icon: FileText, label: "Auditoría", permiso: "ver_config", isNew: true },
+  { href: "/transferencias", icon: ArrowLeftRight, label: "Transferencias", permiso: "ver_despachos", isNew: true },
+  { href: "/recepciones", icon: ArrowDownToLine, label: "Recepciones", permiso: "ver_inventario", isNew: true },
+  { href: "/proveedores", icon: Building2, label: "Proveedores", permiso: "ver_empresa", isNew: true },
+  { href: "/kpis", icon: BarChart3, label: "KPIs", permiso: "ver_dashboard", isNew: true },
+  { href: "/movimientos", icon: TrendingDown, label: "Movimientos", permiso: "ver_despachos", isNew: true },
+  { href: "/alertas", icon: Bell, label: "Alertas", permiso: "ver_notificaciones", isNew: true },
+  { href: "/exportar", icon: FileText, label: "Exportar", permiso: "ver_inventario", isNew: true },
+];
+
 // Categorías para el navbar desplegable
 const NAV_CATEGORIES = [
-  { label: "Almacén", items: NAV_ITEMS.filter(i => ["/inventario", "/equipos", "/series", "/pistolear"].includes(i.href)) },
-  { label: "Operaciones", items: NAV_ITEMS.filter(i => ["/despachos", "/horario"].includes(i.href)) },
+  { label: "Almacén", items: NAV_ITEMS.filter(i => ["/equipos", "/series", "/pistolear"].includes(i.href)) },
+  { label: "Operaciones", items: [...NAV_ITEMS.filter(i => ["/despachos", "/horario"].includes(i.href)), ...NAV_NEW_ITEMS.filter(i => ["/transferencias", "/recepciones", "/movimientos"].includes(i.href))] },
+  { label: "Finanzas", items: NAV_NEW_ITEMS.filter(i => ["/precios", "/kpis"].includes(i.href)) },
+  { label: "Análisis", items: NAV_NEW_ITEMS.filter(i => ["/reportes", "/alertas"].includes(i.href)) },
   { label: "Herramientas", items: NAV_ITEMS.filter(i => ["/ia", "/bloc", "/empresa"].includes(i.href)) },
-  { label: "Sistema", items: NAV_ITEMS.filter(i => i.href === "/config") },
+  { label: "Sistema", items: [...NAV_ITEMS.filter(i => i.href === "/config"), ...NAV_NEW_ITEMS.filter(i => ["/auditoria", "/proveedores", "/exportar"].includes(i.href))] },
 ];
+
+// Items directos en la barra (sin desplegable)
+const NAV_DIRECT = NAV_ITEMS.filter(i => i.href === "/" || i.href === "/inventario" || i.href === "/despachos" || i.href === "/notificaciones");
+
+// Badge NUEVO
+function NewBadge() {
+  return (
+    <span className="ml-1.5 rounded-full bg-primary/20 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-primary">
+      Nuevo
+    </span>
+  );
+}
 
 function iniciales(usuario: string): string {
   const u = (usuario || "Iker").trim();
@@ -109,51 +140,31 @@ export function Navbar() {
 
         {/* Nav desktop */}
         <nav className="hidden items-center gap-0.5 lg:flex">
-          {/* Dashboard directo */}
-          <Link
-            href="/"
-            className={cn(
-              "press relative flex h-9 items-center px-3 text-[13px] font-medium transition-colors",
-              pathname === "/" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            Dashboard
-            {pathname === "/" && <span className="absolute inset-x-3 -bottom-px h-px bg-foreground" />}
-          </Link>
-
-          {/* Inventario directo */}
-          {tienePermiso("ver_inventario") && (
-            <Link
-              href="/inventario"
-              className={cn(
-                "press relative flex h-9 items-center px-3 text-[13px] font-medium transition-colors",
-                pathname?.startsWith("/inventario") ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Inventario
-              {pathname?.startsWith("/inventario") && <span className="absolute inset-x-3 -bottom-px h-px bg-foreground" />}
-            </Link>
-          )}
-
-          {/* Despachos directo */}
-          {tienePermiso("ver_despachos") && (
-            <Link
-              href="/despachos"
-              className={cn(
-                "press relative flex h-9 items-center px-3 text-[13px] font-medium transition-colors",
-                pathname?.startsWith("/despachos") ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Despachos
-              {pathname?.startsWith("/despachos") && <span className="absolute inset-x-3 -bottom-px h-px bg-foreground" />}
-            </Link>
-          )}
+          {/* Items directos */}
+          {NAV_DIRECT.filter(i => tienePermiso(i.permiso)).map((item) => {
+            const active = isActive(item);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "press relative flex h-9 items-center px-3 text-[13px] font-medium transition-colors",
+                  active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {item.label}
+                {active && <span className="absolute inset-x-3 -bottom-px h-px bg-foreground" />}
+              </Link>
+            );
+          })}
 
           {/* Categorías desplegables */}
           {NAV_CATEGORIES.map((cat) => {
-            const visibleItems = cat.items.filter(i => tienePermiso(i.permiso));
+            const allItems = [...cat.items.filter(i => 'isNew' in i ? tienePermiso((i as any).permiso) : tienePermiso(i.permiso))];
+            const visibleItems = allItems.filter(i => 'isNew' in i ? tienePermiso((i as any).permiso) : tienePermiso(i.permiso));
             if (visibleItems.length === 0) return null;
             const hasActive = visibleItems.some(i => isActive(i));
+            const hasNew = visibleItems.some((i: any) => i.isNew);
             return (
               <div key={cat.label} className="group relative">
                 <button
@@ -163,24 +174,26 @@ export function Navbar() {
                   )}
                 >
                   {cat.label}
+                  {hasNew && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
                   <ChevronDown className="h-3 w-3 opacity-50 transition-transform group-hover:opacity-100 group-hover:rotate-180" strokeWidth={1.5} />
                   {hasActive && <span className="absolute inset-x-3 -bottom-px h-px bg-foreground" />}
                 </button>
                 {/* Dropdown */}
-                <div className="invisible absolute left-0 top-full z-50 min-w-[200px] pt-1 opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0 translate-y-1">
+                <div className="invisible absolute left-0 top-full z-50 min-w-[220px] pt-1 opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0 translate-y-1">
                   <div className="overflow-hidden rounded-xl bg-card shadow-lg ring-1 ring-border/50">
-                    {visibleItems.map((item) => {
+                    {visibleItems.map((item: any) => {
                       const active = isActive(item);
                       return (
                         <Link
                           key={item.href}
                           href={item.href}
                           className={cn(
-                            "flex items-center px-3 py-2.5 text-[13px] font-medium transition-colors",
+                            "flex items-center justify-between px-3 py-2.5 text-[13px] font-medium transition-colors",
                             active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"
                           )}
                         >
-                          {item.label}
+                          <span>{item.label}</span>
+                          {item.isNew && <NewBadge />}
                         </Link>
                       );
                     })}
@@ -189,20 +202,6 @@ export function Navbar() {
               </div>
             );
           })}
-
-          {/* Avisos directo */}
-          {tienePermiso("ver_notificaciones") && (
-            <Link
-              href="/notificaciones"
-              className={cn(
-                "press relative flex h-9 items-center px-3 text-[13px] font-medium transition-colors",
-                pathname?.startsWith("/notificaciones") ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Avisos
-              {pathname?.startsWith("/notificaciones") && <span className="absolute inset-x-3 -bottom-px h-px bg-foreground" />}
-            </Link>
-          )}
         </nav>
 
         {/* Zona derecha */}
@@ -268,6 +267,7 @@ export function Navbar() {
               </div>
             </div>
             <nav className="flex-1 overflow-y-auto scroll-thin px-2 py-2">
+              {/* Items existentes */}
               {navItemsVisibles.map((item) => {
                 const active = isActive(item);
                 const Icon = item.icon;
@@ -276,6 +276,18 @@ export function Navbar() {
                     <Icon className="h-4 w-4" strokeWidth={1.5} />
                     <span>{item.label}</span>
                     {active && <span className="ml-auto h-1 w-1 rounded-full bg-foreground" />}
+                  </Link>
+                );
+              })}
+              {/* Items NUEVOS */}
+              <p className="mb-1 mt-3 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-primary">Nuevos módulos</p>
+              {NAV_NEW_ITEMS.filter(i => tienePermiso(i.permiso)).map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link key={item.href} href={item.href} onClick={() => setDrawerOpen(false)} className="press flex items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-medium text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground">
+                    <Icon className="h-4 w-4" strokeWidth={1.5} />
+                    <span>{item.label}</span>
+                    <NewBadge />
                   </Link>
                 );
               })}
