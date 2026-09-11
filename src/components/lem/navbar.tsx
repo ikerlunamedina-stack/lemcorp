@@ -26,6 +26,7 @@ import {
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { ROL_META, type Permiso, type Tema } from "@/lib/types";
+import { RmpLogo } from "@/components/lem/rmp-logo";
 
 interface NavItem {
   href: string;
