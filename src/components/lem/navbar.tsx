@@ -66,7 +66,14 @@ const NAV_CATEGORIES = [
     label: "Herramientas",
     items: NAV_ITEMS.filter(i => ["/ia", "/bloc", "/empresa"].includes(i.href)),
   },
+  {
+    label: "Sistema",
+    items: NAV_ITEMS.filter(i => i.href === "/config"),
+  },
 ];
+
+// Items directos en la barra (sin desplegable)
+const NAV_DIRECT = NAV_ITEMS.filter(i => i.href === "/");
 
 function iniciales(usuario: string): string {
   const u = (usuario || "Iker").trim();
@@ -139,9 +146,27 @@ export function Navbar() {
           </span>
         </Link>
 
-        {/* Nav desktop — categorías desplegables */}
+        {/* Nav desktop — Dashboard directo + categorías desplegables */}
         <nav className="mx-auto hidden items-center gap-1 lg:flex">
-          {NAV_CATEGORIES.map((cat) => {
+          {/* Dashboard directo */}
+          {NAV_DIRECT.map((item) => {
+            const active = isActive(item);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "press relative flex h-9 items-center px-3 text-[13px] font-medium transition-colors",
+                  active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {item.label}
+                {active && <span className="absolute inset-x-3 -bottom-px h-px bg-foreground" />}
+              </Link>
+            );
+          })}
+          {/* Categorías desplegables */}
+          {NAV_CATEGORIES.filter(c => c.label !== "Inicio").map((cat) => {
             const visibleItems = cat.items.filter(i => tienePermiso(i.permiso));
             if (visibleItems.length === 0) return null;
             const hasActive = visibleItems.some(i => isActive(i));

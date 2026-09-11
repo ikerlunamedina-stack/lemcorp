@@ -206,7 +206,7 @@ export function DespachosView() {
 
       if (result.ok > 0) {
         toast({
-          title: `✓ ${result.ok} despachos registrados`,
+          title: `${result.ok} despachos registrados`,
           description: `Se descontaron ${fmtNum(result.totalUnidades)} unidades del inventario`,
         });
         setTimeout(() => {
@@ -239,7 +239,7 @@ export function DespachosView() {
       setResultadoIA(null);
       setBulkOpen(true);
       toast({
-        title: `✓ Excel procesado`,
+        title: `Excel procesado`,
         description: `${data.despachos.length} despachos detectados, ${data.skipped} filas omitidas`,
       });
     } catch (err: any) {
