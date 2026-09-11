@@ -131,7 +131,7 @@
 
 /* ====== DARK: negro gris apagado (estilo SpaceCom #1a1a1c) ====== */
 .dark {
-  --background: oklch(0.13 0 0);
+  --background: oklch(0.12 0 0);
   --foreground: oklch(0.93 0 0);
   /* Cards ligeramente más claros que el background para profundidad */
   --card: oklch(0.16 0.002 250);
@@ -167,7 +167,7 @@
   --sidebar-border: oklch(0.20 0 0);
   --sidebar-ring: oklch(0.62 0.17 255);
 
-  --color-background: oklch(0.13 0 0);
+  --color-background: oklch(0.12 0 0);
   --color-foreground: oklch(0.93 0 0);
   --color-card: oklch(0.16 0.002 250);
   --color-card-foreground: oklch(0.93 0 0);
@@ -199,7 +199,7 @@ html {
   color-scheme: light;
 }
 html:not(.light) {
-  background-color: oklch(0.13 0 0);
+  background-color: oklch(0.12 0 0);
   color-scheme: dark;
 }
 html.light {

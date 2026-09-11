@@ -230,7 +230,7 @@ export function PistolearView() {
 
     if (esSerie && primerCampoEsSerie && findEquipmentBySerie(v)) {
       // Ya existe en el sistema → la añadimos igual pero marcamos como duplicada
-      pushFeedback(false, `⚠ Esta serie YA está registrada en el sistema`);
+      pushFeedback(false, `Esta serie YA está registrada en el sistema`);
     }
 
     if (esSerie && primerCampoEsSerie) {

@@ -64,7 +64,7 @@ const NAV_CATEGORIES = [
   },
   {
     label: "Herramientas",
-    items: NAV_ITEMS.filter(i => ["/ia", "/bloc", "/empresa", "/notificaciones"].includes(i.href)),
+    items: NAV_ITEMS.filter(i => ["/ia", "/bloc", "/empresa"].includes(i.href)),
   },
 ];
 
@@ -84,6 +84,7 @@ export function Navbar() {
   const tienePermiso = useStore((s) => s.tienePermiso);
   const miembros = useStore((s) => s.miembros);
   const sesionUsuarioId = useStore((s) => s.sesionUsuarioId);
+  const empresa = useStore((s) => s.empresa);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -190,7 +191,13 @@ export function Navbar() {
         </nav>
 
         {/* Zona derecha — siempre visible, alineada a la derecha */}
-        <div className="ml-auto flex items-center gap-0.5">
+        <div className="ml-auto flex items-center gap-1">
+          {/* Nombre de la empresa */}
+          {empresa?.nombre && (
+            <span className="hidden text-[12px] font-semibold tracking-tight text-foreground sm:inline">
+              {empresa.nombre}
+            </span>
+          )}
           {/* Tema */}
           <button
             onClick={cycleTema}

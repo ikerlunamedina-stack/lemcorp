@@ -166,13 +166,13 @@ export async function POST(req: NextRequest) {
       .join("\n");
 
     const bajoStockTxt = bajoStock.length > 0
-      ? `\n\n⚠️ PRODUCTOS CON BAJO STOCK (URGENTE):\n${bajoStock
+      ? `\n\nPRODUCTOS CON BAJO STOCK (URGENTE):\n${bajoStock
           .map((p) => `- ${p.sku} | ${p.name} | Stock actual: ${p.quantity} | Mínimo: ${p.minStock}`)
           .join("\n")}`
-      : "\n\n✅ No hay productos con bajo stock actualmente.";
+      : "\n\nNo hay productos con bajo stock actualmente.";
 
     const agotadoTxt = stockAgotado.length > 0
-      ? `\n\n🚨 PRODUCTOS AGOTADOS:\n${stockAgotado.map((p) => `- ${p.sku} | ${p.name}`).join("\n")}`
+      ? `\n\nPRODUCTOS AGOTADOS:\n${stockAgotado.map((p) => `- ${p.sku} | ${p.name}`).join("\n")}`
       : "";
 
     const criticosTxt = criticosTop10.length > 0
@@ -182,12 +182,12 @@ export async function POST(req: NextRequest) {
       : "";
 
     const equiposTxt = eqs.length > 0
-      ? `\n\n📦 EQUIPOS REGISTRADOS: ${eqs.length} equipos\n` +
+      ? `\n\nEQUIPOS REGISTRADOS: ${eqs.length} equipos\n` +
         `   - Disponibles: ${equiposPorEstado.disponible}\n` +
         `   - Averiados: ${equiposPorEstado.averiado}\n` +
         `   - En retiro: ${equiposPorEstado.en_retiro}\n` +
         `   - En reparación: ${equiposPorEstado.en_reparacion}`
-      : "\n\n📦 No hay equipos registrados.";
+      : "\n\nNo hay equipos registrados.";
 
     const miembrosTxt = pers.length > 0
       ? `\n\n👥 PERSONAL DEL ALMACÉN (${pers.length} personas):\n${pers
@@ -198,13 +198,13 @@ export async function POST(req: NextRequest) {
     const despachosTxt = `\n\n📤 DESPACHOS HOY: ${despachosHoy.length} (${unidadesDespachadasHoy} unidades enviadas)`;
 
     const consumoTxt = consumo30.top.length > 0
-      ? `\n\n📊 CONSUMO ÚLTIMOS 30 DÍAS (top 12):\n${consumo30.top
+      ? `\n\nCONSUMO ÚLTIMOS 30 DÍAS (top 12):\n${consumo30.top
           .slice(0, 12)
           .map((c) => `- ${c.sku} | ${c.nombre} | ${c.unidades} und en ${c.eventos} despachos`)
           .join("\n")}`
       : "";
     const consumo7Txt = consumo7.top.length > 0
-      ? `\n📊 CONSUMO ÚLTIMOS 7 DÍAS (top 8):\n${consumo7.top
+      ? `\nCONSUMO ÚLTIMOS 7 DÍAS (top 8):\n${consumo7.top
           .slice(0, 8)
           .map((c) => `- ${c.sku} | ${c.nombre} | ${c.unidades} und en ${c.eventos} despachos`)
           .join("\n")}`
@@ -225,7 +225,7 @@ REGLA CRÍTICA DE PRESENTACIÓN:
 - NUNCA digas "Hola, soy Alana" a menos que sea el primer mensaje de la conversación y el usuario te esté saludando.
 - Si el usuario te pide algo ("añade X", "cambia el tema", "dime Y"), responde SOLO con lo que pidió, sin presentaciones.
 - Ejemplo CORRECTO: Usuario: "Pon la página en blanco" → Tú: "Listo, cambié el tema a claro." (sin "hola soy Alana")
-- Ejemplo INCORRECTO: Usuario: "Pon la página en blanco" → Tú: "Hola, soy Alana. Listo, cambié el tema..." ❌
+- Ejemplo INCORRECTO: Usuario: "Pon la página en blanco" → Tú: "Hola, soy Alana. Listo, cambié el tema..." 
 
 Eres la asistente experta en gestión de almacén para LEMCORP, el almacén central de Lemcorp. LEMCORP despacha equipos y materiales a una empresa contratista (${emp.nombre || "LPS"} — contratista de Claro).
 
@@ -235,13 +235,13 @@ FECHA/HORA LIMA: ${new Date().toLocaleString("es-PE", { timeZone: "America/Lima"
 ═══════════════════════════════════════
 TUS 8 CAPACIDADES PRINCIPALES:
 ═══════════════════════════════════════
-1. 📊 ANÁLISIS DE STOCK: Detectar productos con bajo stock o agotados, calcular ratios de cobertura y priorizar compras.
-2. 📈 CÁLCULO DE CONSUMO: Tienes datos REALES de consumo de los últimos 7 y 30 días. Úsalos para estimar consumo diario y proyectar necesidades futuras.
+1. ANÁLISIS DE STOCK: Detectar productos con bajo stock o agotados, calcular ratios de cobertura y priorizar compras.
+2. CÁLCULO DE CONSUMO: Tienes datos REALES de consumo de los últimos 7 y 30 días. Úsalos para estimar consumo diario y proyectar necesidades futuras.
 3. 🛒 RECOMENDACIONES DE COMPRA: Sugerir qué productos pedir, en qué cantidad, justificando con datos (SKU, cantidad, justificación). Usa el campo "Déficit" de la proyección para recomendaciones precisas.
-4. 📦 TRAZABILIDAD DE EQUIPOS: Reportar el estado de los equipos (disponibles, averiados, en reparación, en retiro) y buscar por serie si el usuario pregunta por una.
+4. TRAZABILIDAD DE EQUIPOS: Reportar el estado de los equipos (disponibles, averiados, en reparación, en retiro) y buscar por serie si el usuario pregunta por una.
 5. 👥 GESTIÓN DE PERSONAL: Informar sobre el equipo del almacén, cargas, distribución.
-6. 🚨 ALERTAS TEMPRANAS: Anticipar quiebres de stock basándose en el ritmo de despacho y el déficit proyectado.
-7. 📋 REPORTES EJECUTIVOS: Generar resúmenes accionables del estado del almacén. Incluye KPIs, tendencias y acciones recomendadas.
+6. ALERTAS TEMPRANAS: Anticipar quiebres de stock basándose en el ritmo de despacho y el déficit proyectado.
+7. REPORTES EJECUTIVOS: Generar resúmenes accionables del estado del almacén. Incluye KPIs, tendencias y acciones recomendadas.
 8. 📅 PLANIFICACIÓN: Calcular necesidades para un período (ej: "¿cuántos conectores para 30 días?"). Usa consumoDiario * días + stock mínimo de seguridad.
 
 ═══════════════════════════════════════
@@ -433,12 +433,12 @@ INSTRUCCIONES DE RESPUESTA:
 - Usa viñetas (•) y emojis con moderación para mejorar la legibilidad.
 - Cuando recomiendes una compra, incluye: SKU del producto, cantidad sugerida, y justificación basada en datos reales del inventario.
 - Sé específico con números: no digas "varios", di exactamente cuántos.
-- Si detectas un problema urgente (stock crítico, agotado), márcalo con 🚨 al inicio de la línea.
+- Si detectas un problema urgente (stock crítico, agotado), márcalo con al inicio de la línea.
 - REGLA CRÍTICA DE PRESENTACIÓN: NUNCA digas "Hola, soy Alana" al inicio de cada respuesta. SOLO preséntate si el usuario te PREGUNTA EXPLÍCITAMENTE tu nombre.
   * INCORRECTO: "Hola Iker, soy Alana. El stock de conectores es..."
   * CORRECTO: "El stock de conectores es 1500 unidades."
 - Para preguntas de "¿cuánto pedir para X días?", usa la fórmula: consumoDiario × días + stockMínimo - stockActual. Redondea hacia arriba.
-- Para reportes ejecutivos, estructura la respuesta en secciones: 📊 Estado, 📈 Tendencias, 🚨 Alertas, ✅ Acciones.
+- Para reportes ejecutivos, estructura la respuesta en secciones: Estado, Tendencias, Alertas, Acciones.
 - Mantén un tono profesional pero cercano. Eres un colega experto, no un robot.
 - Si no tienes datos suficientes del almacén, pídelos. Pero para preguntas GENERALES, responde con todo tu conocimiento.
 - Si el usuario pregunta por un SKU específico, busca en el inventario detallado y responde con sus datos exactos.
@@ -640,7 +640,7 @@ async function generarRespuestaFallback(mensaje: string, data: FallbackData): Pr
 
   // === 2. SALUDOS Y CONVERSACIÓN ===
   if (/^(hola|buenas|hey|saludos|que tal|holi|alana)/i.test(msg)) {
-    return `Hola ${nombre} 👋 ¿Qué necesitas? Puedo responder cualquier pregunta, hacer cálculos, o ayudarte con el almacén.`;
+    return `Hola ${nombre} ¿Qué necesitas? Puedo responder cualquier pregunta, hacer cálculos, o ayudarte con el almacén.`;
   }
   if (/c[oó]mo est[aá]s|qu[eé] tal|c[oó]mo te va/i.test(msg)) {
     return `Todo bien 😊 ¿Y tú? Dime qué necesitas.`;
@@ -652,7 +652,7 @@ async function generarRespuestaFallback(mensaje: string, data: FallbackData): Pr
     return `De nada, ${nombre} 👍`;
   }
   if (/chao|adios|adiós|hasta luego|nos vemos|bye/i.test(msg)) {
-    return `Chao ${nombre} 👋`;
+    return `Chao ${nombre}`;
   }
   if (/est[aá]s ah[ií]|est[aá]s disponible|me oyes/i.test(msg)) {
     return `Sí, aquí estoy, ${nombre}. ¿Qué necesitas?`;
@@ -873,7 +873,7 @@ Dime qué necesitas.`;
     return `Hola, ${nombre}. Son las ${new Date().toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit" })}. ¿Qué necesitas?`;
   }
   if (/buenas tardes|buena tarde/i.test(msg)) {
-    return `¡Buenas tardes, ${nombre}! 👋 ¿Qué hay?`;
+    return `¡Buenas tardes, ${nombre}! ¿Qué hay?`;
   }
   if (/buenas noches|buena noche/i.test(msg)) {
     return `¡Buenas noches, ${nombre}! 🌙 ¿Algo en lo que pueda ayudar?`;
