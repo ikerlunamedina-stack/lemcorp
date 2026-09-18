@@ -1,0 +1,906 @@
+     1→"use client";
+     2→
+     3→import { useMemo, useEffect, useState } from "react";
+     4→import { useRouter } from "next/navigation";
+     5→import { useStore } from "@/lib/store";
+     6→import {
+     7→  Package, Boxes, AlertTriangle, Cpu, Download,
+     8→  TrendingUp, Clock, Users, ArrowRight, DollarSign,
+     9→  Activity, Calendar, Warehouse, UserCheck, BarChart3,
+    10→  ArrowDownToLine, ArrowLeftRight, FileText, ChevronRight, Info,
+    11→} from "lucide-react";
+    12→import {
+    13→  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+    14→  ResponsiveContainer, type TooltipProps,
+    15→} from "recharts";
+    16→import { fmtNum } from "@/lib/num";
+    17→import { cn } from "@/lib/utils";
+    18→import { Button } from "@/components/ui/button";
+    19→import { ESTADO_META, type ActiveView, type EstadoEquipo } from "@/lib/types";
+    20→
+    21→const VIEW_PATH: Record<ActiveView, string> = {
+    22→  dashboard: "/", inventario: "/inventario", despachos: "/despachos",
+    23→  equipos: "/equipos", series: "/series", pistolear: "/pistolear",
+    24→  horario: "/horario", bloc: "/bloc", ia: "/ia", empresa: "/empresa",
+    25→  notificaciones: "/notificaciones", config: "/config",
+    26→};
+    27→
+    28→function fmtSoles(n: number): string {
+    29→  return "S/ " + n.toLocaleString("es-PE", { maximumFractionDigits: 0 });
+    30→}
+    31→
+    32→function useCountUp(target: number, duration = 800) {
+    33→  const [val, setVal] = useState(0);
+    34→  useEffect(() => {
+    35→    let start = 0;
+    36→    const startTime = Date.now();
+    37→    const tick = () => {
+    38→      const elapsed = Date.now() - startTime;
+    39→      const progress = Math.min(elapsed / duration, 1);
+    40→      const eased = 1 - Math.pow(1 - progress, 3);
+    41→      setVal(Math.round(start + (target - start) * eased));
+    42→      if (progress < 1) requestAnimationFrame(tick);
+    43→    };
+    44→    requestAnimationFrame(tick);
+    45→  }, [target, duration]);
+    46→  return val;
+    47→}
+    48→
+    49→/** Mini gráfico de línea SVG (legacy, para compatibilidad) */
+    50→function MiniChart({ data, color = "var(--primary)", height = 40 }: {
+    51→  data: number[]; color?: string; height?: number;
+    52→}) {
+    53→  const max = Math.max(...data, 1);
+    54→  const min = Math.min(...data, 0);
+    55→  const range = max - min || 1;
+    56→  const points = data.map((v, i) => {
+    57→    const x = (i / Math.max(data.length - 1, 1)) * 100;
+    58→    const y = height - ((v - min) / range) * (height - 4) - 2;
+    59→    return `${x},${y}`;
+    60→  }).join(" ");
+    61→  const areaPoints = `0,${height} ${points} 100,${height}`;
+    62→  return (
+    63→    <svg viewBox={`0 0 100 ${height}`} className="w-full" style={{ height }} preserveAspectRatio="none">
+    64→      <polygon points={areaPoints} fill={color} opacity={0.1} />
+    65→      <polyline points={points} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+    66→    </svg>
+    67→  );
+    68→}
+    69→
+    70→/** Tooltip personalizado para el gráfico de Velocidad Operativa (igual al SpaceCom) */
+    71→function VelocidadTooltip({ active, payload, label }: any) {
+    72→  if (!active || !payload || !payload.length) return null;
+    73→  return (
+    74→    <div className="rounded-lg border border-border bg-background px-3 py-2 text-[11px] shadow-lg">
+    75→      <p className="mb-1 font-medium text-foreground tabular-nums">{label}</p>
+    76→      {payload.map((p: any, i: number) => (
+    77→        <div key={i} className="flex items-center gap-1.5">
+    78→          <span className="h-2 w-2 rounded-full" style={{ background: p.color }} />
+    79→          <span className="text-muted-foreground">{p.name}:</span>
+    80→          <strong className="text-foreground tabular-nums">S/ {Number(p.value).toLocaleString("es-PE", { maximumFractionDigits: 0 })}</strong>
+    81→        </div>
+    82→      ))}
+    83→    </div>
+    84→  );
+    85→}
+    86→
+    87→/** Gráfico de Velocidad Operativa estilo SpaceCom — usa recharts (igual que el original) */
+    88→function VelocidadOperativaChart({
+    89→  dataDespachado,
+    90→  dataLiquidado,
+    91→  fechas,
+    92→  height = 220,
+    93→}: {
+    94→  dataDespachado: number[];
+    95→  dataLiquidado: number[];
+    96→  fechas: string[];
+    97→  height?: number;
+    98→}) {
+    99→  // Formatear el eje Y en Soles con separadores de miles
+   100→  const fmtSoles = (v: number) => "S/ " + v.toLocaleString("es-PE", { maximumFractionDigits: 0 });
+   101→
+   102→  // Construir data array para recharts: [{fecha, Despachado, Liquidado}, ...]
+   103→  const data = fechas.map((fecha, i) => ({
+   104→    fecha,
+   105→    Despachado: dataDespachado[i] || 0,
+   106→    Liquidado: dataLiquidado[i] || 0,
+   107→  }));
+   108→
+   109→  // Colores exactos del SpaceCom
+   110→  const colorDespachado = "hsl(232 77% 66%)"; // azul/violeta
+   111→  const colorLiquidado = "hsl(145 53% 58%)";   // verde esmeralda
+   112→
+   113→  return (
+   114→    <div style={{ width: "100%", height }}>
+   115→      <ResponsiveContainer width="100%" height="100%">
+   116→        <LineChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+   117→          <CartesianGrid strokeDasharray="3 3" stroke="#ccc" vertical horizontal />
+   118→          <XAxis
+   119→            dataKey="fecha"
+   120→            tick={{ fontSize: 10, fill: "#666" }}
+   121→            tickLine={{ stroke: "#666" }}
+   122→            axisLine={{ stroke: "#666" }}
+   123→            height={30}
+   124→          />
+   125→          <YAxis
+   126→            tick={{ fontSize: 10, fill: "#666" }}
+   127→            tickLine={{ stroke: "#666" }}
+   128→            axisLine={{ stroke: "#666" }}
+   129→            width={60}
+   130→            tickFormatter={fmtSoles}
+   131→            domain={[0, "auto"]}
+   132→          />
+   133→          <Tooltip content={<VelocidadTooltip />} cursor={{ stroke: "#ccc", strokeWidth: 1 }} />
+   134→          <Legend
+   135→            wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
+   136→            iconType="plainline"
+   137→            iconSize={14}
+   138→          />
+   139→          <Line
+   140→            type="monotone"
+   141→            dataKey="Despachado"
+   142→            stroke={colorDespachado}
+   143→            strokeWidth={2.5}
+   144→            dot={false}
+   145→            activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff" }}
+   146→          />
+   147→          <Line
+   148→            type="monotone"
+   149→            dataKey="Liquidado"
+   150→            stroke={colorLiquidado}
+   151→            strokeWidth={2.5}
+   152→            dot={false}
+   153→            activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff" }}
+   154→          />
+   155→        </LineChart>
+   156→      </ResponsiveContainer>
+   157→    </div>
+   158→  );
+   159→}
+   160→
+   161→/** Donut chart con conic-gradient */
+   162→function Donut({ segments, size = 100 }: {
+   163→  segments: { label: string; value: number; color: string }[];
+   164→  size?: number;
+   165→}) {
+   166→  const total = segments.reduce((s, x) => s + x.value, 0) || 1;
+   167→  const gradParts: string[] = [];
+   168→  segments.reduce((acc, s) => {
+   169→    const pct = (s.value / total) * 100;
+   170→    const start = acc;
+   171→    const end = acc + pct;
+   172→    gradParts.push(`${s.color} ${start}% ${end}%`);
+   173→    return end;
+   174→  }, 0);
+   175→  const grad = gradParts.join(", ");
+   176→  return (
+   177→    <div className="relative" style={{ width: size, height: size }}>
+   178→      <div className="rounded-full" style={{
+   179→        width: size, height: size,
+   180→        background: `conic-gradient(${grad})`,
+   181→      }} />
+   182→      <div className="absolute inset-[20%] rounded-full bg-card flex items-center justify-center">
+   183→        <span className="text-[14px] font-bold tabular-nums text-foreground">{total}</span>
+   184→      </div>
+   185→    </div>
+   186→  );
+   187→}
+   188→
+   189→export function DashboardView() {
+   190→  const products = useStore((s) => s.products) ?? [];
+   191→  const equipos = useStore((s) => s.equipos) ?? [];
+   192→  const entradas = useStore((s) => s.entradas) ?? [];
+   193→  const despachos = useStore((s) => s.despachos) ?? [];
+   194→  const notas = useStore((s) => s.notas) ?? [];
+   195→  const miembros = useStore((s) => s.miembros) ?? [];
+   196→  const horario = useStore((s) => s.horario) ?? [];
+   197→  const exportInventarioExcel = useStore((s) => s.exportInventarioExcel);
+   198→  const router = useRouter();
+   199→  const go = (v: ActiveView) => () => router.push(VIEW_PATH[v]);
+   200→  const [velocidadTab, setVelocidadTab] = useState<"7D" | "30D" | "3M" | "1A">("7D");
+   201→
+   202→  // ─── Tick cada 60s para que la antigüedad de equipos se recalcule sola ───
+   203→  const [, setTick] = useState(0);
+   204→  useEffect(() => {
+   205→    const i = setInterval(() => setTick((t) => t + 1), 60_000);
+   206→    return () => clearInterval(i);
+   207→  }, []);
+   208→
+   209→  const stats = useMemo(() => {
+   210→    const totalUnidades = products.reduce((s, p) => s + p.quantity, 0);
+   211→    const valorTotal = products.reduce((s, p) => s + (p.precio || 0) * p.quantity, 0);
+   212→    const valorPropio = products.filter(p => !p.categoria || p.categoria !== "consignado").reduce((s, p) => s + (p.precio || 0) * p.quantity, 0);
+   213→    const valorConsignado = products.filter(p => p.categoria === "consignado").reduce((s, p) => s + (p.precio || 0) * p.quantity, 0);
+   214→    const bajoStock = products.filter((p) => p.minStock && p.minStock > 0 && p.quantity <= p.minStock);
+   215→    const agotados = products.filter((p) => p.quantity === 0);
+   216→
+   217→    // Categorías
+   218→    const catMap: Record<string, { valor: number; cantidad: number }> = {};
+   219→    for (const p of products) {
+   220→      const k = p.categoria || "Sin categoría";
+   221→      if (!catMap[k]) catMap[k] = { valor: 0, cantidad: 0 };
+   222→      catMap[k].valor += (p.precio || 0) * p.quantity;
+   223→      catMap[k].cantidad += p.quantity;
+   224→    }
+   225→    const categorias = Object.entries(catMap).sort((a, b) => b[1].valor - a[1].valor).slice(0, 5);
+   226→
+   227→    // Despachos por técnico
+   228→    const tecMap: Record<string, { count: number; total: number; valor: number }> = {};
+   229→    for (const d of despachos) {
+   230→      const t = d.tecnico || d.destino || "Sin asignar";
+   231→      if (!tecMap[t]) tecMap[t] = { count: 0, total: 0, valor: 0 };
+   232→      tecMap[t].count++;
+   233→      tecMap[t].total += d.cantidad;
+   234→      const prod = products.find(p => p.sku === d.sku);
+   235→      tecMap[t].valor += (prod?.precio || 0) * d.cantidad;
+   236→    }
+   237→    const topTecnicos = Object.entries(tecMap).sort((a, b) => b[1].valor - a[1].valor).slice(0, 5);
+   238→
+   239→    // Equipos por estado
+   240→    const eqEstado = {
+   241→      disponible: equipos.filter((e) => e.estado === "disponible").length,
+   242→      averiado: equipos.filter((e) => e.estado === "averiado").length,
+   243→      en_retiro: equipos.filter((e) => e.estado === "en_retiro").length,
+   244→    };
+   245→
+   246→    // Despachos de hoy
+   247→    const hoy = despachos.filter(d => {
+   248→      try { return new Date(d.fecha).toDateString() === new Date().toDateString(); }
+   249→      catch { return false; }
+   250→    }).length;
+   251→
+   252→    // Velocidad operativa (datos para gráfico)
+   253→    // 2 series por tab: unidades despachadas + valor liquidado en soles
+   254→    // + array de fechas (formato dd/mm) para el eje X
+   255→    const ahora = Date.now();
+   256→
+   257→    // Helper: calcula para un rango [desde, hasta) las unidades y el valor (precio * cantidad)
+   258→    const calcRango = (desde: number, hasta: number) => {
+   259→      let und = 0, val = 0;
+   260→      for (const d of despachos) {
+   261→        if (d.fecha >= desde && d.fecha < hasta) {
+   262→          und += d.cantidad;
+   263→          // Buscar el precio del producto al momento del despacho
+   264→          const prod = products.find(p => p.sku === d.sku);
+   265→          val += (prod?.precio || 0) * d.cantidad;
+   266→        }
+   267→      }
+   268→      return { und, val };
+   269→    };
+   270→
+   271→    // Helper: fecha dd/mm para el centro del rango
+   272→    const fmtFecha = (ts: number) => {
+   273→      try {
+   274→        return new Date(ts).toLocaleDateString("es-PE", {
+   275→          timeZone: "America/Lima",
+   276→          day: "2-digit", month: "2-digit",
+   277→        });
+   278→      } catch { return ""; }
+   279→    };
+   280→
+   281→    // 7D: 8 puntos de 1 día cada uno (últimos 7 días)
+   282→    const dias7Und = [], dias7Val = [], dias7Fechas = [];
+   283→    for (let i = 0; i < 8; i++) {
+   284→      const desde = ahora - (7 - i) * 86400000;
+   285→      const hasta = desde + 86400000;
+   286→      const r = calcRango(desde, hasta);
+   287→      dias7Und.push(r.und); dias7Val.push(r.val);
+   288→      dias7Fechas.push(fmtFecha(desde + 43200000));
+   289→    }
+   290→
+   291→    // 30D: 8 puntos de ~4 días cada uno (últimos ~32 días) — igual al SpaceCom
+   292→    const dias30Und = [], dias30Val = [], dias30Fechas = [];
+   293→    for (let i = 0; i < 8; i++) {
+   294→      const desde = ahora - (7 - i) * 4 * 86400000;
+   295→      const hasta = desde + 4 * 86400000;
+   296→      const r = calcRango(desde, hasta);
+   297→      dias30Und.push(r.und); dias30Val.push(r.val);
+   298→      dias30Fechas.push(fmtFecha(desde + 2 * 86400000));
+   299→    }
+   300→
+   301→    // 3M: 8 puntos de ~11 días cada uno (~3 meses = ~90 días)
+   302→    const meses3Und = [], meses3Val = [], meses3Fechas = [];
+   303→    for (let i = 0; i < 8; i++) {
+   304→      const desde = ahora - (7 - i) * 11 * 86400000;
+   305→      const hasta = desde + 11 * 86400000;
+   306→      const r = calcRango(desde, hasta);
+   307→      meses3Und.push(r.und); meses3Val.push(r.val);
+   308→      meses3Fechas.push(fmtFecha(desde + 5.5 * 86400000));
+   309→    }
+   310→
+   311→    // 1A: 8 puntos de ~45 días cada uno (~1 año)
+   312→    const ano1Und = [], ano1Val = [], ano1Fechas = [];
+   313→    for (let i = 0; i < 8; i++) {
+   314→      const desde = ahora - (7 - i) * 45 * 86400000;
+   315→      const hasta = desde + 45 * 86400000;
+   316→      const r = calcRango(desde, hasta);
+   317→      ano1Und.push(r.und); ano1Val.push(r.val);
+   318→      ano1Fechas.push(fmtFecha(desde + 22.5 * 86400000));
+   319→    }
+   320→
+   321→    // Antigüedad de stock
+   322→    const antig = { "0-45d": 0, "46-90d": 0, "91-360d": 0, "+360d": 0, "sf": 0 };
+   323→    for (const p of products) {
+   324→      const dias = Math.floor((ahora - (p.updatedAt || p.createdAt)) / 86400000);
+   325→      if (!p.updatedAt && !p.createdAt) antig.sf++;
+   326→      else if (dias <= 45) antig["0-45d"]++;
+   327→      else if (dias <= 90) antig["46-90d"]++;
+   328→      else if (dias <= 360) antig["91-360d"]++;
+   329→      else antig["+360d"]++;
+   330→    }
+   331→    const totalProd = products.length || 1;
+   332→
+   333→    // Clasificación ABC
+   334→    const sortedByVal = [...products].sort((a, b) =>
+   335→      ((b.precio || 0) * b.quantity) - ((a.precio || 0) * a.quantity)
+   336→    );
+   337→    const valTotal = sortedByVal.reduce((s, p) => s + (p.precio || 0) * p.quantity, 0) || 1;
+   338→    let acum = 0, claseA = 0, claseB = 0, claseC = 0;
+   339→    for (const p of sortedByVal) {
+   340→      acum += (p.precio || 0) * p.quantity;
+   341→      const pct = acum / valTotal;
+   342→      if (pct <= 0.7) claseA++;
+   343→      else if (pct <= 0.9) claseB++;
+   344→      else claseC++;
+   345→    }
+   346→
+   347→    // Tasa devolución
+   348→    const tasaDev = despachos.length > 0
+   349→      ? Math.round((entradas.length / (despachos.length + entradas.length)) * 100 * 10) / 10
+   350→      : 0;
+   351→
+   352→    // Programación hoy
+   353→    const dias = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
+   354→    const diaHoy = dias[new Date().getDay()];
+   355→    const horarioHoy = horario.filter(h => h.dia === diaHoy);
+   356→    const horaStr = new Date().toLocaleTimeString("es-PE", {
+   357→      timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", hour12: false
+   358→    });
+   359→    const limaHour = parseInt(new Date().toLocaleTimeString("en-US",
+   360→      { timeZone: "America/Lima", hour: "2-digit", hour12: false }), 10);
+   361→    const saludo = limaHour < 12 ? "Buenos días" : limaHour < 19 ? "Buenas tardes" : "Buenas noches";
+   362→
+   363→    // Total liquidado (valor despachado histórico) — DESCARTADO, no se usa
+   364→    // (Total Liquidado quitado por petición del usuario, no aplica al almacén)
+   365→
+   366→    // ─── Antigüedad de equipos (nuevo, verde / advertencia, naranja / crítico, rojo / antiguo, alerta crítica) ───
+   367→    // Recalculado en cada render — reactivo a cambios en `equipos` y al paso del tiempo
+   368→    // Reutiliza `ahora` definida arriba para Velocidad operativa
+   369→    let antiguosAdvertencia = 0; // 31-60 días
+   370→    let antiguosCritico = 0;     // 61-120 días
+   371→    let antiguosAntiguo = 0;     // > 120 días
+   372→    for (const e of equipos) {
+   373→      if (e.estado !== "disponible") continue; // solo disponibles cuentan para antigüedad en stock
+   374→      const dias = Math.floor((ahora - e.createdAt) / (1000 * 60 * 60 * 24));
+   375→      if (dias < 31) continue;
+   376→      if (dias < 61) antiguosAdvertencia++;
+   377→      else if (dias < 121) antiguosCritico++;
+   378→      else antiguosAntiguo++;
+   379→    }
+   380→    const antiguosCriticos = antiguosCritico + antiguosAntiguo;
+   381→
+   382→    // ─── Operaciones (contadas por operación única, no por item individual) ───
+   383→    // Una recepción con 42 materiales = 1 recepción, no 42
+   384→    // Una transferencia con 519 items = 1 operación, no 519
+   385→
+   386→    // Recepciones: agrupadas por recepcionId (cada PDF subido = 1 recepción)
+   387→    const recepcionesSet = new Set(entradas.map(e => e.recepcionId).filter(Boolean));
+   388→    const recepcionesUnicas = recepcionesSet.size;
+   389→    // Fallback: si hay entradas sin recepcionId (legacy), contamos cada una
+   390→    const recepcionesLegacy = entradas.filter(e => !e.recepcionId).length;
+   391→    const recepcionesTotal = recepcionesUnicas + recepcionesLegacy;
+   392→
+   393→    // Transferencias: agrupadas por nOperacion (cada Excel subido = 1 operación)
+   394→    const transferenciasUnicas = new Set(
+   395→      despachos
+   396→        .filter(d => d.tipo === "transferencia" && d.nOperacion)
+   397→        .map(d => d.nOperacion)
+   398→    ).size;
+   399→    // Fallback: transferencias sin nOperacion
+   400→    const transferenciasLegacy = despachos.filter(d => d.tipo === "transferencia" && !d.nOperacion).length;
+   401→    const transferenciasTotal = transferenciasUnicas + transferenciasLegacy;
+   402→
+   403→    // Items despachados (reemplaza a "Albaranes" — total de líneas de despacho)
+   404→    const itemsDespachados = despachos.length;
+   405→
+   406→    // Top productos despachados (proyectos)
+   407→    const prodMap: Record<string, { count: number; valor: number }> = {};
+   408→    for (const d of despachos) {
+   409→      const k = d.producto || d.sku;
+   410→      if (!prodMap[k]) prodMap[k] = { count: 0, valor: 0 };
+   411→      prodMap[k].count += d.cantidad;
+   412→      const prod = products.find(p => p.sku === d.sku);
+   413→      prodMap[k].valor += (prod?.precio || 0) * d.cantidad;
+   414→    }
+   415→    const topProyectos = Object.entries(prodMap).sort((a, b) => b[1].valor - a[1].valor).slice(0, 5);
+   416→
+   417→    return {
+   418→      totalUnidades, valorTotal, valorPropio, valorConsignado,
+   419→      bajoStock, agotados, categorias, topTecnicos, eqEstado, hoy,
+   420→      antig, totalProd, claseA, claseB, claseC, tasaDev,
+   421→      horarioHoy, horaStr, saludo,
+   422→      recepcionesTotal, transferenciasTotal, itemsDespachados, topProyectos,
+   423→      antiguosAdvertencia, antiguosCritico, antiguosAntiguo, antiguosCriticos,
+   424→      dias7Und, dias7Val, dias7Fechas,
+   425→      dias30Und, dias30Val, dias30Fechas,
+   426→      meses3Und, meses3Val, meses3Fechas,
+   427→      ano1Und, ano1Val, ano1Fechas,
+   428→    };
+   429→  }, [products, equipos, despachos, entradas, horario]);
+   430→
+   431→  const c = useCountUp(stats.valorTotal);
+   432→  const u = useCountUp(stats.totalUnidades);
+   433→
+   434→  const velocidadUnd = velocidadTab === "7D" ? stats.dias7Und
+   435→    : velocidadTab === "30D" ? stats.dias30Und
+   436→    : velocidadTab === "3M" ? stats.meses3Und
+   437→    : stats.ano1Und;
+   438→  const velocidadVal = velocidadTab === "7D" ? stats.dias7Val
+   439→    : velocidadTab === "30D" ? stats.dias30Val
+   440→    : velocidadTab === "3M" ? stats.meses3Val
+   441→    : stats.ano1Val;
+   442→  const velocidadFechas = velocidadTab === "7D" ? stats.dias7Fechas
+   443→    : velocidadTab === "30D" ? stats.dias30Fechas
+   444→    : velocidadTab === "3M" ? stats.meses3Fechas
+   445→    : stats.ano1Fechas;
+   446→
+   447→  return (
+   448→    <div className="px-4 py-6 sm:px-6 lg:px-10">
+   449→      {/* Header */}
+   450→      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+   451→        <div>
+   452→          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+   453→            {stats.horaStr} · {new Date().toLocaleDateString("es-PE", { timeZone: "America/Lima", weekday: "long", day: "numeric", month: "long" })}
+   454→          </p>
+   455→          <h1 className="mt-1 text-[26px] font-bold tracking-tight text-foreground sm:text-[32px]">
+   456→            {stats.saludo}, Iker
+   457→          </h1>
+   458→          <p className="mt-0.5 text-[13px] text-muted-foreground">Centro de Control Logístico</p>
+   459→        </div>
+   460→        <Button
+   461→          onClick={() => exportInventarioExcel()}
+   462→          variant="outline"
+   463→          className="press h-9 rounded-lg border-border bg-card px-3 text-[13px] font-medium shadow-sm hover:bg-muted"
+   464→        >
+   465→          <Download className="mr-1.5 h-4 w-4" strokeWidth={1.5} /> Exportar
+   466→        </Button>
+   467→      </div>
+   468→
+   469→      {/* Fila 1: Valor Stock + Total Liquidado + Operaciones */}
+   470→      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+   471→        {/* Valor Total Stock */}
+   472→        <div className="press-card anim-slide-up rounded-2xl bg-card p-5 shadow-sm">
+   473→          <div className="mb-3 flex items-center gap-2">
+   474→            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+   475→              <DollarSign className="h-4 w-4 text-primary" strokeWidth={1.5} />
+   476→            </div>
+   477→            <span className="text-[12px] font-medium text-muted-foreground">Valor Stock</span>
+   478→          </div>
+   479→          <p className="text-[24px] font-bold tabular-nums tracking-tight text-foreground anim-fade-in">{fmtSoles(c)}</p>
+   480→          <div className="mt-2 flex gap-3 text-[11px]">
+   481→            <span className="text-muted-foreground">Propio: <strong className="text-foreground">{fmtSoles(stats.valorPropio)}</strong></span>
+   482→          </div>
+   483→          <div className="text-[11px]">
+   484→            <span className="text-muted-foreground">Consignado: <strong className="text-foreground">{fmtSoles(stats.valorConsignado)}</strong></span>
+   485→          </div>
+   486→        </div>
+   487→
+   488→        {/* Equipos Antiguos (alerta por antigüedad) */}
+   489→        <div className="press-card anim-slide-up rounded-2xl bg-card p-5 shadow-sm" style={{ animationDelay: "60ms" }}>
+   490→          <div className="mb-3 flex items-center gap-2">
+   491→            <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl", stats.antiguosCriticos > 0 ? "bg-rose-500/10" : "bg-emerald-500/10")}>
+   492→              <Clock className={cn("h-4 w-4", stats.antiguosCriticos > 0 ? "text-rose-500" : "text-emerald-500")} strokeWidth={1.5} />
+   493→            </div>
+   494→            <span className="text-[12px] font-medium text-muted-foreground">Equipos Antiguos</span>
+   495→          </div>
+   496→          <div className="flex items-baseline gap-2">
+   497→            <p className="text-[24px] font-bold tabular-nums tracking-tight text-foreground">{stats.antiguosCriticos}</p>
+   498→            <span className="text-[11px] text-muted-foreground">de {equipos.length}</span>
+   499→          </div>
+   500→          <div className="mt-2 flex flex-wrap gap-2 text-[10px]">
+   501→            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-amber-600">
+   502→              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> {stats.antiguosAdvertencia} advert.
+   503→            </span>
+   504→            <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-1.5 py-0.5 text-rose-600">
+   505→              <span className="h-1.5 w-1.5 rounded-full bg-rose-500" /> {stats.antiguosCritico + stats.antiguosAntiguo} críticos
+   506→            </span>
+   507→          </div>
+   508→        </div>
+   509→
+   510→        {/* Operaciones Pendientes */}
+   511→        <div className="press-card anim-slide-up rounded-2xl bg-card p-5 shadow-sm" style={{ animationDelay: "120ms" }}>
+   512→          <div className="mb-3 flex items-center gap-2">
+   513→            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10">
+   514→              <Clock className="h-4 w-4 text-amber-500" strokeWidth={1.5} />
+   515→            </div>
+   516→            <span className="text-[12px] font-medium text-muted-foreground">Operaciones</span>
+   517→          </div>
+   518→          <div className="space-y-1.5">
+   519→            <div className="flex items-center justify-between text-[12px]">
+   520→              <span className="flex items-center gap-1.5 text-muted-foreground">
+   521→                <ArrowDownToLine className="h-3 w-3" strokeWidth={1.5} /> Recepciones
+   522→              </span>
+   523→              <span className="font-bold tabular-nums text-foreground">{stats.recepcionesTotal}</span>
+   524→            </div>
+   525→            <div className="flex items-center justify-between text-[12px]">
+   526→              <span className="flex items-center gap-1.5 text-muted-foreground">
+   527→                <ArrowLeftRight className="h-3 w-3" strokeWidth={1.5} /> Transferencias
+   528→              </span>
+   529→              <span className="font-bold tabular-nums text-foreground">{stats.transferenciasTotal}</span>
+   530→            </div>
+   531→            <div className="flex items-center justify-between text-[12px]">
+   532→              <span className="flex items-center gap-1.5 text-muted-foreground">
+   533→                <FileText className="h-3 w-3" strokeWidth={1.5} /> Items despachados
+   534→              </span>
+   535→              <span className="font-bold tabular-nums text-foreground">{stats.itemsDespachados}</span>
+   536→            </div>
+   537→          </div>
+   538→        </div>
+   539→
+   540→        {/* KPIs rápidos */}
+   541→        <div className="press-card anim-slide-up rounded-2xl bg-card p-5 shadow-sm" style={{ animationDelay: "180ms" }}>
+   542→          <div className="mb-3 flex items-center gap-2">
+   543→            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/10">
+   544→              <BarChart3 className="h-4 w-4 text-violet-500" strokeWidth={1.5} />
+   545→            </div>
+   546→            <span className="text-[12px] font-medium text-muted-foreground">Resumen</span>
+   547→          </div>
+   548→          <div className="grid grid-cols-2 gap-2">
+   549→            <div>
+   550→              <p className="text-[18px] font-bold tabular-nums text-foreground">{fmtNum(u)}</p>
+   551→              <p className="text-[10px] text-muted-foreground">unidades</p>
+   552→            </div>
+   553→            <div>
+   554→              <p className="text-[18px] font-bold tabular-nums text-foreground">{equipos.length}</p>
+   555→              <p className="text-[10px] text-muted-foreground">equipos</p>
+   556→            </div>
+   557→            <div>
+   558→              <p className="text-[18px] font-bold tabular-nums text-foreground">{stats.hoy}</p>
+   559→              <p className="text-[10px] text-muted-foreground">desp. hoy</p>
+   560→            </div>
+   561→            <div>
+   562→              <p className="text-[18px] font-bold tabular-nums text-foreground">{stats.tasaDev}%</p>
+   563→              <p className="text-[10px] text-muted-foreground">devolución</p>
+   564→            </div>
+   565→          </div>
+   566→        </div>
+   567→      </div>
+   568→
+   569→      {/* Fila 2: Velocidad Operativa + Distribución Logística */}
+   570→      <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
+   571→        {/* Velocidad Operativa — estilo SpaceCom */}
+   572→        <section className="press-card anim-slide-up overflow-hidden rounded-2xl border border-border bg-card shadow-sm hover:shadow-md transition-shadow">
+   573→          <div className="space-y-2 p-5 flex flex-col">
+   574→            {/* Header */}
+   575→            <div className="flex items-center justify-between">
+   576→              <div className="flex items-center gap-1.5">
+   577→                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+   578→                  Velocidad Operativa
+   579→                </p>
+   580→                <button
+   581→                  type="button"
+   582→                  className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+   583→                  title="Muestra el valor en Soles (S/) despachado y liquidado por día. Cambia entre 7D, 30D, 3M o 1A. Haz click en un punto del gráfico para ver el detalle."
+   584→                >
+   585→                  <Info className="h-3.5 w-3.5" strokeWidth={2} />
+   586→                </button>
+   587→              </div>
+   588→              <div className="flex gap-1">
+   589→                {(["7D", "30D", "3M", "1A"] as const).map(tab => (
+   590→                  <button
+   591→                    key={tab}
+   592→                    onClick={() => setVelocidadTab(tab)}
+   593→                    className={cn(
+   594→                      "rounded-md h-6 px-2 text-[11px] font-medium transition-colors",
+   595→                      velocidadTab === tab
+   596→                        ? "bg-primary text-primary-foreground shadow hover:bg-primary/90"
+   597→                        : "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground"
+   598→                    )}
+   599→                  >
+   600→                    {tab}
+   601→                  </button>
+   602→                ))}
+   603→              </div>
+   604→            </div>
+   605→            {/* Subtítulo italic */}
+   606→            <p className="text-[11px] text-muted-foreground italic">
+   607→              Click en un punto para ver detalle
+   608→            </p>
+   609→            {/* Gráfico recharts */}
+   610→            <div>
+   611→              <VelocidadOperativaChart
+   612→                dataDespachado={velocidadUnd}
+   613→                dataLiquidado={velocidadVal}
+   614→                fechas={velocidadFechas}
+   615→              />
+   616→            </div>
+   617→            {/* Footer con resumen */}
+   618→            <div className="flex items-center justify-between border-t border-border pt-2 text-[11px] text-muted-foreground">
+   619→              <span>
+   620→                {velocidadTab === "7D" ? "Últimos 14 días" : velocidadTab === "30D" ? "Últimos 28 días" : velocidadTab === "3M" ? "Últimos 3 meses" : "Último año"}
+   621→              </span>
+   622→              <span className="font-bold tabular-nums text-foreground">
+   623→                Total: {velocidadUnd.reduce((s, v) => s + v, 0).toLocaleString("es-PE")} und · S/ {velocidadVal.reduce((s, v) => s + v, 0).toLocaleString("es-PE", { maximumFractionDigits: 0 })}
+   624→              </span>
+   625→            </div>
+   626→          </div>
+   627→        </section>
+   628→
+   629→        {/* Distribución Logística */}
+   630→        <section className="press-card anim-slide-up rounded-2xl bg-card p-5 shadow-sm" style={{ animationDelay: "60ms" }}>
+   631→          <h2 className="mb-4 flex items-center gap-2 text-[14px] font-semibold text-foreground">
+   632→            <Warehouse className="h-4 w-4 text-primary" strokeWidth={1.5} />
+   633→            Distribución Logística
+   634→          </h2>
+   635→          {stats.topTecnicos.length === 0 ? (
+   636→            <p className="py-4 text-[13px] text-muted-foreground">Sin despachos registrados</p>
+   637→          ) : (
+   638→            <div className="space-y-2.5">
+   639→              {stats.topTecnicos.map(([tecnico, data], i) => {
+   640→                const maxVal = stats.topTecnicos[0]?.[1].valor ?? 1;
+   641→                const pct = (data.valor / maxVal) * 100;
+   642→                return (
+   643→                  <div key={tecnico}>
+   644→                    <div className="mb-1 flex items-baseline justify-between">
+   645→                      <span className="truncate text-[12px] font-medium text-foreground">
+   646→                        {i + 1}. {tecnico.length > 30 ? tecnico.slice(0, 30) + "…" : tecnico}
+   647→                      </span>
+   648→                      <span className="ml-2 shrink-0 text-[11px] font-bold tabular-nums text-primary">
+   649→                        {fmtSoles(data.valor)}
+   650→                      </span>
+   651→                    </div>
+   652→                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+   653→                      <div className="anim-draw-in h-full rounded-full bg-primary/50"
+   654→                        style={{ width: `${pct}%`, transformOrigin: "left" }} />
+   655→                    </div>
+   656→                  </div>
+   657→                );
+   658→              })}
+   659→            </div>
+   660→          )}
+   661→        </section>
+   662→      </div>
+   663→
+   664→      {/* Fila 3: Antigüedad (donut) + Clasificación ABC + Tasa Devolución */}
+   665→      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+   666→        {/* Antigüedad Stock */}
+   667→        <section className="press-card anim-slide-up rounded-2xl bg-card p-5 shadow-sm">
+   668→          <h2 className="mb-4 flex items-center gap-2 text-[14px] font-semibold text-foreground">
+   669→            <Clock className="h-4 w-4 text-primary" strokeWidth={1.5} />
+   670→            Antigüedad de Stock
+   671→          </h2>
+   672→          <div className="flex items-center gap-4">
+   673→            <Donut
+   674→              size={90}
+   675→              segments={[
+   676→                { label: "0-45d", value: stats.antig["0-45d"], color: "oklch(0.7 0.15 150)" },
+   677→                { label: "46-90d", value: stats.antig["46-90d"], color: "oklch(0.65 0.15 200)" },
+   678→                { label: "91-360d", value: stats.antig["91-360d"], color: "oklch(0.7 0.15 60)" },
+   679→                { label: "+360d", value: stats.antig["+360d"], color: "oklch(0.6 0.2 25)" },
+   680→                { label: "S/F", value: stats.antig.sf, color: "oklch(0.5 0 0)" },
+   681→              ]}
+   682→            />
+   683→            <div className="flex-1 space-y-1.5">
+   684→              {[
+   685→                { label: "0-45 días", val: stats.antig["0-45d"], color: "oklch(0.7 0.15 150)" },
+   686→                { label: "46-90 días", val: stats.antig["46-90d"], color: "oklch(0.65 0.15 200)" },
+   687→                { label: "91-360 días", val: stats.antig["91-360d"], color: "oklch(0.7 0.15 60)" },
+   688→                { label: "+360 días", val: stats.antig["+360d"], color: "oklch(0.6 0.2 25)" },
+   689→                { label: "Sin fecha", val: stats.antig.sf, color: "oklch(0.5 0 0)" },
+   690→              ].map(item => {
+   691→                const pct = (item.val / stats.totalProd) * 100;
+   692→                return (
+   693→                  <div key={item.label} className="flex items-center gap-2 text-[11px]">
+   694→                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: item.color }} />
+   695→                    <span className="flex-1 text-muted-foreground">{item.label}</span>
+   696→                    <span className="font-bold tabular-nums text-foreground">{item.val} · {pct.toFixed(0)}%</span>
+   697→                  </div>
+   698→                );
+   699→              })}
+   700→            </div>
+   701→          </div>
+   702→        </section>
+   703→
+   704→        {/* Clasificación ABC */}
+   705→        <section className="press-card anim-slide-up rounded-2xl bg-card p-5 shadow-sm" style={{ animationDelay: "60ms" }}>
+   706→          <h2 className="mb-4 flex items-center gap-2 text-[14px] font-semibold text-foreground">
+   707→            <BarChart3 className="h-4 w-4 text-primary" strokeWidth={1.5} />
+   708→            Clasificación ABC
+   709→          </h2>
+   710→          <div className="grid grid-cols-3 gap-2">
+   711→            <div className="rounded-xl bg-primary/10 p-4 text-center">
+   712→              <p className="text-[22px] font-bold tabular-nums text-primary">{stats.claseA}</p>
+   713→              <p className="text-[10px] font-medium uppercase tracking-wide text-primary/70">Clase A</p>
+   714→              <p className="mt-1 text-[9px] text-muted-foreground">70% valor</p>
+   715→            </div>
+   716→            <div className="rounded-xl bg-amber-500/10 p-4 text-center">
+   717→              <p className="text-[22px] font-bold tabular-nums text-amber-500">{stats.claseB}</p>
+   718→              <p className="text-[10px] font-medium uppercase tracking-wide text-amber-500/70">Clase B</p>
+   719→              <p className="mt-1 text-[9px] text-muted-foreground">20% valor</p>
+   720→            </div>
+   721→            <div className="rounded-xl bg-muted p-4 text-center">
+   722→              <p className="text-[22px] font-bold tabular-nums text-muted-foreground">{stats.claseC}</p>
+   723→              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70">Clase C</p>
+   724→              <p className="mt-1 text-[9px] text-muted-foreground">10% valor</p>
+   725→            </div>
+   726→          </div>
+   727→          <div className="mt-3 text-[11px] text-muted-foreground">
+   728→            {products.length} productos analizados por valor monetario
+   729→          </div>
+   730→        </section>
+   731→
+   732→        {/* Tasa Devolución + Equipos Estado */}
+   733→        <section className="press-card anim-slide-up rounded-2xl bg-card p-5 shadow-sm" style={{ animationDelay: "120ms" }}>
+   734→          <h2 className="mb-3 flex items-center gap-2 text-[14px] font-semibold text-foreground">
+   735→            <Activity className="h-4 w-4 text-primary" strokeWidth={1.5} />
+   736→            Tasa de Devolución
+   737→          </h2>
+   738→          <div className="flex items-center gap-3">
+   739→            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-orange-500/10">
+   740→              <span className="text-[20px] font-bold tabular-nums text-orange-500">{stats.tasaDev}%</span>
+   741→            </div>
+   742→            <div className="flex-1">
+   743→              <p className="text-[12px] text-muted-foreground">Entradas vs Salidas</p>
+   744→              <p className="text-[11px] text-muted-foreground">{entradas.length} entradas · {despachos.length} despachos</p>
+   745→            </div>
+   746→          </div>
+   747→          <div className="mt-4 border-t border-border pt-3">
+   748→            <p className="mb-2 text-[12px] font-medium text-muted-foreground">Equipos por Estado</p>
+   749→            <div className="space-y-1.5">
+   750→              {(Object.keys(ESTADO_META) as EstadoEquipo[]).map((est) => {
+   751→                const n = stats.eqEstado[est];
+   752→                const total = equipos.length || 1;
+   753→                const pct = (n / total) * 100;
+   754→                const tone = ESTADO_META[est].tone === "danger" ? "bg-red-500"
+   755→                  : ESTADO_META[est].tone === "warn" ? "bg-amber-500"
+   756→                  : ESTADO_META[est].tone === "ok" ? "bg-emerald-500" : "bg-primary";
+   757→                return (
+   758→                  <div key={est} className="flex items-center gap-2">
+   759→                    <span className="w-20 shrink-0 text-[11px] text-muted-foreground">{ESTADO_META[est].short}</span>
+   760→                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+   761→                      <div className={cn("anim-draw-in h-full rounded-full", tone)}
+   762→                        style={{ width: `${pct}%`, transformOrigin: "left" }} />
+   763→                    </div>
+   764→                    <span className="w-8 shrink-0 text-right text-[11px] font-bold tabular-nums text-foreground">{n}</span>
+   765→                  </div>
+   766→                );
+   767→              })}
+   768→            </div>
+   769→          </div>
+   770→        </section>
+   771→      </div>
+   772→
+   773→      {/* Fila 4: Top Proyectos + Valor por Categoría + Programación */}
+   774→      <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-3">
+   775→        {/* Top Proyectos */}
+   776→        <section className="press-card anim-slide-up rounded-2xl bg-card p-5 shadow-sm">
+   777→          <h2 className="mb-4 flex items-center gap-2 text-[14px] font-semibold text-foreground">
+   778→            <FileText className="h-4 w-4 text-primary" strokeWidth={1.5} />
+   779→            Top Productos Despachados
+   780→          </h2>
+   781→          {stats.topProyectos.length === 0 ? (
+   782→            <p className="py-4 text-[13px] text-muted-foreground">Sin despachos</p>
+   783→          ) : (
+   784→            <div className="space-y-2">
+   785→              {stats.topProyectos.map(([prod, data], i) => (
+   786→                <div key={prod} className="flex items-center gap-2">
+   787→                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-muted text-[10px] font-bold text-muted-foreground">{i + 1}</span>
+   788→                  <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-foreground">{prod}</span>
+   789→                  <span className="shrink-0 text-[11px] font-bold tabular-nums text-primary">{fmtSoles(data.valor)}</span>
+   790→                </div>
+   791→              ))}
+   792→            </div>
+   793→          )}
+   794→        </section>
+   795→
+   796→        {/* Valor por Categoría */}
+   797→        <section className="press-card anim-slide-up rounded-2xl bg-card p-5 shadow-sm" style={{ animationDelay: "60ms" }}>
+   798→          <h2 className="mb-4 flex items-center gap-2 text-[14px] font-semibold text-foreground">
+   799→            <Boxes className="h-4 w-4 text-primary" strokeWidth={1.5} />
+   800→            Valor por Categoría
+   801→          </h2>
+   802→          {stats.categorias.length === 0 ? (
+   803→            <p className="py-4 text-[13px] text-muted-foreground">Sin precios asignados</p>
+   804→          ) : (
+   805→            <div className="space-y-2.5">
+   806→              {stats.categorias.map(([cat, data]) => {
+   807→                const maxVal = stats.categorias[0]?.[1].valor ?? 1;
+   808→                const pct = (data.valor / maxVal) * 100;
+   809→                return (
+   810→                  <div key={cat}>
+   811→                    <div className="mb-1 flex items-baseline justify-between">
+   812→                      <span className="truncate text-[12px] font-medium text-foreground">{cat}</span>
+   813→                      <span className="ml-2 shrink-0 text-[11px] font-bold tabular-nums text-primary">{fmtSoles(data.valor)}</span>
+   814→                    </div>
+   815→                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+   816→                      <div className="anim-draw-in h-full rounded-full bg-primary/40"
+   817→                        style={{ width: `${pct}%`, transformOrigin: "left" }} />
+   818→                    </div>
+   819→                  </div>
+   820→                );
+   821→              })}
+   822→            </div>
+   823→          )}
+   824→        </section>
+   825→
+   826→        {/* Programación de Hoy */}
+   827→        <section className="press-card anim-slide-up rounded-2xl bg-card p-5 shadow-sm" style={{ animationDelay: "120ms" }}>
+   828→          <div className="mb-4 flex items-center justify-between">
+   829→            <h2 className="flex items-center gap-2 text-[14px] font-semibold text-foreground">
+   830→              <Calendar className="h-4 w-4 text-primary" strokeWidth={1.5} />
+   831→              Programación Hoy
+   832→            </h2>
+   833→            <button onClick={go("horario")} className="press rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground">
+   834→              <ArrowRight className="h-4 w-4" strokeWidth={1.5} />
+   835→            </button>
+   836→          </div>
+   837→          <div className="flex items-center gap-3 mb-3">
+   838→            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+   839→              <span className="text-[22px] font-bold tabular-nums text-primary">{stats.horarioHoy.length}</span>
+   840→            </div>
+   841→            <div>
+   842→              <p className="text-[13px] font-medium text-foreground">actividades</p>
+   843→              <p className="text-[11px] text-muted-foreground">{stats.horaStr} · {new Date().toLocaleDateString("es-PE", { timeZone: "America/Lima", weekday: "long" })}</p>
+   844→            </div>
+   845→          </div>
+   846→          {stats.horarioHoy.length > 0 && (
+   847→            <div className="space-y-1.5">
+   848→              {stats.horarioHoy.slice(0, 3).map(h => (
+   849→                <div key={h.id} className="flex items-center gap-2 rounded-lg bg-muted/40 px-2.5 py-1.5">
+   850→                  <Clock className="h-3 w-3 text-primary" strokeWidth={1.5} />
+   851→                  <span className="text-[11px] font-mono font-medium text-foreground">{h.horaInicio}</span>
+   852→                  <span className="truncate text-[11px] text-muted-foreground">{h.actividad}</span>
+   853→                </div>
+   854→              ))}
+   855→            </div>
+   856→          )}
+   857→        </section>
+   858→      </div>
+   859→
+   860→      {/* Fila 5: Stock Crítico */}
+   861→      <div className="mt-3">
+   862→        <section className="press-card anim-slide-up rounded-2xl bg-card p-5 shadow-sm">
+   863→          <div className="mb-4 flex items-center justify-between">
+   864→            <h2 className="flex items-center gap-2 text-[14px] font-semibold text-foreground">
+   865→              <AlertTriangle className="h-4 w-4 text-amber-500" strokeWidth={1.5} />
+   866→              Stock Crítico
+   867→            </h2>
+   868→            <button onClick={go("inventario")} className="press flex items-center gap-1 text-[12px] font-medium text-primary hover:text-primary/80">
+   869→              Ver todo <ArrowRight className="h-3 w-3" strokeWidth={1.5} />
+   870→            </button>
+   871→          </div>
+   872→          {stats.bajoStock.length === 0 ? (
+   873→            <div className="flex items-center gap-2 py-4 text-[13px] text-emerald-500">
+   874→              <span className="h-2 w-2 rounded-full bg-emerald-500 anim-pulse-dot" />
+   875→              Todo bien — sin alertas de stock
+   876→            </div>
+   877→          ) : (
+   878→            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+   879→              {stats.bajoStock.slice(0, 6).map((p) => {
+   880→                const pct = p.minStock ? Math.min(100, (p.quantity / Math.max(p.minStock * 2, 1)) * 100) : 100;
+   881→                const bajo = p.minStock && p.minStock > 0 && p.quantity <= p.minStock;
+   882→                return (
+   883→                  <div key={p.id}>
+   884→                    <div className="mb-1.5 flex items-baseline justify-between">
+   885→                      <span className="truncate text-[12px] font-medium text-foreground">{p.name}</span>
+   886→                      <span className="text-[12px] font-bold tabular-nums text-foreground">
+   887→                        {fmtNum(p.quantity)}
+   888→                        {p.minStock ? <span className="ml-1 text-[10px] font-normal text-muted-foreground">/ {fmtNum(p.minStock)}</span> : null}
+   889→                      </span>
+   890→                    </div>
+   891→                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+   892→                      <div className={cn("h-full rounded-full transition-all duration-700",
+   893→                        bajo ? "bg-destructive/70" : "bg-foreground/30")}
+   894→                        style={{ width: `${pct}%` }} />
+   895→                    </div>
+   896→                  </div>
+   897→                );
+   898→              })}
+   899→            </div>
+   900→          )}
+   901→        </section>
+   902→      </div>
+   903→    </div>
+   904→  );
+   905→}
+   906→

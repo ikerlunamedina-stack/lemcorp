@@ -1,0 +1,678 @@
+     1→"use client";
+     2→
+     3→import { useMemo, useState, useRef } from "react";
+     4→import {
+     5→  Plus,
+     6→  Search,
+     7→  Pencil,
+     8→  Trash2,
+     9→  Hash,
+    10→  Download,
+    11→  ArrowDownToLine,
+    12→  Trash,
+    13→  Check,
+    14→  X,
+    15→  Upload,
+    16→  Loader2,
+    17→  AlertCircle,
+    18→  ClipboardPaste,
+    19→} from "lucide-react";
+    20→import { useStore } from "@/lib/store";
+    21→import type { Product } from "@/lib/types";
+    22→import { parseNum, fmtNum } from "@/lib/num";
+    23→import { cn } from "@/lib/utils";
+    24→import { Button } from "@/components/ui/button";
+    25→import { Input } from "@/components/ui/input";
+    26→import { Label } from "@/components/ui/label";
+    27→import { useConfirm } from "@/components/lem/use-confirm";
+    28→import {
+    29→  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+    30→} from "@/components/ui/dialog";
+    31→import { Textarea } from "@/components/ui/textarea";
+    32→
+    33→const ICON_PROPS = { strokeWidth: 1.5 } as const;
+    34→
+    35→export function InventarioView() {
+    36→  const { confirm, ConfirmDialog } = useConfirm();
+    37→  const products = useStore((s) => s.products);
+    38→  const addProduct = useStore((s) => s.addProduct);
+    39→  const updateProduct = useStore((s) => s.updateProduct);
+    40→  const deleteProduct = useStore((s) => s.deleteProduct);
+    41→  const findProductBySku = useStore((s) => s.findProductBySku);
+    42→  const registrarEntrada = useStore((s) => s.registrarEntrada);
+    43→  const entradas = useStore((s) => s.entradas);
+    44→  const deleteEntrada = useStore((s) => s.deleteEntrada);
+    45→  const exportInventarioExcel = useStore((s) => s.exportInventarioExcel);
+    46→
+    47→  const [query, setQuery] = useState("");
+    48→  const [dialogOpen, setDialogOpen] = useState(false);
+    49→  const [editing, setEditing] = useState<Product | null>(null);
+    50→  const [form, setForm] = useState({ sku: "", name: "", quantity: "", minStock: "", udm: "UNIDADES" });
+    51→  const [dupError, setDupError] = useState(false);
+    52→  const [entradaOpen, setEntradaOpen] = useState(false);
+    53→  const [entradaText, setEntradaText] = useState("");
+    54→  const [entradaMsg, setEntradaMsg] = useState("");
+    55→  const [importOpen, setImportOpen] = useState(false);
+    56→  const [importingInv, setImportingInv] = useState(false);
+    57→  const [importPreview, setImportPreview] = useState<Array<{ sku: string; nombre: string; cantidad: number; udm?: string; existe: boolean }>>([]);
+    58→  const [importResult, setImportResult] = useState<{ ok: number; nuevos: number; actualizados: number; msg: string } | null>(null);
+    59→  const importFileRef = useRef<HTMLInputElement>(null);
+    60→
+    61→  const filtered = useMemo(() => {
+    62→    const q = query.toLowerCase().trim();
+    63→    return [...products]
+    64→      .sort((a, b) => a.sku.localeCompare(b.sku, undefined, { numeric: true }))
+    65→      .filter((p) => {
+    66→        if (!q) return true;
+    67→        return p.sku.toLowerCase().includes(q) || p.name.toLowerCase().includes(q);
+    68→      });
+    69→  }, [products, query]);
+    70→
+    71→  const totalUnidades = useMemo(() => products.reduce((s, p) => s + p.quantity, 0), [products]);
+    72→
+    73→  const openCreate = () => {
+    74→    setEditing(null);
+    75→    setForm({ sku: "", name: "", quantity: "", minStock: "", udm: "UNIDADES" });
+    76→    setDupError(false);
+    77→    setDialogOpen(true);
+    78→  };
+    79→
+    80→  const openEdit = (p: Product) => {
+    81→    setEditing(p);
+    82→    setForm({ sku: p.sku, name: p.name, quantity: String(p.quantity), minStock: p.minStock ? String(p.minStock) : "", udm: p.udm ?? "UNIDADES" });
+    83→    setDupError(false);
+    84→    setDialogOpen(true);
+    85→  };
+    86→
+    87→  const handleSave = () => {
+    88→    if (!form.sku.trim() || !form.name.trim()) return;
+    89→    if (editing) {
+    90→      updateProduct(editing.id, {
+    91→        sku: form.sku.trim(), name: form.name.trim(),
+    92→        quantity: parseNum(form.quantity) ?? 0,
+    93→        minStock: form.minStock.trim() ? parseNum(form.minStock) : undefined,
+    94→        udm: form.udm.trim() || undefined,
+    95→      });
+    96→    } else {
+    97→      if (findProductBySku(form.sku.trim())) { setDupError(true); return; }
+    98→      addProduct(form.sku.trim(), form.name.trim(), parseNum(form.quantity) ?? 0, form.minStock.trim() ? parseNum(form.minStock) : undefined, form.udm.trim() || undefined);
+    99→    }
+   100→    setDialogOpen(false);
+   101→  };
+   102→
+   103→  const handleEntrada = () => {
+   104→    const result = registrarEntrada(entradaText);
+   105→    setEntradaMsg(result.msg);
+   106→    if (result.ok) {
+   107→      setEntradaText("");
+   108→      setTimeout(() => { setEntradaMsg(""); setEntradaOpen(false); }, 2000);
+   109→    }
+   110→  };
+   111→
+   112→  const handleImportInventario = async (e: React.ChangeEvent<HTMLInputElement>) => {
+   113→    const file = e.target.files?.[0];
+   114→    if (!file) return;
+   115→    setImportingInv(true);
+   116→    setImportResult(null);
+   117→    try {
+   118→      const formData = new FormData();
+   119→      formData.append("file", file);
+   120→      const res = await fetch("/api/import-inventario", { method: "POST", body: formData });
+   121→      const data = await res.json();
+   122→      if (!data.ok) throw new Error(data.error);
+   123→
+   124→      const preview = (data.productos || []).map((p: any) => ({
+   125→        sku: p.sku || "",
+   126→        nombre: p.nombre || "",
+   127→        cantidad: p.cantidad || 0,
+   128→        udm: p.udm,
+   129→        existe: !!findProductBySku(p.sku),
+   130→      }));
+   131→      setImportPreview(preview);
+   132→      setImportOpen(true);
+   133→    } catch (err: any) {
+   134→      setImportResult({ ok: 0, nuevos: 0, actualizados: 0, msg: "Error: " + err.message });
+   135→      setImportOpen(true);
+   136→    } finally {
+   137→      setImportingInv(false);
+   138→      if (importFileRef.current) importFileRef.current.value = "";
+   139→    }
+   140→  };
+   141→
+   142→  const confirmImport = () => {
+   143→    let nuevos = 0;
+   144→    let actualizados = 0;
+   145→    for (const p of importPreview) {
+   146→      const existente = findProductBySku(p.sku);
+   147→      if (existente) {
+   148→        updateProduct(existente.id, { quantity: p.cantidad, udm: p.udm, name: p.nombre });
+   149→        actualizados++;
+   150→      } else {
+   151→        const id = addProduct(p.sku, p.nombre, p.cantidad, undefined, p.udm);
+   152→        if (id) nuevos++;
+   153→      }
+   154→    }
+   155→    setImportResult({ ok: nuevos + actualizados, nuevos, actualizados, msg: `${nuevos + actualizados} producto(s) importado(s): ${nuevos} nuevo(s), ${actualizados} actualizado(s)` });
+   156→    setTimeout(() => { setImportOpen(false); setImportResult(null); setImportPreview([]); }, 3000);
+   157→  };
+   158→
+   159→  // ─── Live preview de la entrada (parseo SKU*cantidad, SKU<tab>cantidad, o solo SKU) ───
+   160→  const entradaPreview = useMemo(() => {
+   161→    const lines = entradaText.split("\n").map((l) => l.trim()).filter(Boolean);
+   162→    return lines.map((line, i) => {
+   163→      // Separar por * o por tab
+   164→      let parts: string[];
+   165→      if (line.includes("*")) {
+   166→        parts = line.split("*");
+   167→      } else if (line.includes("\t")) {
+   168→        parts = line.split("\t");
+   169→      } else {
+   170→        // Solo SKU → cantidad = 1
+   171→        parts = [line, "1"];
+   172→      }
+   173→      const sku = (parts[0] ?? "").trim();
+   174→      const cantidadRaw = (parts[1] ?? "1").trim();
+   175→      const cantidad = parseInt(cantidadRaw, 10);
+   176→      if (!sku) {
+   177→        return { i, line, sku: "", cantidad: NaN, producto: null, ok: false, motivo: "SKU vacío." };
+   178→      }
+   179→      if (isNaN(cantidad) || cantidad <= 0) {
+   180→        return { i, line, sku, cantidad: NaN, producto: null, ok: false, motivo: "Cantidad inválida." };
+   181→      }
+   182→      const prod = findProductBySku(sku);
+   183→      return {
+   184→        i,
+   185→        line,
+   186→        sku,
+   187→        cantidad,
+   188→        producto: prod,
+   189→        ok: true,
+   190→        motivo: prod ? "" : "SKU no encontrado en el catálogo (se registrará como SKU literal).",
+   191→      };
+   192→    });
+   193→  }, [entradaText, findProductBySku]);
+   194→
+   195→  const validCount = entradaPreview.filter((p) => p.ok && p.producto).length;
+   196→  const invalidCount = entradaPreview.filter((p) => !p.ok || !p.producto).length;
+   197→
+   198→  return (
+   199→    <div className="px-6 py-6 anim-fade-in">
+   200→      {/* Header */}
+   201→      <header className="anim-slide-up mb-8 flex flex-wrap items-end justify-between gap-4">
+   202→        <div>
+   203→          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Inventario</h1>
+   204→          <p className="mt-1 text-[13px] text-muted-foreground">
+   205→            {products.length} producto(s) · {fmtNum(totalUnidades)} unidades
+   206→          </p>
+   207→        </div>
+   208→        <div className="flex flex-wrap items-center gap-2">
+   209→          <input ref={importFileRef} type="file" accept=".xlsx,.xls" onChange={handleImportInventario} className="hidden" />
+   210→          <div className="relative w-56">
+   211→            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" {...ICON_PROPS} />
+   212→            <Input
+   213→              value={query}
+   214→              onChange={(e) => setQuery(e.target.value)}
+   215→              placeholder="Buscar SKU o producto…"
+   216→              className="h-9 rounded-lg border-border bg-background pl-8 text-[13px]"
+   217→            />
+   218→          </div>
+   219→          <Button
+   220→            variant="outline"
+   221→            onClick={() => importFileRef.current?.click()}
+   222→            disabled={importingInv}
+   223→            className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted"
+   224→          >
+   225→            {importingInv
+   226→              ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" {...ICON_PROPS} />
+   227→              : <Upload className="mr-1.5 h-4 w-4" {...ICON_PROPS} />}
+   228→            {importingInv ? "Importando…" : "Importar"}
+   229→          </Button>
+   230→          <Button
+   231→            variant="outline"
+   232→            onClick={() => setEntradaOpen(true)}
+   233→            className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted"
+   234→          >
+   235→            <ClipboardPaste className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Importar SKUs
+   236→          </Button>
+   237→          <Button
+   238→            variant="outline"
+   239→            onClick={() => exportInventarioExcel()}
+   240→            className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted"
+   241→          >
+   242→            <Download className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Exportar
+   243→          </Button>
+   244→          {/* Botón "Añadir" eliminado — los materiales solo se pueden ingresar
+   245→              desde la página /recepciones con una guía de remisión PDF o manualmente.
+   246→              Esto evita inconsistencias de inventario por altas manuales sueltas. */}
+   247→        </div>
+   248→      </header>
+   249→
+   250→      {/* Tabla inventario */}
+   251→      {filtered.length === 0 ? (
+   252→        <div className="anim-fade-in rounded-lg border border-dashed border-border bg-background px-4 py-16 text-center text-[13px] text-muted-foreground">
+   253→          {products.length === 0 ? "No hay productos en el inventario. Ingresa materiales desde la página de Recepciones." : "Sin coincidencias."}
+   254→        </div>
+   255→      ) : (
+   256→        <div className="anim-slide-up overflow-x-auto scroll-thin rounded-lg border border-border bg-background">
+   257→          <table className="w-full text-[13px]">
+   258→            <thead>
+   259→              <tr className="border-b border-border text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+   260→                <th className="px-4 py-2.5 font-medium">SKU</th>
+   261→                <th className="px-4 py-2.5 font-medium">Producto</th>
+   262→                <th className="px-4 py-2.5 text-right font-medium">Stock</th>
+   263→                <th className="px-4 py-2.5 text-right font-medium">Mín</th>
+   264→                <th className="px-4 py-2.5 font-medium">UdM</th>
+   265→                <th className="px-4 py-2.5"></th>
+   266→              </tr>
+   267→            </thead>
+   268→            <tbody className="divide-y divide-border">
+   269→              {filtered.map((p) => {
+   270→                const bajo = p.minStock !== undefined && p.minStock > 0 && p.quantity <= p.minStock;
+   271→                return (
+   272→                  <tr key={p.id} className="group transition-colors duration-150 hover:bg-muted/50">
+   273→                    <td className="px-4 py-3">
+   274→                      <span className="font-mono text-[12px] text-foreground">{p.sku}</span>
+   275→                    </td>
+   276→                    <td className="px-4 py-3">
+   277→                      <span className="font-medium text-foreground">{p.name}</span>
+   278→                    </td>
+   279→                    <td className="px-4 py-3 text-right">
+   280→                      <span className="inline-flex items-center justify-end gap-1.5 tabular-nums text-foreground">
+   281→                        {bajo && (
+   282→                          <span
+   283→                            className="h-1.5 w-1.5 rounded-full bg-destructive"
+   284→                            aria-label="stock bajo mínimo"
+   285→                            title="Stock bajo el mínimo"
+   286→                          />
+   287→                        )}
+   288→                        {fmtNum(p.quantity)}
+   289→                      </span>
+   290→                    </td>
+   291→                    <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+   292→                      {p.minStock ? fmtNum(p.minStock) : "—"}
+   293→                    </td>
+   294→                    <td className="px-4 py-3 text-[12px] text-muted-foreground">{p.udm ?? "—"}</td>
+   295→                    <td className="px-4 py-3">
+   296→                      <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+   297→                        <button
+   298→                          onClick={() => openEdit(p)}
+   299→                          aria-label="Editar producto"
+   300→                          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+   301→                        >
+   302→                          <Pencil className="h-3.5 w-3.5" {...ICON_PROPS} />
+   303→                        </button>
+   304→                        <button
+   305→                          onClick={async () => {
+   306→                            const ok = await confirm({
+   307→                              title: "Eliminar producto del catálogo",
+   308→                              description: `¿Eliminar "${p.name}" (SKU ${p.sku}) del catálogo?`,
+   309→                              critical: true,
+   310→                              details: `Stock actual: ${p.quantity} ${p.udm || "UNIDADES"}\nPrecio: S/ ${(p.precio || 0).toFixed(2)}\nCategoría: ${p.categoria || "—"}\n\nEsta acción se registrará en /auditoría y no se puede deshacer.`,
+   311→                            });
+   312→                            if (ok) deleteProduct(p.id);
+   313→                          }}
+   314→                          aria-label="Eliminar producto"
+   315→                          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+   316→                        >
+   317→                          <Trash2 className="h-3.5 w-3.5" {...ICON_PROPS} />
+   318→                        </button>
+   319→                      </div>
+   320→                    </td>
+   321→                  </tr>
+   322→                );
+   323→              })}
+   324→            </tbody>
+   325→          </table>
+   326→        </div>
+   327→      )}
+   328→
+   329→      {/* Entradas recientes */}
+   330→      {entradas.length > 0 && (
+   331→        <section className="anim-slide-up mt-10">
+   332→          <h2 className="mb-3 text-[13px] font-medium uppercase tracking-wider text-muted-foreground">
+   333→            Entradas recientes
+   334→          </h2>
+   335→          <div className="divide-y divide-border rounded-lg border border-border bg-background">
+   336→            {entradas.slice(0, 15).map((e) => {
+   337→              const prodActual = findProductBySku(e.sku);
+   338→              const nombreMostrar = prodActual?.name ?? e.producto;
+   339→              const enCatalogo = !!prodActual;
+   340→              return (
+   341→                <div key={e.id} className="group flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/40">
+   342→                  <span className="font-mono text-[12px] tabular-nums text-foreground">+{e.cantidad}</span>
+   343→                  <div className="min-w-0 flex-1">
+   344→                    <p className="flex items-center gap-2 truncate text-[13px] font-medium text-foreground">
+   345→                      {nombreMostrar}
+   346→                      {!enCatalogo && (
+   347→                        <span className="inline-flex items-center gap-1 text-[11px] font-normal text-muted-foreground">
+   348→                          <span className="h-1 w-1 rounded-full bg-muted-foreground" />
+   349→                          no en catálogo
+   350→                        </span>
+   351→                      )}
+   352→                    </p>
+   353→                    <p className="font-mono text-[11px] text-muted-foreground">{e.sku}</p>
+   354→                  </div>
+   355→                  <span className="text-[11px] tabular-nums text-muted-foreground">
+   356→                    {new Date(e.fecha).toLocaleDateString("es-PE")}
+   357→                  </span>
+   358→                  <button
+   359→                    onClick={async () => {
+   360→                      const ok = await confirm({
+   361→                        title: "Eliminar entrada de inventario",
+   362→                        description: `¿Eliminar la entrada de ${e.cantidad} × ${e.producto || e.sku}? Se descontará del stock.`,
+   363→                        critical: e.series && e.series.length > 0,
+   364→                        details: `Fecha: ${new Date(e.fecha).toLocaleString("es-PE")}\nSKU: ${e.sku}${e.nGuia ? `\nGuía: ${e.nGuia}` : ""}${e.series?.length ? `\nSeries: ${e.series.length}` : ""}\n\n${e.series?.length ? "Las series también se eliminarán." : "El stock será descontado."}`,
+   365→                      });
+   366→                      if (ok) deleteEntrada(e.id);
+   367→                    }}
+   368→                    aria-label="Eliminar entrada"
+   369→                    className="rounded-lg p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+   370→                  >
+   371→                    <Trash className="h-3.5 w-3.5" {...ICON_PROPS} />
+   372→                  </button>
+   373→                </div>
+   374→              );
+   375→            })}
+   376→          </div>
+   377→        </section>
+   378→      )}
+   379→
+   380→      {/* Dialog añadir/editar */}
+   381→      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+   382→        <DialogContent className="rounded-lg border-border p-0">
+   383→          <DialogHeader className="border-b border-border px-6 py-4">
+   384→            <DialogTitle className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
+   385→              <Hash className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+   386→              {editing ? "Editar producto" : "Añadir producto"}
+   387→            </DialogTitle>
+   388→          </DialogHeader>
+   389→          <div className="grid grid-cols-2 gap-4 px-6 py-5">
+   390→            <div className="col-span-2 flex flex-col gap-1.5">
+   391→              <Label htmlFor="p-sku" className="text-[12px] font-medium text-muted-foreground">SKU *</Label>
+   392→              <Input
+   393→                id="p-sku"
+   394→                value={form.sku}
+   395→                onChange={(e) => { setForm({ ...form, sku: e.target.value }); setDupError(false); }}
+   396→                placeholder="Ej. 1066990"
+   397→                className={cn("rounded-lg border-border font-mono text-[13px]", dupError && "border-destructive")}
+   398→                autoFocus
+   399→              />
+   400→              {dupError && (
+   401→                <p className="flex items-center gap-1 text-[11px] text-destructive">
+   402→                  <AlertCircle className="h-3 w-3" {...ICON_PROPS} />
+   403→                  Ya existe un producto con este SKU
+   404→                </p>
+   405→              )}
+   406→            </div>
+   407→            <div className="col-span-2 flex flex-col gap-1.5">
+   408→              <Label htmlFor="p-name" className="text-[12px] font-medium text-muted-foreground">Nombre del producto *</Label>
+   409→              <Input
+   410→                id="p-name"
+   411→                value={form.name}
+   412→                onChange={(e) => setForm({ ...form, name: e.target.value })}
+   413→                placeholder="Ej. CONECTOR FIBRA OPTICA FTTH PPC"
+   414→                className="rounded-lg border-border text-[13px]"
+   415→              />
+   416→            </div>
+   417→            <div className="flex flex-col gap-1.5">
+   418→              <Label htmlFor="p-qty" className="text-[12px] font-medium text-muted-foreground">Stock actual</Label>
+   419→              <Input
+   420→                id="p-qty"
+   421→                value={form.quantity}
+   422→                onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+   423→                placeholder="Ej. 41"
+   424→                inputMode="numeric"
+   425→                className="rounded-lg border-border text-[13px] tabular-nums"
+   426→              />
+   427→            </div>
+   428→            <div className="flex flex-col gap-1.5">
+   429→              <Label htmlFor="p-min" className="text-[12px] font-medium text-muted-foreground">Stock mínimo</Label>
+   430→              <Input
+   431→                id="p-min"
+   432→                value={form.minStock}
+   433→                onChange={(e) => setForm({ ...form, minStock: e.target.value })}
+   434→                placeholder="Ej. 10"
+   435→                inputMode="numeric"
+   436→                className="rounded-lg border-border text-[13px] tabular-nums"
+   437→              />
+   438→            </div>
+   439→            <div className="col-span-2 flex flex-col gap-1.5">
+   440→              <Label htmlFor="p-udm" className="text-[12px] font-medium text-muted-foreground">Unidad de medida</Label>
+   441→              <Input
+   442→                id="p-udm"
+   443→                value={form.udm}
+   444→                onChange={(e) => setForm({ ...form, udm: e.target.value })}
+   445→                placeholder="UNIDADES, METROS…"
+   446→                className="rounded-lg border-border text-[13px]"
+   447→              />
+   448→            </div>
+   449→          </div>
+   450→          <DialogFooter className="flex-row justify-end gap-2 border-t border-border px-6 py-4">
+   451→            <Button
+   452→              variant="ghost"
+   453→              onClick={() => setDialogOpen(false)}
+   454→              className="h-9 rounded-lg px-3.5 text-[13px] font-medium hover:bg-muted"
+   455→            >
+   456→              Cancelar
+   457→            </Button>
+   458→            <Button
+   459→              onClick={handleSave}
+   460→              disabled={!form.sku.trim() || !form.name.trim()}
+   461→              className="h-9 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+   462→            >
+   463→              {editing ? "Guardar" : "Añadir"}
+   464→            </Button>
+   465→          </DialogFooter>
+   466→        </DialogContent>
+   467→      </Dialog>
+   468→
+   469→      {/* Dialog Importar SKUs (entrada masiva) */}
+   470→      <Dialog open={entradaOpen} onOpenChange={setEntradaOpen}>
+   471→        <DialogContent className="rounded-lg border-border p-0">
+   472→          <DialogHeader className="border-b border-border px-6 py-4">
+   473→            <DialogTitle className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
+   474→              <ClipboardPaste className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+   475→              Importar SKUs
+   476→            </DialogTitle>
+   477→            <DialogDescription className="text-[13px] text-muted-foreground">
+   478→              Pega una lista de productos en formato <span className="font-mono text-foreground">SKU*Cantidad</span>, uno por linea.
+   479→            </DialogDescription>
+   480→          </DialogHeader>
+   481→
+   482→          <div className="px-6 py-5">
+   483→            {/* Botón pegar del portapapeles */}
+   484→            <div className="mb-3 flex items-center justify-between">
+   485→              <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+   486→                Texto a importar
+   487→              </Label>
+   488→              <Button
+   489→                variant="outline"
+   490→                size="sm"
+   491→                onClick={async () => {
+   492→                  try {
+   493→                    const text = await navigator.clipboard.readText();
+   494→                    if (text) {
+   495→                      setEntradaText(text);
+   496→                      setEntradaMsg("");
+   497→                    }
+   498→                  } catch {
+   499→                    // permiso denegado — el usuario pega manualmente
+   500→                  }
+   501→                }}
+   502→                className="h-7 rounded-md border-border bg-background px-2.5 text-[11px] font-medium hover:bg-muted"
+   503→              >
+   504→                <ClipboardPaste className="mr-1 h-3 w-3" {...ICON_PROPS} /> Pegar
+   505→              </Button>
+   506→            </div>
+   507→            <Textarea
+   508→              value={entradaText}
+   509→              onChange={(e) => { setEntradaText(e.target.value); setEntradaMsg(""); }}
+   510→              placeholder={"SKU001*10\nSKU002*5\nSKU003*20"}
+   511→              className="min-h-[140px] rounded-lg border-border font-mono text-[13px]"
+   512→              autoFocus
+   513→            />
+   514→            <p className="mt-2 text-[11px] text-muted-foreground">
+   515→              Formatos: <span className="font-mono text-foreground">SKU*QTY</span>, <span className="font-mono text-foreground">SKU&lt;tab&gt;QTY</span>, o solo <span className="font-mono text-foreground">SKU</span> (cantidad = 1)
+   516→            </p>
+   517→
+   518→            {/* Live preview */}
+   519→            {entradaPreview.length > 0 && (
+   520→              <div className="mt-4 space-y-1">
+   521→                {entradaPreview.map((p) => (
+   522→                  <div
+   523→                    key={p.i}
+   524→                    className={cn(
+   525→                      "flex items-center gap-2 rounded-lg border px-3 py-2 text-[12px]",
+   526→                      p.ok && p.producto
+   527→                        ? "border-border bg-muted/40"
+   528→                        : "border-destructive/30 bg-destructive/5"
+   529→                    )}
+   530→                  >
+   531→                    {p.ok && p.producto ? (
+   532→                      <Check className="h-3.5 w-3.5 shrink-0 text-muted-foreground" {...ICON_PROPS} />
+   533→                    ) : (
+   534→                      <X className="h-3.5 w-3.5 shrink-0 text-destructive" {...ICON_PROPS} />
+   535→                    )}
+   536→                    <span className="font-mono text-[11px] text-foreground">{p.sku || "?"}</span>
+   537→                    <span className="text-muted-foreground">×</span>
+   538→                    <span className="tabular-nums text-foreground">{isNaN(p.cantidad) ? "?" : p.cantidad}</span>
+   539→                    <span className="min-w-0 flex-1 truncate text-muted-foreground">
+   540→                      {p.producto ? p.producto.name : p.motivo}
+   541→                    </span>
+   542→                  </div>
+   543→                ))}
+   544→                <div className="flex items-center justify-between pt-2 text-[11px] text-muted-foreground">
+   545→                  <span className="inline-flex items-center gap-1">
+   546→                    <Check className="h-3 w-3" {...ICON_PROPS} /> {validCount} válida(s)
+   547→                  </span>
+   548→                  {invalidCount > 0 && (
+   549→                    <span className="inline-flex items-center gap-1 text-destructive">
+   550→                      <X className="h-3 w-3" {...ICON_PROPS} /> {invalidCount} con problema(s)
+   551→                    </span>
+   552→                  )}
+   553→                </div>
+   554→              </div>
+   555→            )}
+   556→
+   557→            {entradaMsg && (
+   558→              <p className={cn("mt-4 text-[12px] font-medium", entradaMsg.includes("incorrecto") ? "text-destructive" : "text-foreground")}>
+   559→                {entradaMsg}
+   560→              </p>
+   561→            )}
+   562→          </div>
+   563→
+   564→          <DialogFooter className="flex-row justify-end gap-2 border-t border-border px-6 py-4">
+   565→            <Button
+   566→              variant="ghost"
+   567→              onClick={() => setEntradaOpen(false)}
+   568→              className="h-9 rounded-lg px-3.5 text-[13px] font-medium hover:bg-muted"
+   569→            >
+   570→              Cancelar
+   571→            </Button>
+   572→            <Button
+   573→              onClick={handleEntrada}
+   574→              disabled={!entradaText.trim()}
+   575→              className="h-9 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+   576→            >
+   577→              <ClipboardPaste className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Importar SKUs
+   578→            </Button>
+   579→          </DialogFooter>
+   580→        </DialogContent>
+   581→      </Dialog>
+   582→
+   583→      {/* Dialog importar inventario completo */}
+   584→      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+   585→        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto scroll-thin rounded-lg border-border p-0">
+   586→          <DialogHeader className="border-b border-border px-6 py-4">
+   587→            <DialogTitle className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
+   588→              <Upload className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+   589→              Importar inventario desde Excel
+   590→            </DialogTitle>
+   591→            <DialogDescription className="text-[13px] text-muted-foreground">
+   592→              Se detectaron {importPreview.length} producto(s). Los que ya existen se actualizarán con el stock del Excel.
+   593→            </DialogDescription>
+   594→          </DialogHeader>
+   595→
+   596→          {/* Resumen */}
+   597→          <div className="flex flex-wrap gap-6 border-b border-border px-6 py-4 text-[12px]">
+   598→            <div>
+   599→              <span className="block text-[11px] uppercase tracking-wider text-muted-foreground">Total</span>
+   600→              <span className="text-[15px] font-semibold tabular-nums text-foreground">{importPreview.length}</span>
+   601→            </div>
+   602→            <div>
+   603→              <span className="block text-[11px] uppercase tracking-wider text-muted-foreground">A actualizar</span>
+   604→              <span className="text-[15px] font-semibold tabular-nums text-foreground">{importPreview.filter(p => p.existe).length}</span>
+   605→            </div>
+   606→            <div>
+   607→              <span className="block text-[11px] uppercase tracking-wider text-muted-foreground">Nuevos</span>
+   608→              <span className="text-[15px] font-semibold tabular-nums text-foreground">{importPreview.filter(p => !p.existe).length}</span>
+   609→            </div>
+   610→          </div>
+   611→
+   612→          {/* Vista previa */}
+   613→          <div className="max-h-[300px] overflow-y-auto scroll-thin">
+   614→            <table className="w-full text-[12px]">
+   615→              <thead className="sticky top-0 bg-background">
+   616→                <tr className="border-b border-border text-left text-[10px] uppercase tracking-wider text-muted-foreground">
+   617→                  <th className="px-4 py-2 font-medium">SKU</th>
+   618→                  <th className="px-4 py-2 font-medium">Producto</th>
+   619→                  <th className="px-4 py-2 text-right font-medium">Cantidad</th>
+   620→                  <th className="px-4 py-2 font-medium">UdM</th>
+   621→                  <th className="px-4 py-2 font-medium">Estado</th>
+   622→                </tr>
+   623→              </thead>
+   624→              <tbody className="divide-y divide-border">
+   625→                {importPreview.map((p, i) => (
+   626→                  <tr key={i} className="transition-colors hover:bg-muted/40">
+   627→                    <td className="px-4 py-2 font-mono text-[11px] text-foreground">{p.sku}</td>
+   628→                    <td className="max-w-[220px] truncate px-4 py-2 text-foreground">{p.nombre}</td>
+   629→                    <td className="px-4 py-2 text-right font-medium tabular-nums text-foreground">{fmtNum(p.cantidad)}</td>
+   630→                    <td className="px-4 py-2 text-muted-foreground">{p.udm ?? "—"}</td>
+   631→                    <td className="px-4 py-2">
+   632→                      <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+   633→                        <span
+   634→                          className={cn(
+   635→                            "h-1.5 w-1.5 rounded-full",
+   636→                            p.existe ? "bg-foreground/60" : "bg-foreground"
+   637→                          )}
+   638→                        />
+   639→                        {p.existe ? "Actualizar" : "Nuevo"}
+   640→                      </span>
+   641→                    </td>
+   642→                  </tr>
+   643→                ))}
+   644→              </tbody>
+   645→            </table>
+   646→          </div>
+   647→
+   648→          {importResult && (
+   649→            <div className="flex items-center gap-2 border-t border-border px-6 py-3 text-[13px] text-foreground">
+   650→              <Check className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+   651→              {importResult.msg}
+   652→            </div>
+   653→          )}
+   654→
+   655→          <DialogFooter className="sticky bottom-0 flex-row justify-end gap-2 border-t border-border bg-background px-6 py-4">
+   656→            <Button
+   657→              variant="ghost"
+   658→              onClick={() => setImportOpen(false)}
+   659→              className="h-9 rounded-lg px-3.5 text-[13px] font-medium hover:bg-muted"
+   660→            >
+   661→              Cancelar
+   662→            </Button>
+   663→            <Button
+   664→              onClick={confirmImport}
+   665→              disabled={importPreview.length === 0 || !!importResult}
+   666→              className="h-9 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+   667→            >
+   668→              <Check className="mr-1.5 h-4 w-4" {...ICON_PROPS} />
+   669→              Confirmar importación ({importPreview.length})
+   670→            </Button>
+   671→          </DialogFooter>
+   672→        </DialogContent>
+   673→      </Dialog>
+   674→      {ConfirmDialog}
+   675→    </div>
+   676→  );
+   677→}
+   678→

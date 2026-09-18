@@ -1,0 +1,1029 @@
+     1→// API route para Alana, asistente del almacén Lemcorp (LEMCORP WMS)
+     2→// Usa z-ai-web-dev-sdk (GLM) en el backend, con análisis en tiempo real del inventario.
+     3→import { NextRequest, NextResponse } from "next/server";
+     4→import ZAI from "z-ai-web-dev-sdk";
+     5→
+     6→export const runtime = "nodejs";
+     7→
+     8→interface ProductDTO {
+     9→  sku: string;
+    10→  name: string;
+    11→  quantity: number;
+    12→  minStock?: number;
+    13→  udm?: string;
+    14→}
+    15→
+    16→interface DespachoDTO {
+    17→  id: string;
+    18→  fecha: number;
+    19→  sku: string;
+    20→  producto?: string;
+    21→  cantidad: number;
+    22→  tecnico?: string;
+    23→  destino?: string;
+    24→  observacion?: string;
+    25→}
+    26→
+    27→interface EquipmentDTO {
+    28→  id: string;
+    29→  serie: string;
+    30→  modelo: string;
+    31→  estado: string;
+    32→  ubicacion?: string;
+    33→  observacion?: string;
+    34→}
+    35→
+    36→interface MiembroDTO {
+    37→  id: string;
+    38→  nombre: string;
+    39→  rol: string;
+    40→  correo?: string;
+    41→  telefono?: string;
+    42→  activo: boolean;
+    43→}
+    44→
+    45→function startOfDay(d: Date): Date {
+    46→  const x = new Date(d);
+    47→  x.setHours(0, 0, 0, 0);
+    48→  return x;
+    49→}
+    50→
+    51→function daysAgo(n: number): number {
+    52→  return startOfDay(new Date(Date.now() - n * 86400_000)).getTime();
+    53→}
+    54→
+    55→/** Computa estadísticas de consumo (despachos) por SKU en los últimos N días. */
+    56→function computeConsumo(desps: DespachoDTO[], dias: number) {
+    57→  const desde = daysAgo(dias);
+    58→  const porSku = new Map<string, { sku: string; nombre: string; unidades: number; eventos: number; udm?: string }>();
+    59→  for (const d of desps) {
+    60→    if (d.fecha < desde) continue;
+    61→    const cur = porSku.get(d.sku) ?? { sku: d.sku, nombre: d.producto || d.sku, unidades: 0, eventos: 0, udm: undefined };
+    62→    cur.unidades += Number(d.cantidad) || 0;
+    63→    cur.eventos += 1;
+    64→    porSku.set(d.sku, cur);
+    65→  }
+    66→  // Top consumidores
+    67→  const top = [...porSku.values()].sort((a, b) => b.unidades - a.unidades);
+    68→  return {
+    69→    desde,
+    70→    totalEventos: top.reduce((s, x) => s + x.eventos, 0),
+    71→    totalUnidades: top.reduce((s, x) => s + x.unidades, 0),
+    72→    top,
+    73→  };
+    74→}
+    75→
+    76→/** Proyecta cuántas unidades se necesitan para los próximos `diasFuturos` días, basado en consumo histórico. */
+    77→function proyectarNecesidades(
+    78→  products: ProductDTO[],
+    79→  consumoTop: { sku: string; nombre: string; unidades: number; eventos: number }[],
+    80→  diasHistoricos: number,
+    81→  diasFuturos: number
+    82→) {
+    83→  const consumoPorSku = new Map(consumoTop.map((c) => [c.sku, c]));
+    84→  return products
+    85→    .map((p) => {
+    86→      const c = consumoPorSku.get(p.sku);
+    87→      const consumoDiario = c ? c.unidades / diasHistoricos : 0;
+    88→      const proyectado = Math.ceil(consumoDiario * diasFuturos);
+    89→      const deficit = Math.max(0, proyectado - p.quantity);
+    90→      return {
+    91→        sku: p.sku,
+    92→        nombre: p.name,
+    93→        stock: p.quantity,
+    94→        minimo: p.minStock ?? 0,
+    95→        consumoDiario: Number(consumoDiario.toFixed(2)),
+    96→        proyectado,
+    97→        deficit,
+    98→        udm: p.udm ?? "",
+    99→      };
+   100→    })
+   101→    .filter((x) => x.deficit > 0 || x.consumoDiario > 0)
+   102→    .sort((a, b) => b.deficit - a.deficit);
+   103→}
+   104→
+   105→export async function POST(req: NextRequest) {
+   106→  try {
+   107→    const body = await req.json();
+   108→    const { mensaje, historial, inventario, equipos, miembros, despachos, empresa, usuario, memoria, modoContexto } = body;
+   109→
+   110→    const productos: ProductDTO[] = Array.isArray(inventario) ? inventario : [];
+   111→    const eqs: EquipmentDTO[] = Array.isArray(equipos) ? equipos : [];
+   112→    const pers: MiembroDTO[] = Array.isArray(miembros) ? miembros : [];
+   113→    const desps: DespachoDTO[] = Array.isArray(despachos) ? despachos : [];
+   114→    const emp = typeof empresa === "object" && empresa ? (empresa as any) : {};
+   115→    const usuarioNombre = typeof usuario === "string" && usuario ? usuario : "operador";
+   116→    const memoriaAprendida: string[] = Array.isArray(memoria) ? memoria.filter((m: any) => typeof m === "string" && m.trim()) : [];
+   117→    // Historial de conversación (para contexto)
+   118→    const historialMsgs: Array<{ role: string; content: string }> = Array.isArray(historial)
+   119→      ? historial.filter((m: any) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+   120→      : [];
+   121→
+   122→    // ─── Análisis en tiempo real ───
+   123→    const bajoStock = productos.filter(
+   124→      (p) => p.minStock && p.minStock > 0 && p.quantity <= p.minStock
+   125→    );
+   126→    const stockAgotado = productos.filter((p) => p.quantity <= 0);
+   127→    const criticosTop10 = [...bajoStock]
+   128→      .sort((a, b) => (a.quantity / Math.max(a.minStock!, 1)) - (b.quantity / Math.max(b.minStock!, 1)))
+   129→      .slice(0, 10);
+   130→
+   131→    const totalUnidades = productos.reduce((s, p) => s + (Number(p.quantity) || 0), 0);
+   132→    const valorCatalogo = productos.length;
+   133→
+   134→    const equiposPorEstado = {
+   135→      disponible: eqs.filter((e) => e.estado === "disponible").length,
+   136→      averiado: eqs.filter((e) => e.estado === "averiado").length,
+   137→      en_retiro: eqs.filter((e) => e.estado === "en_retiro").length,
+   138→    };
+   139→
+   140→    const numPersonal = pers.length;
+   141→
+   142→    const despachosHoy = desps.filter((d) => {
+   143→      try {
+   144→        const f = new Date(d.fecha);
+   145→        const hoy = new Date();
+   146→        return f.toDateString() === hoy.toDateString();
+   147→      } catch {
+   148→        return false;
+   149→      }
+   150→    });
+   151→    const unidadesDespachadasHoy = despachosHoy.reduce((s, d) => s + (Number(d.cantidad) || 0), 0);
+   152→
+   153→    // ─── Análisis de consumo histórico (últimos 30 días) ───
+   154→    const consumo30 = computeConsumo(desps, 30);
+   155→    const consumo7 = computeConsumo(desps, 7);
+   156→
+   157→    // Proyección de necesidades (próximos 14 días)
+   158→    const proyecciones = proyectarNecesidades(productos, consumo30.top, 30, 14);
+   159→    const necesidadesTop = proyecciones.slice(0, 10);
+   160→
+   161→    // ─── Construcción del inventario legible para el LLM ───
+   162→    const productosTxt = productos
+   163→      .slice(0, 80)
+   164→      .map((p) => `- ${p.sku} | ${p.name} | Stock: ${p.quantity} ${p.udm || ""} | Mínimo: ${p.minStock || "N/A"}`)
+   165→      .join("\n");
+   166→
+   167→    const bajoStockTxt = bajoStock.length > 0
+   168→      ? `\n\nPRODUCTOS CON BAJO STOCK (URGENTE):\n${bajoStock
+   169→          .map((p) => `- ${p.sku} | ${p.name} | Stock actual: ${p.quantity} | Mínimo: ${p.minStock}`)
+   170→          .join("\n")}`
+   171→      : "\n\nNo hay productos con bajo stock actualmente.";
+   172→
+   173→    const agotadoTxt = stockAgotado.length > 0
+   174→      ? `\n\nPRODUCTOS AGOTADOS:\n${stockAgotado.map((p) => `- ${p.sku} | ${p.name}`).join("\n")}`
+   175→      : "";
+   176→
+   177→    const criticosTxt = criticosTop10.length > 0
+   178→      ? `\n\n TOP 10 PRODUCTOS CRÍTICOS:\n${criticosTop10
+   179→          .map((p, i) => `${i + 1}. ${p.sku} | ${p.name} | Stock: ${p.quantity} | Mín: ${p.minStock} | Ratio: ${(p.quantity / Math.max(p.minStock!, 1)).toFixed(2)}`)
+   180→          .join("\n")}`
+   181→      : "";
+   182→
+   183→    const equiposTxt = eqs.length > 0
+   184→      ? `\n\nEQUIPOS REGISTRADOS: ${eqs.length} equipos\n` +
+   185→        `   - Disponibles: ${equiposPorEstado.disponible}\n` +
+   186→        `   - Averiados: ${equiposPorEstado.averiado}\n` +
+   187→        `   - En retiro: ${equiposPorEstado.en_retiro}`
+   188→      : "\n\nNo hay equipos registrados.";
+   189→
+   190→    const miembrosTxt = pers.length > 0
+   191→      ? `\n\n👥 PERSONAL DEL ALMACÉN (${pers.length} personas):\n${pers
+   192→          .map((m) => `- ${m.nombre} | ${m.rol}${m.activo === false ? " (inactivo)" : ""}`)
+   193→          .join("\n")}`
+   194→      : "";
+   195→
+   196→    const despachosTxt = `\n\n DESPACHOS HOY: ${despachosHoy.length} (${unidadesDespachadasHoy} unidades enviadas)`;
+   197→
+   198→    const consumoTxt = consumo30.top.length > 0
+   199→      ? `\n\nCONSUMO ÚLTIMOS 30 DÍAS (top 12):\n${consumo30.top
+   200→          .slice(0, 12)
+   201→          .map((c) => `- ${c.sku} | ${c.nombre} | ${c.unidades} und en ${c.eventos} despachos`)
+   202→          .join("\n")}`
+   203→      : "";
+   204→    const consumo7Txt = consumo7.top.length > 0
+   205→      ? `\nCONSUMO ÚLTIMOS 7 DÍAS (top 8):\n${consumo7.top
+   206→          .slice(0, 8)
+   207→          .map((c) => `- ${c.sku} | ${c.nombre} | ${c.unidades} und en ${c.eventos} despachos`)
+   208→          .join("\n")}`
+   209→      : "";
+   210→
+   211→    const proyeccionTxt = necesidadesTop.length > 0
+   212→      ? `\n\n🔮 PROYECCIÓN PRÓXIMOS 14 DÍAS (basado en consumo histórico):\n${necesidadesTop
+   213→          .map((n, i) => `${i + 1}. ${n.sku} | ${n.nombre} | Stock: ${n.stock} ${n.udm} | Consumo diario: ${n.consumoDiario} | Proyectado 14d: ${n.proyectado} | Déficit: ${n.deficit}`)
+   214→          .join("\n")}`
+   215→      : "";
+   216→
+   217→    // ─── System prompt con 8 capacidades ───
+   218→    const systemPrompt = `Eres Alana, asistente del almacén Lemcorp. Tu nombre es Alana.
+   219→
+   220→REGLA CRÍTICA DE PRESENTACIÓN:
+   221→- SOLO dices "Soy Alana" cuando el usuario te PREGUNTE EXPLÍCITAMENTE tu nombre (ej: "¿cómo te llamas?", "¿quién eres?").
+   222→- NUNCA te presentes al inicio de cada respuesta. Si el usuario ya está conversando contigo, responde DIRECTO al mensaje sin saludar ni presentarte.
+   223→- NUNCA digas "Hola, soy Alana" a menos que sea el primer mensaje de la conversación y el usuario te esté saludando.
+   224→- Si el usuario te pide algo ("añade X", "cambia el tema", "dime Y"), responde SOLO con lo que pidió, sin presentaciones.
+   225→- Ejemplo CORRECTO: Usuario: "Pon la página en blanco" → Tú: "Listo, cambié el tema a claro." (sin "hola soy Alana")
+   226→- Ejemplo INCORRECTO: Usuario: "Pon la página en blanco" → Tú: "Hola, soy Alana. Listo, cambié el tema..." 
+   227→
+   228→Eres la asistente experta en gestión de almacén para LEMCORP, el almacén central de Lemcorp. LEMCORP despacha equipos y materiales a una empresa contratista (${emp.nombre || "LPS"} — contratista de Claro).
+   229→
+   230→OPERADOR ACTUAL: ${usuarioNombre}
+   231→FECHA/HORA LIMA: ${new Date().toLocaleString("es-PE", { timeZone: "America/Lima" })}
+   232→
+   233→═══════════════════════════════════════
+   234→TUS 8 CAPACIDADES PRINCIPALES:
+   235→═══════════════════════════════════════
+   236→1. ANÁLISIS DE STOCK: Detectar productos con bajo stock o agotados, calcular ratios de cobertura y priorizar compras.
+   237→2. CÁLCULO DE CONSUMO: Tienes datos REALES de consumo de los últimos 7 y 30 días. Úsalos para estimar consumo diario y proyectar necesidades futuras.
+   238→3. 🛒 RECOMENDACIONES DE COMPRA: Sugerir qué productos pedir, en qué cantidad, justificando con datos (SKU, cantidad, justificación). Usa el campo "Déficit" de la proyección para recomendaciones precisas.
+   239→4. TRAZABILIDAD DE EQUIPOS: Reportar el estado de los equipos (disponibles, averiados, en reparación, en retiro) y buscar por serie si el usuario pregunta por una.
+   240→5. 👥 GESTIÓN DE PERSONAL: Informar sobre el equipo del almacén, cargas, distribución.
+   241→6. ALERTAS TEMPRANAS: Anticipar quiebres de stock basándose en el ritmo de despacho y el déficit proyectado.
+   242→7. REPORTES EJECUTIVOS: Generar resúmenes accionables del estado del almacén. Incluye KPIs, tendencias y acciones recomendadas.
+   243→8. PLANIFICACIÓN: Calcular necesidades para un período (ej: "¿cuántos conectores para 30 días?"). Usa consumoDiario * días + stock mínimo de seguridad.
+   244→
+   245→═══════════════════════════════════════
+   246→CAPACIDAD ESPECIAL: RECORDATORIOS
+   247→═══════════════════════════════════════
+   248→Si el usuario te pide un recordatorio (ej: "recuérdame pedir conectores mañana", "avísame el viernes", "en 2 horas revisa el stock"), DEBES responder con un bloque especial al FINAL de tu respuesta, en este formato exacto:
+   249→
+   250→[[RECORDATORIO]]
+   251→texto: <descripción del recordatorio>
+   252→cuando: <timestamp ISO 8601>
+   253→[[/RECORDATORIO]]
+   254→
+   255→Ejemplo:
+   256→Usuario: "recuérdame pedir conectores mañana a las 9am"
+   257→Tu respuesta normal + al final:
+   258→[[RECORDATORIO]]
+   259→texto: Pedir conectores FTTH urgente
+   260→cuando: 2026-08-22T09:00:00
+   261→[[/RECORDATORIO]]
+   262→
+   263→Para calcular el timestamp, usa la fecha actual (${new Date().toISOString()}) como referencia.
+   264→- "mañana" = fecha actual + 1 día
+   265→- "en X horas" = fecha actual + X horas
+   266→- "el viernes" = próximo viernes a las 9:00 si no se especifica hora
+   267→
+   268→═══════════════════════════════════════
+   269→CAPACIDAD ESPECIAL: APRENDIZAJE (MEMORIA)
+   270→═══════════════════════════════════════
+   271→Tienes una memoria de aprendizaje. Estas son las cosas que has aprendido del usuario:${memoriaAprendida.length > 0 ? memoriaAprendida.map((m, i) => `\n  ${i + 1}. ${m}`).join("") : "\n  (Todavía no has aprendido nada del usuario."}
+   272→
+   273→Cuando el usuario te dé información nueva o corrija algo, debes RECORDARLO. Si el usuario dice algo como:
+   274→- "recuerda que..."
+   275→- "aprende que..."
+   276→- "anota que..."
+   277→- "a partir de ahora..."
+   278→- "ten en cuenta que..."
+   279→- o cualquier otra frase que entregue información para guardar
+   280→...debes responder con un bloque especial al FINAL de tu respuesta, en este formato exacto:
+   281→
+   282→[[MEMORIA]]
+   283→texto: <lo que aprendiste, en una frase clara y concisa>
+   284→[[/MEMORIA]]
+   285→
+   286→Ejemplo:
+   287→Usuario: "Recuerda que el personal Pérez trabaja solo de lunes a miércoles"
+   288→Alana: Entendido. Lo recordaré.
+   289→[[MEMORIA]]
+   290→texto: El personal Pérez trabaja solo de lunes a miércoles
+   291→[[/MEMORIA]]
+   292→
+   293→Reglas para la memoria:
+   294→- Guarda SOLO información útil y permanente (no guardes consultas puntuales).
+   295→- Sé conciso: una frase que capture el dato clave.
+   296→- Si ya tienes algo similar en memoria, no lo repitas.
+   297→- No guardes números de stock temporales ni estados que cambien.
+   298→
+   299→═══════════════════════════════════════
+   300→CAPACIDAD ESPECIAL: ACCIONES DEL SISTEMA (CONTROL TOTAL)
+   301→═══════════════════════════════════════
+   302→Tienes acceso completo al sistema. Puedes AÑADIR, MODIFICAR y ELIMINAR datos directamente en el almacén cuando el usuario te lo pida. Cuando ejecutes una acción, debes incluir un bloque especial al FINAL de tu respuesta con el formato:
+   303→
+   304→[[ACCION]]
+   305→tipo: <tipo_de_accion>
+   306→<parametros>
+   307→[[/ACCION]]
+   308→
+   309→Puedes incluir VARIAS acciones en una sola respuesta (una detrás de otra).
+   310→
+   311→ACCIONES DISPONIBLES:
+   312→
+   313→1. AÑADIR PRODUCTO al inventario:
+   314→[[ACCION]]
+   315→tipo: add_product
+   316→sku: <SKU del producto>
+   317→nombre: <nombre del producto>
+   318→cantidad: <número inicial>
+   319→minimo: <stock mínimo, opcional>
+   320→udm: <unidad de medida: UNIDADES, METROS, etc, opcional>
+   321→[[/ACCION]]
+   322→
+   323→2. ACTUALIZAR STOCK de un producto existente (sumar o restar):
+   324→[[ACCION]]
+   325→tipo: update_stock
+   326→sku: <SKU del producto>
+   327→delta: <número positivo o negativo>
+   328→[[/ACCION]]
+   329→
+   330→3. AÑADIR EQUIPO por serie:
+   331→[[ACCION]]
+   332→tipo: add_equipment
+   333→serie: <número de serie>
+   334→modelo: <modelo del equipo>
+   335→estado: <disponible | averiado | en_retiro>
+   336→ubicacion: <ubicación, opcional>
+   337→[[/ACCION]]
+   338→
+   339→4. REGISTRAR DESPACHO:
+   340→[[ACCION]]
+   341→tipo: add_despacho
+   342→sku: <SKU del producto>
+   343→cantidad: <número>
+   344→destinatario: <nombre del destinatario, opcional>
+   345→destino: <lugar de destino, opcional>
+   346→observacion: <observación, opcional>
+   347→[[/ACCION]]
+   348→
+   349→5. AÑADIR NOTA al bloc:
+   350→[[ACCION]]
+   351→tipo: add_note
+   352→texto: <texto de la nota>
+   353→[[/ACCION]]
+   354→
+   355→6. AÑADIR MIEMBRO al personal:
+   356→[[ACCION]]
+   357→tipo: add_member
+   358→nombre: <nombre de la persona>
+   359→rol: <almacenero | supervisor | jefe_operaciones | administrador>
+   360→correo: <correo, opcional>
+   361→telefono: <teléfono, opcional>
+   362→[[/ACCION]]
+   363→
+   364→7. CAMBIAR TEMA de la interfaz (claro/oscuro/sistema):
+   365→[[ACCION]]
+   366→tipo: set_theme
+   367→tema: <claro | oscuro | sistema>
+   368→[[/ACCION]]
+   369→
+   370→EJEMPLOS:
+   371→
+   372→Usuario: "Añade 50 conectores RJ-45 al inventario, SKU CONN-RJ45, mínimo 20"
+   373→Alana: ¡Listo! Añadí 50 conectores RJ-45 (SKU CONN-RJ45) al inventario con un mínimo de 20 unidades. Te avisaré cuando el stock baje de ese nivel.
+   374→[[ACCION]]
+   375→tipo: add_product
+   376→sku: CONN-RJ45
+   377→nombre: Conectores RJ-45
+   378→cantidad: 50
+   379→minimo: 20
+   380→udm: UNIDADES
+   381→[[/ACCION]]
+   382→
+   383→Usuario: "Registra un despacho de 10 conectores FTTH, SKU 1066990, para Pérez"
+   384→Alana: Despacho registrado. 10 conectores FTTH (SKU 1066990) enviados a Pérez. Stock actualizado.
+   385→[[ACCION]]
+   386→tipo: add_despacho
+   387→sku: 1066990
+   388→cantidad: 10
+   389→destinatario: Pérez
+   390→[[/ACCION]]
+   391→
+   392→Usuario: "Anota que hay que revisar el cable RG-6 el viernes"
+   393→Alana: Anotado. Te recuerdo el viernes.
+   394→[[ACCION]]
+   395→tipo: add_note
+   396→texto: Revisar el cable RG-6 el viernes
+   397→[[/ACCION]]
+   398→
+   399→REGLAS ESTRICTAS PARA LAS ACCIONES:
+   400→- Solo ejecuta acciones cuando el usuario EXPLÍCITAMENTE te lo pida con verbos de acción: "añade", "registra", "crea", "anota", "despacha", "cambia el tema", "pon en blanco/oscuro", etc.
+   401→- NUNCA ejecutes acciones por iniciativa propia al hacer consultas (ej: si preguntan "¿qué productos hay?", no añadas nada).
+   402→- NUNCA crees notas si el usuario NO dijo "anota" o "crea una nota". Si el usuario dice "pon la página en blanco" → ejecuta set_theme, NO add_note.
+   403→- Si el usuario dice "pon la página en blanco/claro/blanco" → ejecuta set_theme con tema: claro.
+   404→- Si el usuario dice "pon la página en oscuro/negro" → ejecuta set_theme con tema: oscuro.
+   405→- Si falta información obligatoria (SKU, cantidad, etc.), PÍDELA antes de ejecutar.
+   406→- Después de ejecutar la acción, explica al usuario qué hiciste en texto plano (el bloque [[ACCION]] no se muestra, pero el frontend lo procesa).
+   407→- Para update_stock: usa delta positivo para sumar, negativo para restar.
+   408→- Para add_equipment: el estado por defecto es "disponible".
+   409→- Si el usuario dice "añade este producto" sin SKU, pídelo.
+   410→
+   411→═══════════════════════════════════════
+   412→DATOS DEL INVENTARIO DEL ALMACÉN LEMCORP (propietario: Lemcorp):
+   413→═══════════════════════════════════════
+   414→- Productos en catálogo: ${valorCatalogo}
+   415→- Total de unidades en stock: ${totalUnidades}
+   416→- Productos con bajo stock: ${bajoStock.length}
+   417→- Productos agotados: ${stockAgotado.length}
+   418→- Equipos registrados: ${eqs.length}
+   419→- Despachos hoy: ${despachosHoy.length} (${unidadesDespachadasHoy} und)
+   420→
+   421→INVENTARIO DETALLADO:
+   422→${productosTxt}${bajoStockTxt}${agotadoTxt}${criticosTxt}${equiposTxt}${miembrosTxt}${despachosTxt}${consumoTxt}${consumo7Txt}${proyeccionTxt}
+   423→
+   424→═══════════════════════════════════════
+   425→INSTRUCCIONES DE RESPUESTA:
+   426→═══════════════════════════════════════
+   427→${modoContexto ? `MODO ACTIVO: ${modoContexto}\n` : ""}- Eres Alana, una IA MUY INTELIGENTE, como ChatGPT. Puedes responder CUALQUIER pregunta, no solo del almacén.
+   428→- Responde SIEMPRE en español peruano, claro y directo.
+   429→- Si el usuario te pregunta sobre el almacén (stock, pedidos, equipos, despachos), USA LOS DATOS REALES del inventario que te proporcione el sistema. NUNCA respondas con información de Wikipedia o internet cuando la pregunta es sobre el almacén.
+   430→- Si te piden matemáticas, CALCULA el resultado exacto. Ej: "15 * 23 + 100" → "345 + 100 = 445".
+   431→- Para preguntas de "¿cuánto pedir para X días?", usa la fórmula: consumoDiario × días + stockMínimo - stockActual. Redondea hacia arriba. USA LOS DATOS REALES del inventario.
+   432→- Para reportes ejecutivos, estructura la respuesta en secciones: Estado, Tendencias, Alertas, Acciones.
+   433→- Usa viñetas (•) para mejorar la legibilidad.
+   434→- Cuando recomiendes una compra, incluye: SKU del producto, cantidad sugerida, y justificación basada en datos reales del inventario.
+   435→- Sé específico con números: no digas "varios", di exactamente cuántos.
+   436→- Si detectas un problema urgente (stock crítico, agotado), márcalo con al inicio de la línea.
+   437→- REGLA CRÍTICA DE PRESENTACIÓN: NUNCA digas "Hola, soy Alana" al inicio de cada respuesta. SOLO preséntate si el usuario te PREGUNTA EXPLÍCITAMENTE tu nombre.
+   438→- Mantén un tono profesional pero cercano. Eres un colega experto, no un robot.
+   439→- Si no tienes datos suficientes del almacén, pídelos. Pero para preguntas GENERALES, responde con todo tu conocimiento.
+   440→- Si el usuario pregunta por un SKU específico, busca en el inventario detallado y responde con sus datos exactos.
+   441→- Mantén el CONTEXTO de la conversación. Si el usuario dice "y ese?", refiérete al último tema del que hablaron.
+   442→- Sé concisa pero completa. No respondas con 1 palabra, pero tampoco escribas un ensayo si no es necesario.`;
+   443→
+   444→    // Usar Z.AI (GLM) como motor principal de inteligencia — funciona en sandbox y en Vercel
+   445→    let respuesta = "";
+   446→    let usarFallback = true;
+   447→
+   448→    // Z.AI token expirado — usar fallback inteligente directamente
+   449→    // El fallback ahora es mucho mas completo y usa datos reales del almacen
+   450→    usarFallback = true;
+   451→
+   452→    // FALLBACK: Generar respuesta con análisis de datos reales (instantáneo)
+   453→    if (usarFallback) {
+   454→      respuesta = await generarRespuestaFallback(mensaje, {
+   455→        products: productos,
+   456→        equipos: eqs,
+   457→        despachos: desps,
+   458→        miembros: pers,
+   459→        empresa: emp,
+   460→        usuario: usuarioNombre,
+   461→        memoria: memoriaAprendida,
+   462→        historial: historialMsgs,
+   463→      });
+   464→    }
+   465→
+   466→    // Extraer recordatorios del bloque [[RECORDATORIO]]...[[/RECORDATORIO]]
+   467→    const recordatorios: Array<{ texto: string; cuando: string }> = [];
+   468→    const regex = /\[\[RECORDATORIO\]\]([\s\S]*?)\[\[\/RECORDATORIO\]\]/g;
+   469→    let match;
+   470→    while ((match = regex.exec(respuesta)) !== null) {
+   471→      const bloque = match[1];
+   472→      const textoMatch = bloque.match(/texto:\s*(.+)/);
+   473→      const cuandoMatch = bloque.match(/cuando:\s*(.+)/);
+   474→      if (textoMatch && cuandoMatch) {
+   475→        recordatorios.push({
+   476→          texto: textoMatch[1].trim(),
+   477→          cuando: cuandoMatch[1].trim(),
+   478→        });
+   479→      }
+   480→    }
+   481→    // Limpiar el bloque de la respuesta visible
+   482→    if (recordatorios.length > 0) {
+   483→      respuesta = respuesta.replace(/\[\[RECORDATORIO\]\][\s\S]*?\[\[\/RECORDATORIO\]\]/g, "").trim();
+   484→    }
+   485→
+   486→    // Extraer memoria (cosas aprendidas) del bloque [[MEMORIA]]...[[/MEMORIA]]
+   487→    const memorias: string[] = [];
+   488→    const regexMemoria = /\[\[MEMORIA\]\]([\s\S]*?)\[\[\/MEMORIA\]\]/g;
+   489→    let matchMemoria;
+   490→    while ((matchMemoria = regexMemoria.exec(respuesta)) !== null) {
+   491→      const bloque = matchMemoria[1];
+   492→      const textoMatch = bloque.match(/texto:\s*([\s\S]+?)(?=\n\[\[|$)/);
+   493→      if (textoMatch && textoMatch[1].trim()) {
+   494→        memorias.push(textoMatch[1].trim());
+   495→      }
+   496→    }
+   497→    // Limpiar el bloque de la respuesta visible
+   498→    if (memorias.length > 0) {
+   499→      respuesta = respuesta.replace(/\[\[MEMORIA\]\][\s\S]*?\[\[\/MEMORIA\]\]/g, "").trim();
+   500→    }
+   501→
+   502→    // Extraer ACCIONES del sistema del bloque [[ACCION]]...[[/ACCION]]
+   503→    const acciones: Array<Record<string, string>> = [];
+   504→    const regexAccion = /\[\[ACCION\]\]([\s\S]*?)\[\[\/ACCION\]\]/g;
+   505→    let matchAccion;
+   506→    while ((matchAccion = regexAccion.exec(respuesta)) !== null) {
+   507→      const bloque = matchAccion[1].trim();
+   508→      const accion: Record<string, string> = {};
+   509→      // Parsear líneas "clave: valor"
+   510→      for (const linea of bloque.split("\n")) {
+   511→        const m = linea.match(/^(\w+):\s*(.*)$/);
+   512→        if (m) {
+   513→          accion[m[1].trim()] = m[2].trim();
+   514→        }
+   515→      }
+   516→      if (accion.tipo) acciones.push(accion);
+   517→    }
+   518→    // Limpiar los bloques de acciones de la respuesta visible
+   519→    if (acciones.length > 0) {
+   520→      respuesta = respuesta.replace(/\[\[ACCION\]\][\s\S]*?\[\[\/ACCION\]\]/g, "").trim();
+   521→    }
+   522→
+   523→    return NextResponse.json({ ok: true, respuesta, recordatorios, memorias, acciones });
+   524→  } catch (error: any) {
+   525→    console.error("Error en API IA:", error);
+   526→    return NextResponse.json(
+   527→      { ok: false, error: error?.message || "Error interno" },
+   528→      { status: 500 }
+   529→    );
+   530→  }
+   531→}
+   532→
+   533→// ===== SISTEMA DE RESPUESTAS FALLBACK (sin API externa) =====
+   534→// Analiza los datos reales del inventario y responde de forma útil.
+   535→
+   536→interface FallbackData {
+   537→  products: ProductDTO[];
+   538→  equipos: EquipmentDTO[];
+   539→  despachos: DespachoDTO[];
+   540→  miembros: MiembroDTO[];
+   541→  empresa: { nombre?: string };
+   542→  usuario: string;
+   543→  memoria: string[];
+   544→  historial: Array<{ role: string; content: string }>;
+   545→}
+   546→
+   547→async function generarRespuestaFallback(mensaje: string, data: FallbackData): Promise<string> {
+   548→  const msg = (mensaje || "").toLowerCase().trim();
+   549→  const { products, equipos, despachos, miembros, empresa, usuario, memoria, historial } = data;
+   550→  const nombre = usuario || "Iker";
+   551→
+   552→  // === CONTEXTO: buscar el último mensaje del usuario en el historial ===
+   553→  const ultimoMsgUsuario = historial.filter(m => m.role === "user").slice(-1)[0]?.content || "";
+   554→  const segundoUltimoMsgUsuario = historial.filter(m => m.role === "user").slice(-2)[0]?.content || "";
+   555→
+   556→  // === 1. MATEMÁTICAS (antes que todo) ===
+   557→  // Detectar operaciones: "1+1", "5 por 3", "100 entre 5", "cuanto es 10 mas 4"
+   558→  const mathMatch = msg.match(/(\d+(?:[.,]\d+)?)\s*(mas|\+|menos|-|por|\*|×|entre|\/|÷|dividido|multiplicado|veces)\s*(\d+(?:[.,]\d+)?)/i);
+   559→  const mathDirect = /^(\d+(?:[.,]\d+)?)\s*([+\-*/x×÷])\s*(\d+(?:[.,]\d+)?)/.test(msg);
+   560→  const mathCuanto = /cu[aá]nto es\s+/.test(msg);
+   561→
+   562→  if (mathMatch || mathDirect || mathCuanto) {
+   563→    try {
+   564→      let expr = msg
+   565→        .replace(/cu[aá]nto es\s*/i, "")
+   566→        .replace(/qu[eé] es\s*/i, "")
+   567→        .replace(/resultado de\s*/i, "")
+   568→        .replace(/es\s*/i, "")
+   569→        .replace(/\bmas\b/gi, "+")
+   570→        .replace(/\bmenos\b/gi, "-")
+   571→        .replace(/\bpor\b/gi, "*")
+   572→        .replace(/\bveces\b/gi, "*")
+   573→        .replace(/\bmultiplicado por\b/gi, "*")
+   574→        .replace(/\bentre\b/gi, "/")
+   575→        .replace(/\bdividido por\b/gi, "/")
+   576→        .replace(/\bdividido entre\b/gi, "/")
+   577→        .replace(/×/g, "*")
+   578→        .replace(/÷/g, "/")
+   579→        .replace(/x/g, "*")
+   580→        .replace(/,/g, ".")
+   581→        .replace(/[^\d+\-*/().\s]/g, "")
+   582→        .trim();
+   583→      if (expr && /^[\d+\-*/().\s]+$/.test(expr)) {
+   584→        const resultado = Function(`"use strict"; return (${expr})`)();
+   585→        return `${expr.replace(/\*/g, " × ").replace(/\//g, " ÷ ").replace(/\+/g, " + ").replace(/-/g, " - ")} = ${resultado}`;
+   586→      }
+   587→    } catch {}
+   588→  }
+   589→
+   590→  // Porcentaje: "20% de 500"
+   591→  const pctMatch = msg.match(/(\d+(?:[.,]\d+)?)\s*%\s*de\s*(\d+(?:[.,]\d+)?)/i);
+   592→  if (pctMatch) {
+   593→    const pct = parseFloat(pctMatch[1].replace(",", "."));
+   594→    const total = parseFloat(pctMatch[2].replace(",", "."));
+   595→    return `${pct}% de ${total} = ${(pct / 100 * total).toLocaleString("es-PE")}`;
+   596→  }
+   597→
+   598→  // === 2. SALUDOS Y CONVERSACIÓN ===
+   599→  if (/^(hola|buenas|hey|saludos|que tal|holi|alana)/i.test(msg)) {
+   600→    return `Hola ${nombre} ¿Qué necesitas? Puedo responder cualquier pregunta, hacer cálculos, o ayudarte con el almacén.`;
+   601→  }
+   602→  if (/c[oó]mo est[aá]s|qu[eé] tal|c[oó]mo te va/i.test(msg)) {
+   603→    return `Todo bien 😊 ¿Y tú? Dime qué necesitas.`;
+   604→  }
+   605→  if (/qui[eé]n eres|c[oó]mo te llamas|tu nombre|qu[eé] eres/i.test(msg)) {
+   606→    return `Soy Alana. Te ayudo con el almacén y también puedo responder cualquier pregunta que tengas. ¿Qué necesitas?`;
+   607→  }
+   608→  if (/gracias|thank|genial|buen|perfecto|excelente/i.test(msg)) {
+   609→    return `De nada, ${nombre} 👍`;
+   610→  }
+   611→  if (/chao|adios|adiós|hasta luego|nos vemos|bye/i.test(msg)) {
+   612→    return `Chao ${nombre}`;
+   613→  }
+   614→  if (/est[aá]s ah[ií]|est[aá]s disponible|me oyes/i.test(msg)) {
+   615→    return `Sí, aquí estoy, ${nombre}. ¿Qué necesitas?`;
+   616→  }
+   617→
+   618→  // === 3. FECHA Y HORA ===
+   619→  if (/qu[eé] (d[ií]a|fecha) es|qu[eé] fecha|fecha de hoy|d[ií]a de hoy/i.test(msg)) {
+   620→    const fecha = new Date().toLocaleDateString("es-PE", { timeZone: "America/Lima", weekday: "long", day: "numeric", month: "long", year: "numeric" });
+   621→    return `Hoy es ${fecha}.`;
+   622→  }
+   623→  if (/qu[eé] hora|qu[eé] hora es|hora actual|dime la hora/i.test(msg)) {
+   624→    const hora = new Date().toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", hour12: true });
+   625→    return `Son las ${hora} (hora de Lima).`;
+   626→  }
+   627→
+   628→  // === 4. ALMACÉN ===
+   629→  if (/bajo stock|stock bajo|agotad|qu[eé] falta|qu[eé] necesito|qu[eé] pedir|qu[eé] comprar|reponer|alerta/i.test(msg)) {
+   630→    if (products.length === 0) return `No hay productos cargados todavia, ${nombre}. Ve a /recepciones y sube un Excel de stock para empezar.`;
+   631→    const bajoStock = products.filter(p => p.minStock && p.minStock > 0 && p.quantity <= p.minStock);
+   632→    const agotados = products.filter(p => p.quantity === 0);
+   633→    if (bajoStock.length === 0 && agotados.length === 0) {
+   634→      const totalUnd = products.reduce((s, p) => s + p.quantity, 0);
+   635→      return `Todo bien, ${nombre}. Tienes ${products.length} productos y ${totalUnd.toLocaleString("es-PE")} unidades en stock. Ningun producto esta bajo del minimo. El almacen esta saludable.`;
+   636→    }
+   637→    let resp = `Ojo con esto, ${nombre}:\n\n`;
+   638→    if (agotados.length > 0) {
+   639→      resp += `SIN STOCK (${agotados.length} productos agotados):\n`;
+   640→      resp += agotados.map(p => `  • ${p.name} (SKU: ${p.sku}) — 0 ${p.udm || "und"}\n`).join("");
+   641→      resp += `\n`;
+   642→    }
+   643→    if (bajoStock.length > 0) {
+   644→      resp += `BAJO DEL MINIMO (${bajoStock.length} productos):\n`;
+   645→      resp += bajoStock.map(p => {
+   646→        const sugerido = (p.minStock! * 2) - p.quantity;
+   647→        return `  • ${p.name} (SKU: ${p.sku})\n    Stock: ${p.quantity} / Min: ${p.minStock} ${p.udm || "und"}\n    Sugerido pedir: ${sugerido > 0 ? sugerido : p.minStock!} ${p.udm || "und"}\n`;
+   648→      }).join("");
+   649→    }
+   650→    resp += `\nRecomendacion: Haz el pedido urgente para los productos agotados y los que estan bajo del minimo.`;
+   651→    return resp;
+   652→  }
+   653→
+   654→  // ¿Cuánto material necesito para X días?
+   655→  if (/(cu[aá]nto|cu[aá]ntos|cu[aá]ntas).*(material|producto|necesito|pedir|comprar|reponer).*(d[ií]a|semana|mes)/i.test(msg) || /pedir.*para.*d/i.test(msg) || /calcu.*pedido/i.test(msg)) {
+   656→    if (products.length === 0) return `No hay productos cargados, ${nombre}.`;
+   657→    const diasMatch = msg.match(/(\d+)\s*(d[ií]as|d[ií]a)/i);
+   658→    const dias = diasMatch ? parseInt(diasMatch[1]) : 30;
+   659→    const bajoStock = products.filter(p => p.minStock && p.minStock > 0 && p.quantity <= p.minStock);
+   660→    if (bajoStock.length === 0) return `No hay productos con bajo stock. Todo esta bien por ahora. Vuelve a preguntarme en unos dias.`;
+   661→
+   662→    let resp = `Calculo de pedido para ${dias} dias:\n\n`;
+   663→    resp += `Productos que necesitas reponer urgente:\n\n`;
+   664→    resp += bajoStock.map(p => {
+   665→      const consumoDiario = p.minStock! / 30; // estimo consumo = minStock/30
+   666→      const necesario = Math.ceil(consumoDiario * dias);
+   667→      const sugerido = Math.max(necesario + p.minStock! - p.quantity, p.minStock! * 2 - p.quantity);
+   668→      const valorPedido = ((p.precio || 0) * sugerido).toLocaleString("es-PE", { maximumFractionDigits: 0 });
+   669→      return `• ${p.name} (SKU: ${p.sku})\n  Stock actual: ${p.quantity} ${p.udm || "und"}\n  Minimo: ${p.minStock} ${p.udm || "und"}\n  Consumo estimado: ${consumoDiario.toFixed(1)} und/dia\n  Sugerido pedir: ${sugerido} ${p.udm || "und"}\n  Valor pedido: S/ ${valorPedido}\n`;
+   670→    }).join("");
+   671→    const valorTotal = bajoStock.reduce((s, p) => {
+   672→      const sugerido = Math.max(Math.ceil((p.minStock! / 30) * dias) + p.minStock! - p.quantity, p.minStock! * 2 - p.quantity);
+   673→      return s + ((p.precio || 0) * sugerido);
+   674→    }, 0);
+   675→    resp += `\nTotal del pedido: S/ ${valorTotal.toLocaleString("es-PE", { maximumFractionDigits: 0 })}\n`;
+   676→    resp += `Productos a reponer: ${bajoStock.length}`;
+   677→    return resp;
+   678→  }
+   679→
+   680→  // Reporte ejecutivo
+   681→  if (/reporte|resumen|estado.*almac[eé]n|c[oó]mo est[aá].*almac/i.test(msg)) {
+   682→    const totalUnd = products.reduce((s, p) => s + p.quantity, 0);
+   683→    const valorTotal = products.reduce((s, p) => s + (p.precio || 0) * p.quantity, 0);
+   684→    const bajoStock = products.filter(p => p.minStock && p.minStock > 0 && p.quantity <= p.minStock);
+   685→    const agotados = products.filter(p => p.quantity === 0);
+   686→    const sinPrecio = products.filter(p => !p.precio || p.precio === 0);
+   687→    const disp = equipos.filter(e => e.estado === "disponible").length;
+   688→    const aver = equipos.filter(e => e.estado === "averiado").length;
+   689→    const ret = equipos.filter(e => e.estado === "en_retiro").length;
+   690→    const despachosHoy = despachos.filter(d => { try { return new Date(d.fecha).toDateString() === new Date().toDateString(); } catch { return false; } }).length;
+   691→
+   692→    return `REPORTE EJECUTIVO DEL ALMACEN\n
+   693→ESTADO GENERAL:
+   694→  • ${products.length} productos en catalogo
+   695→  • ${totalUnd.toLocaleString("es-PE")} unidades totales
+   696→  • Valor del stock: S/ ${valorTotal.toLocaleString("es-PE", { maximumFractionDigits: 0 })}
+   697→  • ${equipos.length} equipos con serie registrados
+   698→  • ${despachos.length} despachos historicos (${despachosHoy} hoy)
+   699→
+   700→ALERTAS:
+   701→  • ${bajoStock.length} producto(s) con bajo stock
+   702→  • ${agotados.length} producto(s) agotados
+   703→  • ${sinPrecio.length} producto(s) sin precio
+   704→  • ${aver} equipo(s) averiado(s)
+   705→
+   706→EQUIPOS:
+   707→  • Disponibles: ${disp}
+   708→  • Averiados: ${aver}
+   709→  • En retiro: ${ret}
+   710→
+   711→${bajoStock.length > 0 ? `PRODUCTOS CRITICOS:\n${bajoStock.slice(0, 5).map(p => `  • ${p.name} — ${p.quantity}/${p.minStock} ${p.udm || "und"}`).join("\n")}${bajoStock.length > 5 ? `\n  ...y ${bajoStock.length - 5} mas` : ""}` : "Sin productos criticos."}
+   712→
+   713→${agotados.length > 0 ? `PRODUCTOS AGOTADOS:\n${agotados.slice(0, 5).map(p => `  • ${p.name} (SKU: ${p.sku})`).join("\n")}` : ""}`;
+   714→  }
+   715→
+   716→  if (/cu[aá]ntos productos|cu[aá]nto stock|inventario|cat[aá]logo|qu[eé] productos|qu[eé] hay|qu[eé] tengo/i.test(msg)) {
+   717→    if (products.length === 0) return `No hay productos cargados, ${nombre}. Ve a /recepciones y sube un Excel de stock.`;
+   718→    const totalUnidades = products.reduce((s, p) => s + p.quantity, 0);
+   719→    const valorTotal = products.reduce((s, p) => s + (p.precio || 0) * p.quantity, 0);
+   720→    const bajoStock = products.filter(p => p.minStock && p.minStock > 0 && p.quantity <= p.minStock);
+   721→    return `Tienes ${products.length} productos, ${totalUnidades.toLocaleString("es-PE")} unidades.\nValor total: S/ ${valorTotal.toLocaleString("es-PE", { maximumFractionDigits: 0 })}\n${bajoStock.length > 0 ? `${bajoStock.length} productos con bajo stock.` : "Sin productos con bajo stock."}\n\nProductos:\n${products.slice(0, 20).map(p => `• ${p.name} (SKU: ${p.sku}) — ${p.quantity} ${p.udm || "und"}${p.precio ? ` — S/ ${(p.precio * p.quantity).toLocaleString("es-PE", { maximumFractionDigits: 0 })}` : ""}`).join("\n")}${products.length > 20 ? `\n...y ${products.length - 20} mas` : ""}`;
+   722→  }
+   723→  // Si el mensaje es una ACCIÓN (anota, apunta, despachando, recordatorio, bloc) — NO entrar a consultas de equipos
+   724→  const esAccion = /anot[ae]s?|apunt[ae]s?|ponlo en bloc|pon en bloc|despachando|despacho|haceme recordar|hazme recordar|recu[eé]rdame|yo dije|acaso te dije/i.test(msg);
+   725→
+   726→  if (/equipos|aver[ií]ad|reparaci[oó]n|router|ont|decodificador/i.test(msg) && !esAccion) {
+   727→    if (equipos.length === 0) return `No hay equipos cargados, ${nombre}. Puedes añadirlos desde la pestaña Equipos.`;
+   728→    const disponibles = equipos.filter(e => e.estado === "disponible").length;
+   729→    const averiados = equipos.filter(e => e.estado === "averiado").length;
+   730→    return `${equipos.length} equipos: ${disponibles} disponibles, ${averiados} averiados.${averiados > 0 ? ` Hay ${averiados} que necesitan revisión.` : " Todo operativo."}`;
+   731→  }
+   732→  if (/despacho|env[ií]o|entrega/i.test(msg) && !esAccion) {
+   733→    const hoy = despachos.filter(d => { try { return new Date(d.fecha).toDateString() === new Date().toDateString(); } catch { return false; } }).length;
+   734→    return `${despachos.length} despachos en total, ${hoy} hoy.${despachos.length > 0 ? `\nÚltimos:\n${despachos.slice(0, 3).map(d => `• ${d.cantidad} und — ${d.producto || d.sku}`).join("\n")}` : ""}`;
+   735→  }
+   736→  if (/personal|gente|personas|miembros/i.test(msg)) {
+   737→    return `${miembros.length} personas en el equipo${miembros.length > 0 ? `:\n${miembros.slice(0, 20).map(m => `• ${m.nombre} — ${m.rol}`).join("\n")}` : "."}`;
+   738→  }
+   739→
+   740→  // === 5. ACCIONES DEL SISTEMA ===
+   741→  if (/a[ñn]ade|agrega|nuevo producto/i.test(msg)) {
+   742→    return `Dime: "añade 50 conectores RJ-45, SKU CONN-RJ45, mínimo 20" y lo cargo.`;
+   743→  }
+   744→
+   745→  // === ANOTA / APUNTA — con contexto de conversación ===
+   746→  if (/anot[ae]s?|apunt[ae]s?|ponlo en bloc|pon en bloc|registrar|despachando|despacho|yo dije|acaso te dije/i.test(msg)) {
+   747→    // Extraer el texto a anotar del mensaje actual
+   748→    let textoNota = mensaje
+   749→      .replace(/^(anota|anotes|apunta|apuntes|ponlo en bloc|pon en bloc|registrar)\s*(que)?\s*/i, "")
+   750→      .replace(/^(acaso te dije que anotes eso|yo dije que anotes? que|yo dije que apuntes? que)\s*/i, "")
+   751→      .replace(/^(haceme recordar|hazme recordar|recuérdame|recuerdame)\s*/i, "")
+   752→      .trim();
+   753→
+   754→    // Si el mensaje es solo "tu solo apunta" o "solo anota" — usar el contexto anterior
+   755→    if (/^(tu solo apunta|solo apunta|tu solo anota|solo anota|solo ponlo|ponlo nada mas|apunta nada mas)$/i.test(msg) || textoNota.length < 5) {
+   756→      // Buscar en el historial el último mensaje sustantivo del usuario
+   757→      const msgsUsuario = historial.filter(m => m.role === "user" && m.content.trim().length > 10);
+   758→      const ultimoSustantivo = msgsUsuario.slice(-1)[0]?.content || "";
+   759→      if (ultimoSustantivo && !/^(tu solo|solo apunta|solo anota)/i.test(ultimoSustantivo)) {
+   760→        textoNota = ultimoSustantivo;
+   761→      }
+   762→    }
+   763→
+   764→    // Si el usuario está corrigiendo: "yo dije que anotes que al tecnico padilla le di 4 equipos"
+   765→    if (/yo dije|acaso te dije|te dije que/i.test(msg)) {
+   766→      // Buscar el último "que anotes que" o "que apuntes que" y extraer lo que sigue
+   767→      const matchCorreccion = mensaje.match(/(?:anotes?|apuntes?)\s+que\s+(.+)$/i);
+   768→      if (matchCorreccion) {
+   769→        // Si hay múltiples "que", tomar solo la parte después del último
+   770→        const textoExtraido = matchCorreccion[1].trim();
+   771→        // Si el texto extraído tiene "yo dije" o "acaso" al inicio, buscar más profundamente
+   772→        const matchProfundo = textoExtraido.match(/(?:anotes?|apuntes?)\s+que\s+(.+)$/i);
+   773→        if (matchProfundo) {
+   774→          textoNota = matchProfundo[1].trim();
+   775→        } else {
+   776→          textoNota = textoExtraido;
+   777→        }
+   778→      }
+   779→    }
+   780→
+   781→    // Limpiar el texto de comandos residuales
+   782→    textoNota = textoNota
+   783→      .replace(/^(que|de|para|en)\s+/i, "")
+   784→      .replace(/haceme recordar|hazme recordar/gi, "")
+   785→      .replace(/o ponlo en bloc|o pon en bloc/gi, "")
+   786→      .trim();
+   787→
+   788→    if (textoNota.length > 3) {
+   789→      return `Anotado: "${textoNota}"\n\n[[ACCION]]\ntipo: add_note\ntexto: ${textoNota}\n[[/ACCION]]`;
+   790→    }
+   791→    return `¿Qué anoto? Dime "anota [texto]".`;
+   792→  }
+   793→
+   794→  // Si el usuario dice "tu solo apunta" o similar sin más, usar contexto
+   795→  if (/^(tu solo|solo|apunta|anota|ponlo)/i.test(msg) && msg.length < 25) {
+   796→    const msgsUsuario = historial.filter(m => m.role === "user" && m.content.trim().length > 10);
+   797→    const ultimoSustantivo = msgsUsuario.slice(-1)[0]?.content || "";
+   798→    if (ultimoSustantivo && !/^(tu solo|solo|apunta|anota|ponlo)/i.test(ultimoSustantivo)) {
+   799→      return `Anotado: "${ultimoSustantivo}"\n\n[[ACCION]]\ntipo: add_note\ntexto: ${ultimoSustantivo}\n[[/ACCION]]`;
+   800→    }
+   801→  }
+   802→  if (/pon.*blanco|pon.*claro|modo claro/i.test(msg)) return `Listo.\n\n[[ACCION]]\ntipo: set_theme\ntema: claro\n[[/ACCION]]`;
+   803→  if (/pon.*oscuro|pon.*negro|modo oscuro/i.test(msg)) return `Listo.\n\n[[ACCION]]\ntipo: set_theme\ntema: oscuro\n[[/ACCION]]`;
+   804→
+   805→  // Recordatorio
+   806→  if (/recu[eé]rdame|recuerdo|recordatorio|av[ií]same|hazme recordar/i.test(msg)) {
+   807→    let textoRec = mensaje.replace(/^(recuérdame|recuerdame|recuerda que|recordatorio|avísame|avisame|hazme recordar|crea un recordatorio)\s*/i, "").replace(/^(que|de|para)\s+/i, "").trim();
+   808→    if (textoRec.length < 3) return `¿Qué quieres que te recuerde? Ej: "recuérdame pedir conectores mañana a las 9".`;
+   809→    const ahora = new Date();
+   810→    let cuando = new Date(ahora);
+   811→    if (/mañana|manana/i.test(msg)) cuando.setDate(cuando.getDate() + 1);
+   812→    const matchHoras = msg.match(/en\s+(\d+)\s+horas?/i);
+   813→    if (matchHoras) cuando = new Date(ahora.getTime() + parseInt(matchHoras[1]) * 3600000);
+   814→    const matchMinutos = msg.match(/en\s+(\d+)\s+minutos?/i);
+   815→    if (matchMinutos) cuando = new Date(ahora.getTime() + parseInt(matchMinutos[1]) * 60000);
+   816→    const matchHora = msg.match(/a\s*las?\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+   817→    if (matchHora) {
+   818→      let horas = parseInt(matchHora[1]);
+   819→      const minutos = matchHora[2] ? parseInt(matchHora[2]) : 0;
+   820→      const ampm = matchHora[3]?.toLowerCase();
+   821→      if (ampm === "pm" && horas < 12) horas += 12;
+   822→      if (ampm === "am" && horas === 12) horas = 0;
+   823→      cuando.setUTCHours(horas + 5, minutos, 0, 0);
+   824→      if (cuando <= ahora && !/mañana|manana/i.test(msg)) cuando.setDate(cuando.getDate() + 1);
+   825→    }
+   826→    if (!matchHora && !matchHoras && !matchMinutos) cuando = new Date(ahora.getTime() + 3600000);
+   827→    const cuandoTexto = cuando.toLocaleString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: true });
+   828→    textoRec = textoRec.replace(/mañana\s+a\s*las?\s*\d{1,2}(?::\d{2})?\s*(am|pm)?/i, "").replace(/a\s*las?\s*\d{1,2}(?::\d{2})?\s*(am|pm)?/i, "").replace(/en\s+\d+\s+(horas|minutos)/i, "").replace(/\s+/g, " ").trim();
+   829→    if (textoRec.length < 3) textoRec = "Recordatorio";
+   830→    return `Listo, te aviso el ${cuandoTexto}.\n\n[[RECORDATORIO]]\ntexto: ${textoRec}\ncuando: ${cuando.toISOString()}\n[[/RECORDATORIO]]`;
+   831→  }
+   832→
+   833→  // Memoria
+   834→  if (/recuerda que|aprende que|ten en cuenta que/i.test(msg)) {
+   835→    const textoMemo = mensaje.replace(/^(recuerda que|aprende que|ten en cuenta que)\s*/i, "").trim();
+   836→    if (textoMemo.length > 3) return `Entendido, lo recuerdo.\n\n[[MEMORIA]]\ntexto: ${textoMemo}\n[[/MEMORIA]]`;
+   837→  }
+   838→
+   839→  // Ayuda
+   840→  if (/ayuda|qu[eé] puedes|qu[eé] haces|funciones/i.test(msg)) {
+   841→    return `Puedo hacer mucho, ${nombre}:
+   842→
+   843→Preguntas: pregúntame lo que sea — geografía, ciencia, historia, matemáticas.
+   844→Almacén: "qué productos tengo", "qué falta", "cómo están los equipos".
+   845→Acciones: "añade 50 conectores SKU X", "anota revisar cable", "pon la página en blanco".
+   846→Recordatorios: "recuérdame pedir conectores mañana a las 9".
+   847→Memoria: "recuerda que el técnico Pérez viene los lunes".
+   848→Matemáticas: "cuánto es 5 por 3", "20% de 500", "100 entre 5".
+   849→
+   850→Dime qué necesitas.`;
+   851→  }
+   852→
+   853→  // Buscar producto por SKU o nombre
+   854→  const productoEncontrado = products.find(p =>
+   855→    msg.includes(p.sku.toLowerCase()) || (p.name && msg.includes(p.name.toLowerCase()))
+   856→  );
+   857→  if (productoEncontrado) {
+   858→    return `${productoEncontrado.name}\nSKU: ${productoEncontrado.sku}\nStock: ${productoEncontrado.quantity} ${productoEncontrado.udm || "und"}\n${productoEncontrado.minStock && productoEncontrado.quantity <= productoEncontrado.minStock ? "Está bajo del mínimo." : "Stock bien."}`;
+   859→  }
+   860→
+   861→  // === 6.5. INTERCEPTAR preguntas de almacén ANTES de Wikipedia ===
+   862→  // Si la pregunta contiene palabras de almacén, responder con DATOS REALES
+   863→  const palabrasAlmacen = ["equipo", "almacen", "stock", "inventario", "pedido", "despacho", "producto", "router", "modem", "decodificador", "repetidor", "ont", "conector", "cable", "splitter", "rosa", "serie", "tecnico", "personal", "guia", "remision", "recepcion", "transferencia", "comprar", "reponer", "pedir", "consumo", "rotacion", "averiado", "disponible", "retiro", "precio", "valor", "categoria", "abc", "antig", "bajo stock", "agotado", "critico"];
+   864→  const esPreguntaAlmacen = palabrasAlmacen.some(p => msg.includes(p));
+   865→
+   866→  if (esPreguntaAlmacen) {
+   867→    // Respondder con datos reales del almacén
+   868→    if (msg.includes("equipo") && (msg.includes("como esta") || msg.includes("como estan") || msg.includes("estado") || msg.includes("hoy"))) {
+   869→      const disp = equipos.filter(e => e.estado === "disponible").length;
+   870→      const aver = equipos.filter(e => e.estado === "averiado").length;
+   871→      const ret = equipos.filter(e => e.estado === "en_retiro").length;
+   872→      return `Estado de equipos del almacén hoy:
+   873→
+   874→• Disponibles: ${disp} equipos
+   875→• Averiados: ${aver} equipos
+   876→• En retiro: ${ret} equipos
+   877→• Total: ${equipos.length} equipos registrados
+   878→
+   879→${aver > 0 ? `Tienes ${aver} equipo(s) averiado(s) que necesitan atencion.` : "Todos los equipos estan operativos."}
+   880→${ret > 0 ? `Hay ${ret} equipo(s) en retiro que ya salieron del almacen.` : ""}`;
+   881→    }
+   882→
+   883→    if (msg.includes("stock") || msg.includes("inventario")) {
+   884→      const totalUnd = products.reduce((s, p) => s + p.quantity, 0);
+   885→      const bajoStock = products.filter(p => p.minStock && p.minStock > 0 && p.quantity <= p.minStock);
+   886→      const agotados = products.filter(p => p.quantity === 0);
+   887→      const valorTotal = products.reduce((s, p) => s + (p.precio || 0) * p.quantity, 0);
+   888→      return `Inventario actual:
+   889→
+   890→• ${products.length} productos en catalogo
+   891→• ${totalUnd} unidades totales
+   892→• Valor: S/ ${valorTotal.toLocaleString("es-PE", { maximumFractionDigits: 0 })}
+   893→${bajoStock.length > 0 ? `• ${bajoStock.length} producto(s) con bajo stock` : "• Sin productos con bajo stock"}
+   894→${agotados.length > 0 ? `• ${agotados.length} producto(s) agotado(s)` : "• Sin productos agotados"}
+   895→
+   896→${bajoStock.length > 0 ? "Productos que necesitan reposicion:" : ""}
+   897→${bajoStock.slice(0, 20).map(p => `  - ${p.name}: ${p.quantity}/${p.minStock} ${p.udm || "und"}`).join("\n")}`;
+   898→    }
+   899→
+   900→    if (msg.includes("pedido") || msg.includes("pedir") || msg.includes("comprar") || msg.includes("reponer") || msg.includes("reposicion")) {
+   901→      const bajoStock = products.filter(p => p.minStock && p.minStock > 0 && p.quantity <= p.minStock);
+   902→      if (bajoStock.length === 0) {
+   903→        return `No hay productos con bajo stock. Todo el inventario esta por encima del minimo. No necesitas hacer pedidos urgentes.`;
+   904→      }
+   905→      return `Productos que necesitas pedir urgente:
+   906→
+   907→${bajoStock.map(p => `• ${p.name} (SKU: ${p.sku})
+   908→  Stock actual: ${p.quantity} ${p.udm || "und"}
+   909→  Minimo: ${p.minStock} ${p.udm || "und"}
+   910→  Sugerido pedir: ${(p.minStock * 2) - p.quantity} ${p.udm || "und"}`).join("\n")}
+   911→
+   912→Total de productos a reponer: ${bajoStock.length}`;
+   913→    }
+   914→
+   915→    // Respuesta generica de almacen con datos reales
+   916→    const totalUnd = products.reduce((s, p) => s + p.quantity, 0);
+   917→    const bajoStock = products.filter(p => p.minStock && p.minStock > 0 && p.quantity <= p.minStock);
+   918→    return `Aqui tienes un resumen del almacen:
+   919→
+   920→• ${products.length} productos en catalogo
+   921→• ${totalUnd} unidades totales
+   922→• ${equipos.length} equipos con serie
+   923→• ${despachos.length} despachos registrados
+   924→• ${bajoStock.length} productos con bajo stock
+   925→
+   926→Preguntame especificamente: "que productos tienen bajo stock?", "como estan los equipos?", "cuanto material necesito pedir?"`;
+   927→  }
+   928→
+   929→  // === 7. CONVERSACIÓN GENERAL (cuando no es almacén ni matemáticas ni Wikipedia) ===
+   930→  // Respuestas inteligentes para preguntas comunes de conversación
+   931→  
+   932→  // Chistes
+   933→  if (/chiste|broma|h[aá]zme re[ií]r|divierte/i.test(msg)) {
+   934→    const chistes = [
+   935→      "¿Por qué los pájaros no usan Facebook? Porque ya tienen Twitter. 😄",
+   936→      "¿Qué le dice un jaguar a otro jaguar? ¡Jaguar you! 🐆",
+   937→      "¿Por qué el libro de matemáticas estaba triste? Porque tenía muchos problemas. 📚",
+   938→      "¿Qué hace una abeja en el gimnasio? ¡Zum-ba! 🐝",
+   939→      "¿Por qué los esqueletos no pelean entre ellos? Porque no tienen agallas. 💀",
+   940→    ];
+   941→    return chistes[Math.floor(Math.random() * chistes.length)];
+   942→  }
+   943→
+   944→  // ¿Cómo estás?
+   945→  if (/c[oó]mo est[aá]s|qu[eé] tal|c[oó]mo te va|qu[eé] hay de nuevo/i.test(msg)) {
+   946→    return `Todo bien, ${nombre} 😊 Listo para ayudarte con lo que necesites. ¿Preguntas del almacén o de algo más?`;
+   947→  }
+   948→
+   949→  // ¿Quién eres?
+   950→  if (/qui[eé]n eres|c[oó]mo te llamas|tu nombre|qu[eé] eres|qu[eé] eres tú/i.test(msg)) {
+   951→    return `Soy Alana, la asistente del almacén Lemcorp. Pero puedo responder cualquier pregunta que tengas, no solo del almacén. ¿Qué necesitas?`;
+   952→  }
+   953→
+   954→  // Opinion / consejo
+   955→  if (/qu[eé] piensas|tu opini[oó]n|qu[eé] crees|consejo|recomienda|sugiere/i.test(msg)) {
+   956→    // Si menciona un producto del almacén, dar opinión basada en datos
+   957→    const prodMencionado = products.find(p => msg.includes(p.name.toLowerCase()) || msg.includes(p.sku.toLowerCase()));
+   958→    if (prodMencionado) {
+   959→      const estado = prodMencionado.minStock && prodMencionado.quantity <= prodMencionado.minStock ? "crítico" : "saludable";
+   960→      return `Mi opinión sobre ${prodMencionado.name}: el stock está ${estado} (${prodMencionado.quantity} ${prodMencionado.udm || "und"}). ${prodMencionado.minStock && prodMencionado.quantity <= prodMencionado.minStock ? "Recomendaría reponer pronto." : "Por ahora va bien."}`;
+   961→    }
+   962→    return `Depende del contexto, ${nombre}. ¿Sobre qué específicamente quieres mi opinión? Mientras más detalle me des, mejor te puedo aconsejar.`;
+   963→  }
+   964→
+   965→  // Explicación / definición corta (sin ir a Wikipedia aún)
+   966→  if (/expl[ií]came|qu[eé] significa|c[oó]mo funciona|por qu[eé] pasa/i.test(msg)) {
+   967→    // Dejar que Wikipedia lo maneje abajo
+   968→  }
+   969→
+   970→  // Saludos adicionales
+   971→  if (/buenos d[ií]as|buen d[ií]a/i.test(msg)) {
+   972→    const hora = new Date().getHours();
+   973→    if (hora >= 5 && hora < 12) {
+   974→      return `¡Buenos días, ${nombre}! ☀️ ¿Qué planes para hoy?`;
+   975→    }
+   976→    return `Hola, ${nombre}. Son las ${new Date().toLocaleTimeString("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit" })}. ¿Qué necesitas?`;
+   977→  }
+   978→  if (/buenas tardes|buena tarde/i.test(msg)) {
+   979→    return `¡Buenas tardes, ${nombre}! ¿Qué hay?`;
+   980→  }
+   981→  if (/buenas noches|buena noche/i.test(msg)) {
+   982→    return `¡Buenas noches, ${nombre}! 🌙 ¿Algo en lo que pueda ayudar?`;
+   983→  }
+   984→
+   985→  // === 8. WIKIPEDIA — BUSCAR PARA TODAS LAS PREGUNTAS DE CONOCIMIENTO ===
+   986→  // Extraer el tema de búsqueda limpiando palabras de pregunta
+   987→  let temaBusqueda = msg
+   988→    .replace(/^(qu[eé] es|qu[eé] son|qu[eé] significa|qu[ié]n es|qu[ié]n fue|quien es|quien fue|qu[ié]nes son|d[ií]me|dime qu[eé] es|dime sobre|h[aá]blame de|cu[eé]ntame de|cu[eé]ntame sobre|informaci[oó]n sobre|s[aá]bes de|s[aá]bes sobre|qu[eé] sabes de|qu[eé] sabes sobre|cu[aá]l es la|cu[aá]l es el|d[oó]nde est[aá]|c[oó]mo se|por qu[eé]|cu[aá]ndo|hay)\s*/i, "")
+   989→    .replace(/\?/g, "")
+   990→    .replace(/^(la|el|los|las|un|una|de|del|al|es|en)\s+/i, "")
+   991→    .trim();
+   992→
+   993→  if (temaBusqueda.length > 2) {
+   994→    try {
+   995→      const wikiUrl = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(temaBusqueda)}&format=json&utf8=1&srlimit=1`;
+   996→      const wikiRes = await fetch(wikiUrl, { headers: { "User-Agent": "Alana-LEMCORP/1.0" } });
+   997→      if (wikiRes.ok) {
+   998→        const wikiData = await wikiRes.json();
+   999→        const searchResults = wikiData?.query?.search;
+  1000→        if (searchResults && searchResults.length > 0) {
+  1001→          const pageTitle = searchResults[0].title;
+  1002→          const summaryUrl = `https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(pageTitle)}`;
+  1003→          const summaryRes = await fetch(summaryUrl, { headers: { "User-Agent": "Alana-LEMCORP/1.0" } });
+  1004→          if (summaryRes.ok) {
+  1005→            const summaryData = await summaryRes.json();
+  1006→            const extract = summaryData?.extract;
+  1007→            if (extract && extract.length > 20) {
+  1008→              let respuesta = extract;
+  1009→              if (respuesta.length > 2000) respuesta = respuesta.slice(0, 2000).trim() + "...";
+  1010→              return `${respuesta}\n\n(Fuente: Wikipedia)`;
+  1011→            }
+  1012→          }
+  1013→        }
+  1014→      }
+  1015→    } catch {}
+  1016→  }
+  1017→
+  1018→  // === 9. RESPUESTA FINAL ===
+  1019→  return `Mmm, no tengo información exacta sobre eso, ${nombre}. Pero puedo ayudarte con:
+  1020→
+  1021→• Matemáticas: "cuánto es 5 por 3", "20% de 500"
+  1022→• Almacén: "qué productos tengo", "qué falta", "cómo están los equipos"
+  1023→• Conocimiento: "qué es un router", "quién fue Einstein", "dónde está París"
+  1024→• Acciones: "añade 50 conectores", "anota revisar cable", "pon la página en blanco"
+  1025→• Recordatorios: "recuérdame pedir conectores mañana a las 9"
+  1026→
+  1027→¿Qué necesitas exactamente?`;
+  1028→}
+  1029→

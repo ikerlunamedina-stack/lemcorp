@@ -1,0 +1,1027 @@
+     1→"use client";
+     2→
+     3→import { useEffect, useMemo, useRef, useState } from "react";
+     4→import {
+     5→  ScanLine,
+     6→  Trash2,
+     7→  Save,
+     8→  Check,
+     9→  X,
+    10→  AlertTriangle,
+    11→  ChevronDown,
+    12→  ChevronRight,
+    13→  Cpu,
+    14→  Hash,
+    15→  Settings2,
+    16→  CircleDot,
+    17→  Pencil,
+    18→  Eye,
+    19→  Search,
+    20→  Info,
+    21→  PackageSearch,
+    22→} from "lucide-react";
+    23→import { useStore } from "@/lib/store";
+    24→import {
+    25→  ESTADO_META,
+    26→  PISTOLEO_CAMPOS,
+    27→  REGLAS_PREFIJO,
+    28→  type EstadoEquipo,
+    29→  type PistoleoCampo,
+    30→} from "@/lib/types";
+    31→import { cn } from "@/lib/utils";
+    32→import { Button } from "@/components/ui/button";
+    33→import { Input } from "@/components/ui/input";
+    34→import { Label } from "@/components/ui/label";
+    35→import { Switch } from "@/components/ui/switch";
+    36→import {
+    37→  Select,
+    38→  SelectContent,
+    39→  SelectItem,
+    40→  SelectTrigger,
+    41→  SelectValue,
+    42→} from "@/components/ui/select";
+    43→import {
+    44→  Dialog,
+    45→  DialogContent,
+    46→  DialogHeader,
+    47→  DialogTitle,
+    48→  DialogDescription,
+    49→  DialogFooter,
+    50→  DialogClose,
+    51→} from "@/components/ui/dialog";
+    52→import { useToast } from "@/hooks/use-toast";
+    53→
+    54→const ESTADOS: EstadoEquipo[] = ["disponible", "averiado", "en_retiro", "en_reparacion"];
+    55→
+    56→interface FeedbackMsg {
+    57→  ok: boolean;
+    58→  text: string;
+    59→  ts: number;
+    60→}
+    61→
+    62→function detectarModelo(serie: string, prefijoEnabled: boolean): string | null {
+    63→  if (!prefijoEnabled) return null;
+    64→  const s = serie.trim().toUpperCase();
+    65→  for (const r of REGLAS_PREFIJO) {
+    66→    if (s.startsWith(r.prefijo.toUpperCase())) return r.modelo;
+    67→  }
+    68→  return null;
+    69→}
+    70→
+    71→function validarPrefijo(serie: string, prefijo: string, enabled: boolean): boolean {
+    72→  if (!enabled) return true;
+    73→  if (!prefijo.trim()) return true;
+    74→  return serie.trim().toUpperCase().startsWith(prefijo.trim().toUpperCase());
+    75→}
+    76→
+    77→/** Series ya registradas en el sistema (en equipos) que coinciden con las del lote actual */
+    78→function detectarDuplicadosEnSistema(
+    79→  pistoleoFilas: { valores: string[] }[],
+    80→  equipos: { serie: string }[]
+    81→): string[] {
+    82→  const existentes = new Set(equipos.map((e) => e.serie.trim().toLowerCase()));
+    83→  const dups: string[] = [];
+    84→  for (const f of pistoleoFilas) {
+    85→    const s = (f.valores[0] ?? "").trim();
+    86→    if (s && existentes.has(s.toLowerCase())) dups.push(s);
+    87→  }
+    88→  return dups;
+    89→}
+    90→
+    91→/** Series duplicadas dentro del mismo lote actual */
+    92→function detectarDuplicadosEnLote(pistoleoFilas: { valores: string[] }[]): string[] {
+    93→  const seen = new Set<string>();
+    94→  const dups: string[] = [];
+    95→  for (const f of pistoleoFilas) {
+    96→    const s = (f.valores[0] ?? "").trim().toLowerCase();
+    97→    if (!s) continue;
+    98→    if (seen.has(s)) dups.push(f.valores[0].trim());
+    99→    else seen.add(s);
+   100→  }
+   101→  return dups;
+   102→}
+   103→
+   104→export function PistolearView() {
+   105→  const settings = useStore((s) => s.settings);
+   106→  const setSetting = useStore((s) => s.setSetting);
+   107→  const pistoleoCampo = useStore((s) => s.pistoleoCampo);
+   108→  const pistoleoModelo = useStore((s) => s.pistoleoModelo);
+   109→  const pistoleoEstado = useStore((s) => s.pistoleoEstado);
+   110→  const pistoleoFilas = useStore((s) => s.pistoleoFilas);
+   111→  const pistoleoModeloSeleccionado = useStore((s) => s.pistoleoModeloSeleccionado);
+   112→  const equipos = useStore((s) => s.equipos);
+   113→  const products = useStore((s) => s.products);
+   114→  const findEquipmentBySerie = useStore((s) => s.findEquipmentBySerie);
+   115→  const setPistoleoConfig = useStore((s) => s.setPistoleoConfig);
+   116→  const addPistoleoFila = useStore((s) => s.addPistoleoFila);
+   117→  const updatePistoleoFila = useStore((s) => s.updatePistoleoFila);
+   118→  const deletePistoleoFila = useStore((s) => s.deletePistoleoFila);
+   119→  const clearPistoleoFilas = useStore((s) => s.clearPistoleoFilas);
+   120→  const confirmarPistoleo = useStore((s) => s.confirmarPistoleo);
+   121→  const { toast } = useToast();
+   122→
+   123→  const [showConfig, setShowConfig] = useState(false);
+   124→  const [valor, setValor] = useState("");
+   125→  const [feedback, setFeedback] = useState<FeedbackMsg | null>(null);
+   126→  const [editingId, setEditingId] = useState<string | null>(null);
+   127→  const [editingValores, setEditingValores] = useState<string[]>([]);
+   128→  const [editingModelo, setEditingModelo] = useState<string>("");
+   129→  const [showPreview, setShowPreview] = useState(false);
+   130→  /** Series ya registradas detectadas (para mostrar mensaje clickeable) */
+   131→  const [duplicadosSistema, setDuplicadosSistema] = useState<string[]>([]);
+   132→  /** Mostrar modal de detalle de duplicados */
+   133→  const [showDuplicadosModal, setShowDuplicadosModal] = useState(false);
+   134→  /** Resultado de la última confirmación */
+   135→  const [lastConfirmResult, setLastConfirmResult] = useState<{ ok: boolean; msg: string; duplicados?: string[] } | null>(null);
+   136→
+   137→  // Setter que actualiza el store (persiste al refrescar)
+   138→  const setModeloSeleccionado = (v: string) => setPistoleoConfig({ pistoleoModeloSeleccionado: v });
+   139→  const modeloSeleccionado = pistoleoModeloSeleccionado;
+   140→
+   141→  const inputRef = useRef<HTMLInputElement>(null);
+   142→
+   143→  const campoMeta = PISTOLEO_CAMPOS[pistoleoCampo];
+   144→  const camposEsperados = campoMeta.campos.length;
+   145→  const [parcial, setParcial] = useState<string[]>([]);
+   146→
+   147→  // Foco automático al input
+   148→  useEffect(() => {
+   149→    inputRef.current?.focus();
+   150→  }, [pistoleoCampo]);
+   151→
+   152→  // Detectar duplicados en sistema cada vez que cambian las filas
+   153→  useEffect(() => {
+   154→    const dups = detectarDuplicadosEnSistema(pistoleoFilas, equipos);
+   155→    setDuplicadosSistema(dups);
+   156→  }, [pistoleoFilas, equipos]);
+   157→
+   158→  // Duplicados dentro del lote
+   159→  const duplicadosEnLote = useMemo(() => detectarDuplicadosEnLote(pistoleoFilas), [pistoleoFilas]);
+   160→
+   161→  const pushFeedback = (ok: boolean, text: string) => {
+   162→    setFeedback({ ok, text, ts: Date.now() });
+   163→  };
+   164→
+   165→  const handleScan = (raw: string) => {
+   166→    const v = raw.trim();
+   167→    if (!v) return;
+   168→
+   169→    const idxEnFila = parcial.length;
+   170→    const esSerie = idxEnFila === 0;
+   171→
+   172→    if (esSerie && !validarPrefijo(v, settings.pistoleoPrefijo, settings.pistoleoPrefijoEnabled)) {
+   173→      pushFeedback(false, `Rechazada: no empieza con ${settings.pistoleoPrefijo}`);
+   174→      setValor("");
+   175→      return;
+   176→    }
+   177→
+   178→    if (esSerie && findEquipmentBySerie(v)) {
+   179→      // Ya existe en el sistema → la añadimos igual pero marcamos como duplicada
+   180→      pushFeedback(false, `⚠ Esta serie YA está registrada en el sistema`);
+   181→      // Aun así la añadimos para que el usuario la vea en el preview y decida
+   182→    }
+   183→
+   184→    if (esSerie) {
+   185→      const yaEnFilas = pistoleoFilas.some((f) => f.valores[0]?.toUpperCase() === v.toUpperCase());
+   186→      if (yaEnFilas) {
+   187→        pushFeedback(false, `Rechazada: ya capturada en esta sesión`);
+   188→        setValor("");
+   189→        return;
+   190→      }
+   191→    }
+   192→
+   193→    const nuevosParcial = [...parcial, v];
+   194→    setParcial(nuevosParcial);
+   195→    setValor("");
+   196→
+   197→    if (nuevosParcial.length >= camposEsperados) {
+   198→      addPistoleoFila(nuevosParcial, modeloSeleccionado || undefined);
+   199→      setParcial([]);
+   200→      const modeloDetectado = modeloSeleccionado
+   201→        || pistoleoModelo.trim()
+   202→        || detectarModelo(v, settings.pistoleoPrefijoEnabled)
+   203→        || "SIN MODELO";
+   204→      pushFeedback(true, `Aceptada · ${v} → ${modeloDetectado}`);
+   205→    } else {
+   206→      pushFeedback(true, `Aceptada · ${v} (esperando ${campoMeta.campos[nuevosParcial.length]}…)`);
+   207→    }
+   208→  };
+   209→
+   210→  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+   211→    if (e.key === "Enter") {
+   212→      e.preventDefault();
+   213→      handleScan(valor);
+   214→    } else if (e.key === "Escape" && parcial.length > 0) {
+   215→      setParcial([]);
+   216→      setValor("");
+   217→      pushFeedback(false, "Lectura parcial cancelada");
+   218→    }
+   219→  };
+   220→
+   221→  const handleConfirmar = () => {
+   222→    if (pistoleoFilas.length === 0) return;
+   223→    // Mostrar preview primero
+   224→    setShowPreview(true);
+   225→  };
+   226→
+   227→  const handleConfirmarReal = () => {
+   228→    const r = confirmarPistoleo();
+   229→    setLastConfirmResult({ ok: r.ok, msg: r.msg, duplicados: r.duplicados });
+   230→    if (r.ok) {
+   231→      toast({ title: "Series guardadas", description: r.msg });
+   232→      pushFeedback(true, r.msg);
+   233→      setShowPreview(false);
+   234→      if (r.duplicados && r.duplicados.length > 0) {
+   235→        // Mostrar toast de advertencia con acción de ver detalle
+   236→        toast({
+   237→          title: `${r.duplicados.length} serie(s) ya estaban registradas`,
+   238→          description: "Toca el mensaje naranja de abajo para ver el detalle.",
+   239→        });
+   240→      }
+   241→    } else {
+   242→      toast({ title: "Sin guardar", description: r.msg, variant: "destructive" });
+   243→      pushFeedback(false, r.msg);
+   244→      setShowPreview(false);
+   245→      if (r.duplicados && r.duplicados.length > 0) {
+   246→        setShowDuplicadosModal(true);
+   247→      }
+   248→    }
+   249→  };
+   250→
+   251→  const handleClear = () => {
+   252→    if (pistoleoFilas.length === 0) return;
+   253→    clearPistoleoFilas();
+   254→    toast({ title: "Captura descartada" });
+   255→  };
+   256→
+   257→  const startEdit = (id: string, valores: string[], modeloSel?: string) => {
+   258→    setEditingId(id);
+   259→    setEditingValores([...valores]);
+   260→    // Rellenar con strings vacíos hasta completar camposEsperados
+   261→    while (editingValores.length < camposEsperados) editingValores.push("");
+   262→    setEditingValores([...valores, ...Array(Math.max(0, camposEsperados - valores.length)).fill("")]);
+   263→    setEditingModelo(modeloSel ?? "");
+   264→  };
+   265→
+   266→  const cancelEdit = () => {
+   267→    setEditingId(null);
+   268→    setEditingValores([]);
+   269→    setEditingModelo("");
+   270→  };
+   271→
+   272→  const saveEdit = () => {
+   273→    if (!editingId) return;
+   274→    const trimmed = editingValores.map((v) => v.trim());
+   275→    if (!trimmed[0]) {
+   276→      toast({ title: "La serie no puede estar vacía", variant: "destructive" });
+   277→      return;
+   278→    }
+   279→    updatePistoleoFila(editingId, trimmed, editingModelo || undefined);
+   280→    setEditingId(null);
+   281→    setEditingValores([]);
+   282→    setEditingModelo("");
+   283→    toast({ title: "Fila actualizada" });
+   284→  };
+   285→
+   286→  const hayParcial = parcial.length > 0;
+   287→  const feedbackVisible = feedback && Date.now() - feedback.ts < 4000;
+   288→
+   289→  // Catálogo de productos para seleccionar el equipo/modelo
+   290→  const productosUnicos = useMemo(() => {
+   291→    const set = new Set<string>();
+   292→    return products.filter((p) => {
+   293→      const key = p.name.trim().toLowerCase();
+   294→      if (set.has(key)) return false;
+   295→      set.add(key);
+   296→      return true;
+   297→    });
+   298→  }, [products]);
+   299→
+   300→  return (
+   301→    <div className="px-4 py-6 lg:px-8">
+   302→      {/* Header */}
+   303→      <div className="anim-fade-up mb-5 flex flex-wrap items-start justify-between gap-3">
+   304→        <div>
+   305→          <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
+   306→            <ScanLine className="h-5 w-5 text-primary" /> Pistolear series
+   307→          </h1>
+   308→          <p className="text-sm text-muted-foreground">
+   309→            Captura rápida con lector óptico. Cada lectura envía Enter automáticamente.
+   310→          </p>
+   311→        </div>
+   312→        <Button
+   313→          variant="outline"
+   314→          onClick={() => setShowConfig((v) => !v)}
+   315→          className="press h-9 rounded-xl"
+   316→        >
+   317→          <Settings2 className="mr-1.5 h-4 w-4" />
+   318→          {showConfig ? "Ocultar config" : "Configuración"}
+   319→          {showConfig ? <ChevronDown className="ml-1 h-3 w-3" /> : <ChevronRight className="ml-1 h-3 w-3" />}
+   320→        </Button>
+   321→      </div>
+   322→
+   323→      {/* Panel de configuración rápida: equipo + prefijo (siempre visible) */}
+   324→      <div className="anim-fade-up mb-4 rounded-2xl border border-primary/30 bg-primary/5 p-4">
+   325→        <div className="grid gap-4 lg:grid-cols-2">
+   326→          {/* Equipo del inventario */}
+   327→          <div>
+   328→            <div className="mb-2 flex items-center gap-2">
+   329→              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+   330→                <PackageSearch className="h-4 w-4" />
+   331→              </div>
+   332→              <div>
+   333→                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+   334→                  Equipo del inventario
+   335→                </Label>
+   336→                <p className="text-[10px] text-muted-foreground">
+   337→                  Al que pertenecen las series que vas a pistolear
+   338→                </p>
+   339→              </div>
+   340→            </div>
+   341→            <div className="relative">
+   342→              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+   343→              <select
+   344→                value={modeloSeleccionado}
+   345→                onChange={(e) => setModeloSeleccionado(e.target.value)}
+   346→                className="h-10 w-full appearance-none rounded-xl border border-border bg-card pl-10 pr-8 text-[13px] font-medium text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+   347→              >
+   348→                <option value="">— Autodetectar por prefijo —</option>
+   349→                {productosUnicos.map((p) => (
+   350→                  <option key={p.id} value={p.name}>
+   351→                    {p.name} {p.sku ? `· ${p.sku}` : ""}
+   352→                  </option>
+   353→                ))}
+   354→              </select>
+   355→              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+   356→            </div>
+   357→            {modeloSeleccionado && (
+   358→              <button
+   359→                onClick={() => setModeloSeleccionado("")}
+   360→                className="press mt-2 rounded-lg border border-border bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:bg-accent"
+   361→              >
+   362→                <X className="mr-1 inline h-3 w-3" /> Quitar selección
+   363→              </button>
+   364→            )}
+   365→          </div>
+   366→
+   367→          {/* Prefijo (lo ingresa el usuario, ej: ZTE) */}
+   368→          <div>
+   369→            <div className="mb-2 flex items-center gap-2">
+   370→              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+   371→                <Hash className="h-4 w-4" />
+   372→              </div>
+   373→              <div>
+   374→                <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+   375→                  Prefijo de validación
+   376→                </Label>
+   377→                <p className="text-[10px] text-muted-foreground">
+   378→                  Tú lo pones — ej: ZTE, ZTEATV. Solo acepta series que empiecen así.
+   379→                </p>
+   380→              </div>
+   381→            </div>
+   382→            <div className="flex items-center gap-2">
+   383→              <Switch
+   384→                checked={settings.pistoleoPrefijoEnabled}
+   385→                onCheckedChange={(v) => setSetting("pistoleoPrefijoEnabled", v)}
+   386→              />
+   387→              <Input
+   388→                value={settings.pistoleoPrefijo}
+   389→                onChange={(e) => setSetting("pistoleoPrefijo", e.target.value.toUpperCase())}
+   390→                placeholder="Ej: ZTE"
+   391→                className="h-10 flex-1 rounded-xl font-mono uppercase"
+   392→                disabled={!settings.pistoleoPrefijoEnabled}
+   393→              />
+   394→            </div>
+   395→            {!settings.pistoleoPrefijoEnabled && (
+   396→              <p className="mt-1.5 text-[10px] text-muted-foreground">
+   397→                Activar para validar que las series empiecen con el prefijo.
+   398→              </p>
+   399→            )}
+   400→          </div>
+   401→        </div>
+   402→      </div>
+   403→
+   404→      {/* Config panel avanzado (colapsable) */}
+   405→      {showConfig && (
+   406→        <div className="anim-fade-up mb-4 rounded-2xl border border-border bg-card p-5">
+   407→          <div className="grid gap-4 lg:grid-cols-2">
+   408→            {/* Modelo y estado por defecto */}
+   409→            <div className="lg:col-span-1">
+   410→              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+   411→                Modelo por defecto (opcional)
+   412→              </Label>
+   413→              <Input
+   414→                value={pistoleoModelo}
+   415→                onChange={(e) => setPistoleoConfig({ pistoleoModelo: e.target.value })}
+   416→                placeholder="Se autodetecta por prefijo si lo dejas vacío"
+   417→                className="mt-1.5 rounded-xl"
+   418→              />
+   419→              <Label className="mt-3 block text-[11px] uppercase tracking-wide text-muted-foreground">
+   420→                Estado por defecto
+   421→              </Label>
+   422→              <Select
+   423→                value={pistoleoEstado}
+   424→                onValueChange={(v) => setPistoleoConfig({ pistoleoEstado: v as EstadoEquipo })}
+   425→              >
+   426→                <SelectTrigger className="mt-1.5 rounded-xl">
+   427→                  <SelectValue />
+   428→                </SelectTrigger>
+   429→                <SelectContent className="rounded-xl">
+   430→                  {ESTADOS.map((est) => (
+   431→                    <SelectItem key={est} value={est}>
+   432→                      {ESTADO_META[est].label}
+   433→                    </SelectItem>
+   434→                  ))}
+   435→                </SelectContent>
+   436→              </Select>
+   437→            </div>
+   438→
+   439→            {/* Reglas de auto-detección */}
+   440→            <div className="lg:col-span-1">
+   441→              <Label className="text-[11px] uppercase tracking-wide text-muted-foreground">
+   442→                Reglas de auto-detección
+   443→              </Label>
+   444→              <div className="mt-1.5 space-y-1.5">
+   445→                {REGLAS_PREFIJO.map((r) => (
+   446→                  <div
+   447→                    key={r.prefijo}
+   448→                    className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 p-2"
+   449→                  >
+   450→                    <CircleDot className="mt-0.5 h-3 w-3 text-primary" />
+   451→                    <div className="min-w-0 flex-1">
+   452→                      <p className="font-mono text-[11px] font-semibold text-primary">{r.prefijo}</p>
+   453→                      <p className="truncate text-[11px] text-muted-foreground">{r.modelo}</p>
+   454→                    </div>
+   455→                  </div>
+   456→                ))}
+   457→              </div>
+   458→            </div>
+   459→          </div>
+   460→        </div>
+   461→      )}
+   462→
+   463→      {/* Modo: botones */}
+   464→      <div className="anim-fade-up mb-4 flex flex-wrap gap-1.5">
+   465→        {(Object.keys(PISTOLEO_CAMPOS) as PistoleoCampo[]).map((k) => {
+   466→          const meta = PISTOLEO_CAMPOS[k];
+   467→          const active = pistoleoCampo === k;
+   468→          return (
+   469→            <button
+   470→              key={k}
+   471→              onClick={() => {
+   472→                setPistoleoConfig({ pistoleoCampo: k });
+   473→                setParcial([]);
+   474→              }}
+   475→              className={cn(
+   476→                "press flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[12px] font-medium transition-all",
+   477→                active
+   478→                  ? "border-primary/40 bg-primary/10 text-primary"
+   479→                  : "border-border bg-card text-muted-foreground hover:bg-accent"
+   480→              )}
+   481→            >
+   482→              <Hash className="h-3.5 w-3.5" />
+   483→              {meta.label}
+   484→            </button>
+   485→          );
+   486→        })}
+   487→        <div className="ml-auto flex items-center gap-2 text-[11px] text-muted-foreground">
+   488→          {hayParcial ? (
+   489→            <span className="flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-1 text-amber-300">
+   490→              <AlertTriangle className="h-3 w-3" />
+   491→              Esperando: {campoMeta.campos[parcial.length]}… ({parcial.length}/{camposEsperados})
+   492→            </span>
+   493→          ) : (
+   494→            <span className="flex items-center gap-1">
+   495→              Modo activo: <strong className="text-foreground">{campoMeta.label}</strong>
+   496→            </span>
+   497→          )}
+   498→        </div>
+   499→      </div>
+   500→
+   501→      {/* Input grande */}
+   502→      <div className="anim-fade-up mb-3">
+   503→        <div className="relative">
+   504→          <ScanLine className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-primary" />
+   505→          <input
+   506→            ref={inputRef}
+   507→            value={valor}
+   508→            onChange={(e) => setValor(e.target.value)}
+   509→            onKeyDown={onKeyDown}
+   510→            placeholder={
+   511→              hayParcial
+   512→                ? `Escanear ${campoMeta.campos[parcial.length]}… (Enter para confirmar)`
+   513→                : `Escanear serie con el lector… (Enter para confirmar)`
+   514→            }
+   515→            className="h-14 w-full rounded-2xl border-2 border-primary/30 bg-card pl-14 pr-4 font-mono text-[16px] font-semibold tracking-wide outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/15"
+   516→            autoComplete="off"
+   517→            spellCheck={false}
+   518→          />
+   519→        </div>
+   520→        {/* Live feedback */}
+   521→        <div className="mt-2 h-6">
+   522→          {feedbackVisible && feedback && (
+   523→            <div
+   524→              className={cn(
+   525→                "anim-fade-up inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium",
+   526→                feedback.ok
+   527→                  ? "bg-emerald-500/15 text-emerald-300"
+   528→                  : "bg-red-500/15 text-red-400"
+   529→              )}
+   530→            >
+   531→              {feedback.ok ? <Check className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />}
+   532→              {feedback.text}
+   533→            </div>
+   534→          )}
+   535→        </div>
+   536→      </div>
+   537→
+   538→      {/* Banner: series ya registradas en el sistema (clickeable) */}
+   539→      {duplicadosSistema.length > 0 && (
+   540→        <button
+   541→          onClick={() => setShowDuplicadosModal(true)}
+   542→          className="anim-fade-up mb-3 flex w-full items-center gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-3 text-left transition-all hover:bg-amber-500/15"
+   543→        >
+   544→          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white">
+   545→            <AlertTriangle className="h-4 w-4" />
+   546→          </div>
+   547→          <div className="min-w-0 flex-1">
+   548→            <p className="text-[13px] font-bold text-amber-300">
+   549→              {duplicadosSistema.length} serie(s) ya están registradas en tu sistema
+   550→            </p>
+   551→            <p className="text-[11px] text-muted-foreground">
+   552→              Más información, dale click a este mensaje.
+   553→            </p>
+   554→          </div>
+   555→          <Info className="h-4 w-4 shrink-0 text-amber-400" />
+   556→        </button>
+   557→      )}
+   558→
+   559→      {/* Banner: duplicados dentro del lote actual */}
+   560→      {duplicadosEnLote.length > 0 && (
+   561→        <div className="anim-fade-up mb-3 flex items-center gap-3 rounded-2xl border border-red-500/40 bg-red-500/10 p-3">
+   562→          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-500 text-white">
+   563→            <AlertTriangle className="h-4 w-4" />
+   564→          </div>
+   565→          <div className="min-w-0 flex-1">
+   566→            <p className="text-[13px] font-bold text-red-300">
+   567→              {duplicadosEnLote.length} serie(s) repetida(s) en esta sesión
+   568→            </p>
+   569→            <p className="text-[11px] text-muted-foreground">
+   570→              Revisa la tabla y elimina los duplicados antes de guardar.
+   571→            </p>
+   572→          </div>
+   573→        </div>
+   574→      )}
+   575→
+   576→      {/* Acciones */}
+   577→      <div className="anim-fade-up mb-4 flex flex-wrap items-center gap-2">
+   578→        <Button
+   579→          onClick={handleConfirmar}
+   580→          disabled={pistoleoFilas.length === 0}
+   581→          className="press btn-spacecom h-10 rounded-xl"
+   582→        >
+   583→          <Save className="mr-1.5 h-4 w-4" /> Guardar en sistema ({pistoleoFilas.length})
+   584→        </Button>
+   585→        <Button
+   586→          variant="outline"
+   587→          onClick={handleClear}
+   588→          disabled={pistoleoFilas.length === 0}
+   589→          className="press h-10 rounded-xl"
+   590→        >
+   591→          <Trash2 className="mr-1.5 h-4 w-4" /> Descartar captura
+   592→        </Button>
+   593→        <span className="ml-auto text-[11px] text-muted-foreground">
+   594→          Tip: pulsa <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px]">Esc</kbd> para cancelar una lectura parcial
+   595→        </span>
+   596→      </div>
+   597→
+   598→      {/* Tabla de capturas */}
+   599→      <div className="anim-fade-up overflow-hidden rounded-2xl border border-border bg-card">
+   600→        <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+   601→          <h2 className="flex items-center gap-2 text-sm font-semibold">
+   602→            <Cpu className="h-4 w-4 text-primary" /> Series capturadas
+   603→          </h2>
+   604→          <span className="text-[11px] text-muted-foreground">{pistoleoFilas.length} captura(s)</span>
+   605→        </div>
+   606→        {pistoleoFilas.length === 0 ? (
+   607→          <div className="px-4 py-10 text-center text-[12px] text-muted-foreground">
+   608→            Aún no has capturado series. Escanea con el lector y aparecerán aquí.
+   609→          </div>
+   610→        ) : (
+   611→          <div className="max-h-96 overflow-y-auto scroll-thin">
+   612→            <table className="w-full text-sm">
+   613→              <thead className="sticky top-0">
+   614→                <tr className="border-b border-border bg-muted/80 text-left text-[10px] uppercase tracking-wide text-muted-foreground backdrop-blur">
+   615→                  <th className="px-3 py-2.5 font-medium">#</th>
+   616→                  <th className="px-3 py-2.5 font-medium">Serie</th>
+   617→                  {pistoleoCampo !== "serie" && pistoleoCampo !== "serie_ua" && (
+   618→                    <th className="px-3 py-2.5 font-medium">MAC</th>
+   619→                  )}
+   620→                  {pistoleoCampo === "serie_ua" && (
+   621→                    <th className="px-3 py-2.5 font-medium">UA</th>
+   622→                  )}
+   623→                  {pistoleoCampo === "serie_mac_cm" && (
+   624→                    <th className="px-3 py-2.5 font-medium">CM MAC</th>
+   625→                  )}
+   626→                  <th className="px-3 py-2.5 font-medium">Modelo</th>
+   627→                  <th className="px-3 py-2.5 font-medium">Hora</th>
+   628→                  <th className="px-3 py-2.5"></th>
+   629→                </tr>
+   630→              </thead>
+   631→              <tbody>
+   632→                {pistoleoFilas.map((f, i) => {
+   633→                  const serie = f.valores[0] ?? "";
+   634→                  const mac = f.valores[1] ?? "";
+   635→                  const cmMac = f.valores[2] ?? "";
+   636→                  const modeloDetectado =
+   637→                    f.modeloSeleccionado?.trim()
+   638→                    || pistoleoModelo.trim()
+   639→                    || detectarModelo(serie, settings.pistoleoPrefijoEnabled)
+   640→                    || "SIN MODELO";
+   641→                  const yaEnSistema = !!findEquipmentBySerie(serie);
+   642→                  const dupEnLote = duplicadosEnLote.some((d) => d.toUpperCase() === serie.toUpperCase());
+   643→
+   644→                  if (editingId === f.id) {
+   645→                    return (
+   646→                      <tr key={f.id} className="border-b border-border/50 bg-primary/5">
+   647→                        <td className="px-3 py-2.5 text-[11px] tabular-nums text-muted-foreground">{i + 1}</td>
+   648→                        <td className="px-3 py-2.5">
+   649→                          <Input
+   650→                            value={editingValores[0] ?? ""}
+   651→                            onChange={(e) => {
+   652→                              const next = [...editingValores];
+   653→                              next[0] = e.target.value;
+   654→                              setEditingValores(next);
+   655→                            }}
+   656→                            className="h-8 rounded-md font-mono text-[12px]"
+   657→                            autoFocus
+   658→                          />
+   659→                        </td>
+   660→                        {(pistoleoCampo !== "serie" && pistoleoCampo !== "serie_ua") && (
+   661→                          <td className="px-3 py-2.5">
+   662→                            <Input
+   663→                              value={editingValores[1] ?? ""}
+   664→                              onChange={(e) => {
+   665→                                const next = [...editingValores];
+   666→                                next[1] = e.target.value;
+   667→                                setEditingValores(next);
+   668→                              }}
+   669→                              className="h-8 rounded-md font-mono text-[12px]"
+   670→                            />
+   671→                          </td>
+   672→                        )}
+   673→                        {pistoleoCampo === "serie_ua" && (
+   674→                          <td className="px-3 py-2.5">
+   675→                            <Input
+   676→                              value={editingValores[1] ?? ""}
+   677→                              onChange={(e) => {
+   678→                                const next = [...editingValores];
+   679→                                next[1] = e.target.value;
+   680→                                setEditingValores(next);
+   681→                              }}
+   682→                              className="h-8 rounded-md font-mono text-[12px]"
+   683→                            />
+   684→                          </td>
+   685→                        )}
+   686→                        {pistoleoCampo === "serie_mac_cm" && (
+   687→                          <td className="px-3 py-2.5">
+   688→                            <Input
+   689→                              value={editingValores[2] ?? ""}
+   690→                              onChange={(e) => {
+   691→                                const next = [...editingValores];
+   692→                                next[2] = e.target.value;
+   693→                                setEditingValores(next);
+   694→                              }}
+   695→                              className="h-8 rounded-md font-mono text-[12px]"
+   696→                            />
+   697→                          </td>
+   698→                        )}
+   699→                        <td className="px-3 py-2.5">
+   700→                          <select
+   701→                            value={editingModelo}
+   702→                            onChange={(e) => setEditingModelo(e.target.value)}
+   703→                            className="h-8 w-full rounded-md border border-border bg-card px-2 text-[11px] font-medium"
+   704→                          >
+   705→                            <option value="">Autodetectar</option>
+   706→                            {productosUnicos.map((p) => (
+   707→                              <option key={p.id} value={p.name}>{p.name}</option>
+   708→                            ))}
+   709→                          </select>
+   710→                        </td>
+   711→                        <td className="px-3 py-2.5 text-[11px] tabular-nums text-muted-foreground">
+   712→                          {new Date(f.timestamp).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+   713→                        </td>
+   714→                        <td className="px-3 py-2.5">
+   715→                          <div className="flex items-center gap-1">
+   716→                            <button
+   717→                              onClick={saveEdit}
+   718→                              className="press rounded-md p-1.5 text-emerald-500 hover:bg-emerald-500/10"
+   719→                              title="Guardar"
+   720→                            >
+   721→                              <Check className="h-3.5 w-3.5" />
+   722→                            </button>
+   723→                            <button
+   724→                              onClick={cancelEdit}
+   725→                              className="press rounded-md p-1.5 text-muted-foreground hover:bg-accent"
+   726→                              title="Cancelar"
+   727→                            >
+   728→                              <X className="h-3.5 w-3.5" />
+   729→                            </button>
+   730→                          </div>
+   731→                        </td>
+   732→                      </tr>
+   733→                    );
+   734→                  }
+   735→
+   736→                  return (
+   737→                    <tr
+   738→                      key={f.id}
+   739→                      className={cn(
+   740→                        "group border-b border-border/50 last:border-0 hover:bg-accent/30 transition-colors",
+   741→                        yaEnSistema && "bg-red-500/5",
+   742→                        dupEnLote && !yaEnSistema && "bg-amber-500/5"
+   743→                      )}
+   744→                    >
+   745→                      <td className="px-3 py-2.5 text-[11px] tabular-nums text-muted-foreground">{i + 1}</td>
+   746→                      <td className="px-3 py-2.5">
+   747→                        <div className="flex items-center gap-1.5">
+   748→                          <span className="font-mono text-[12px] font-semibold">{serie}</span>
+   749→                          {yaEnSistema && (
+   750→                            <span className="rounded-full bg-red-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-red-400" title="Ya registrada en el sistema">
+   751→                              Registrada
+   752→                            </span>
+   753→                          )}
+   754→                          {dupEnLote && !yaEnSistema && (
+   755→                            <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-300" title="Repetida en este lote">
+   756→                              Repetida
+   757→                            </span>
+   758→                          )}
+   759→                        </div>
+   760→                      </td>
+   761→                      {(pistoleoCampo !== "serie" && pistoleoCampo !== "serie_ua") && (
+   762→                        <td className="px-3 py-2.5">
+   763→                          {mac ? (
+   764→                            <span className="font-mono text-[12px] text-muted-foreground">{mac}</span>
+   765→                          ) : (
+   766→                            <span className="text-[11px] text-muted-foreground">—</span>
+   767→                          )}
+   768→                        </td>
+   769→                      )}
+   770→                      {pistoleoCampo === "serie_ua" && (
+   771→                        <td className="px-3 py-2.5">
+   772→                          {mac ? (
+   773→                            <span className="font-mono text-[12px] text-muted-foreground">{mac}</span>
+   774→                          ) : (
+   775→                            <span className="text-[11px] text-muted-foreground">—</span>
+   776→                          )}
+   777→                        </td>
+   778→                      )}
+   779→                      {pistoleoCampo === "serie_mac_cm" && (
+   780→                        <td className="px-3 py-2.5">
+   781→                          {cmMac ? (
+   782→                            <span className="font-mono text-[12px] text-muted-foreground">{cmMac}</span>
+   783→                          ) : (
+   784→                            <span className="text-[11px] text-muted-foreground">—</span>
+   785→                          )}
+   786→                        </td>
+   787→                      )}
+   788→                      <td className="px-3 py-2.5">
+   789→                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+   790→                          <Cpu className="h-2.5 w-2.5" />
+   791→                          {modeloDetectado}
+   792→                        </span>
+   793→                      </td>
+   794→                      <td className="px-3 py-2.5 text-[11px] tabular-nums text-muted-foreground">
+   795→                        {new Date(f.timestamp).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+   796→                      </td>
+   797→                      <td className="px-3 py-2.5">
+   798→                        <div className="flex items-center gap-1">
+   799→                          <button
+   800→                            onClick={() => startEdit(f.id, f.valores, f.modeloSeleccionado)}
+   801→                            className="press rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-primary/10 hover:text-primary group-hover:opacity-100"
+   802→                            title="Editar"
+   803→                          >
+   804→                            <Pencil className="h-3.5 w-3.5" />
+   805→                          </button>
+   806→                          <button
+   807→                            onClick={() => deletePistoleoFila(f.id)}
+   808→                            className="press rounded-md p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
+   809→                            title="Eliminar"
+   810→                          >
+   811→                            <Trash2 className="h-3.5 w-3.5" />
+   812→                          </button>
+   813→                        </div>
+   814→                      </td>
+   815→                    </tr>
+   816→                  );
+   817→                })}
+   818→              </tbody>
+   819→            </table>
+   820→          </div>
+   821→        )}
+   822→      </div>
+   823→
+   824→      {/* Resumen */}
+   825→      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+   826→        <ResumenCard label="Capturadas" value={String(pistoleoFilas.length)} tone="neutral" />
+   827→        <ResumenCard
+   828→          label="Última serie"
+   829→          value={pistoleoFilas[0]?.valores[0] ?? "—"}
+   830→          mono
+   831→          tone="info"
+   832→        />
+   833→        <ResumenCard label="Modo" value={campoMeta.short} tone="warn" />
+   834→        <ResumenCard label="Estado destino" value={ESTADO_META[pistoleoEstado].short} tone="ok" />
+   835→      </div>
+   836→
+   837→      {/* Modal: Preview antes de guardar */}
+   838→      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+   839→        <DialogContent className="max-h-[85vh] overflow-hidden rounded-2xl sm:max-w-2xl">
+   840→          <DialogHeader>
+   841→            <DialogTitle className="flex items-center gap-2">
+   842→              <Eye className="h-5 w-5 text-primary" /> Vista previa — {pistoleoFilas.length} serie(s)
+   843→            </DialogTitle>
+   844→            <DialogDescription>
+   845→              Revisa antes de guardar en el sistema. Las series en rojo ya están registradas y se omitirán.
+   846→            </DialogDescription>
+   847→          </DialogHeader>
+   848→          <div className="flex flex-col gap-3">
+   849→            {/* Resumen */}
+   850→            <div className="grid grid-cols-3 gap-2 text-center">
+   851→              <div className="rounded-xl border border-border bg-card p-3">
+   852→                <p className="text-2xl font-bold text-foreground">{pistoleoFilas.length}</p>
+   853→                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Total capturadas</p>
+   854→              </div>
+   855→              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3">
+   856→                <p className="text-2xl font-bold text-emerald-400">{pistoleoFilas.length - duplicadosSistema.length}</p>
+   857→                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">A guardar</p>
+   858→              </div>
+   859→              <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-3">
+   860→                <p className="text-2xl font-bold text-red-400">{duplicadosSistema.length}</p>
+   861→                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Ya registradas</p>
+   862→              </div>
+   863→            </div>
+   864→            {/* Lista scroll */}
+   865→            <div className="max-h-64 overflow-y-auto scroll-thin rounded-xl border border-border">
+   866→              <table className="w-full text-sm">
+   867→                <thead className="sticky top-0">
+   868→                  <tr className="border-b border-border bg-muted/80 text-left text-[10px] uppercase tracking-wide text-muted-foreground backdrop-blur">
+   869→                    <th className="px-3 py-2 font-medium">#</th>
+   870→                    <th className="px-3 py-2 font-medium">Serie</th>
+   871→                    {pistoleoCampo !== "serie" && pistoleoCampo !== "serie_ua" && (
+   872→                      <th className="px-3 py-2 font-medium">MAC</th>
+   873→                    )}
+   874→                    {pistoleoCampo === "serie_ua" && (
+   875→                      <th className="px-3 py-2 font-medium">UA</th>
+   876→                    )}
+   877→                    {pistoleoCampo === "serie_mac_cm" && (
+   878→                      <th className="px-3 py-2 font-medium">CM MAC</th>
+   879→                    )}
+   880→                    <th className="px-3 py-2 font-medium">Estado</th>
+   881→                  </tr>
+   882→                </thead>
+   883→                <tbody>
+   884→                  {pistoleoFilas.map((f, i) => {
+   885→                    const serie = f.valores[0] ?? "";
+   886→                    const mac = f.valores[1] ?? "";
+   887→                    const cmMac = f.valores[2] ?? "";
+   888→                    const yaEnSistema = !!findEquipmentBySerie(serie);
+   889→                    return (
+   890→                      <tr
+   891→                        key={f.id}
+   892→                        className={cn(
+   893→                          "border-b border-border/50 last:border-0",
+   894→                          yaEnSistema ? "bg-red-500/5" : "bg-card"
+   895→                        )}
+   896→                      >
+   897→                        <td className="px-3 py-2 text-[11px] tabular-nums text-muted-foreground">{i + 1}</td>
+   898→                        <td className="px-3 py-2 font-mono text-[12px] font-semibold">{serie}</td>
+   899→                        {(pistoleoCampo !== "serie" && pistoleoCampo !== "serie_ua") && (
+   900→                          <td className="px-3 py-2 font-mono text-[12px] text-muted-foreground">{mac || "—"}</td>
+   901→                        )}
+   902→                        {pistoleoCampo === "serie_ua" && (
+   903→                          <td className="px-3 py-2 font-mono text-[12px] text-muted-foreground">{mac || "—"}</td>
+   904→                        )}
+   905→                        {pistoleoCampo === "serie_mac_cm" && (
+   906→                          <td className="px-3 py-2 font-mono text-[12px] text-muted-foreground">{cmMac || "—"}</td>
+   907→                        )}
+   908→                        <td className="px-3 py-2">
+   909→                          {yaEnSistema ? (
+   910→                            <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-red-400">
+   911→                              Ya registrada
+   912→                            </span>
+   913→                          ) : (
+   914→                            <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-400">
+   915→                              A guardar
+   916→                            </span>
+   917→                          )}
+   918→                        </td>
+   919→                      </tr>
+   920→                    );
+   921→                  })}
+   922→                </tbody>
+   923→              </table>
+   924→            </div>
+   925→            {duplicadosSistema.length > 0 && (
+   926→              <div className="flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-[12px] text-amber-300">
+   927→                <AlertTriangle className="h-4 w-4 shrink-0" />
+   928→                <span>
+   929→                  {duplicadosSistema.length} serie(s) ya están registradas en el sistema y se omitirán al guardar.
+   930→                </span>
+   931→              </div>
+   932→            )}
+   933→          </div>
+   934→          <DialogFooter>
+   935→            <DialogClose asChild>
+   936→              <Button variant="outline" className="rounded-xl">Cancelar</Button>
+   937→            </DialogClose>
+   938→            <Button onClick={handleConfirmarReal} className="btn-spacecom rounded-xl">
+   939→              <Save className="mr-1.5 h-4 w-4" />
+   940→              {duplicadosSistema.length > 0
+   941→                ? `Guardar ${pistoleoFilas.length - duplicadosSistema.length} (omitir ${duplicadosSistema.length})`
+   942→                : `Guardar ${pistoleoFilas.length} serie(s)`}
+   943→            </Button>
+   944→          </DialogFooter>
+   945→        </DialogContent>
+   946→      </Dialog>
+   947→
+   948→      {/* Modal: Detalle de duplicados */}
+   949→      <Dialog open={showDuplicadosModal} onOpenChange={setShowDuplicadosModal}>
+   950→        <DialogContent className="max-h-[85vh] overflow-hidden rounded-2xl sm:max-w-lg">
+   951→          <DialogHeader>
+   952→            <DialogTitle className="flex items-center gap-2">
+   953→              <AlertTriangle className="h-5 w-5 text-amber-400" />
+   954→              {lastConfirmResult?.duplicados?.length ?? duplicadosSistema.length} serie(s) ya registradas
+   955→            </DialogTitle>
+   956→            <DialogDescription>
+   957→              Estas series ya existen en el sistema y no se guardaron de nuevo. Toca una para verla en el catálogo de equipos.
+   958→            </DialogDescription>
+   959→          </DialogHeader>
+   960→          <div className="max-h-96 overflow-y-auto scroll-thin">
+   961→            <ul className="flex flex-col gap-1.5">
+   962→              {(lastConfirmResult?.duplicados ?? duplicadosSistema).map((s, i) => {
+   963→                const eq = findEquipmentBySerie(s);
+   964→                return (
+   965→                  <li
+   966→                    key={`${s}-${i}`}
+   967→                    className="flex items-center gap-3 rounded-xl border border-border bg-card p-3"
+   968→                  >
+   969→                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-500/15 text-red-400">
+   970→                      <AlertTriangle className="h-4 w-4" />
+   971→                    </div>
+   972→                    <div className="min-w-0 flex-1">
+   973→                      <p className="font-mono text-[12px] font-semibold text-foreground">{s}</p>
+   974→                      {eq && (
+   975→                        <p className="truncate text-[11px] text-muted-foreground">
+   976→                          {eq.modelo} · {ESTADO_META[eq.estado].label} · {new Date(eq.createdAt).toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit", year: "numeric" })}
+   977→                        </p>
+   978→                      )}
+   979→                    </div>
+   980→                    {eq && (
+   981→                      <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+   982→                        {ESTADO_META[eq.estado].short}
+   983→                      </span>
+   984→                    )}
+   985→                  </li>
+   986→                );
+   987→              })}
+   988→            </ul>
+   989→          </div>
+   990→          <DialogFooter>
+   991→            <DialogClose asChild>
+   992→              <Button variant="outline" className="rounded-xl">Entendido</Button>
+   993→            </DialogClose>
+   994→          </DialogFooter>
+   995→        </DialogContent>
+   996→      </Dialog>
+   997→    </div>
+   998→  );
+   999→}
+  1000→
+  1001→function ResumenCard({
+  1002→  label,
+  1003→  value,
+  1004→  tone,
+  1005→  mono,
+  1006→}: {
+  1007→  label: string;
+  1008→  value: string;
+  1009→  tone: "neutral" | "info" | "warn" | "ok";
+  1010→  mono?: boolean;
+  1011→}) {
+  1012→  const toneCls = {
+  1013→    neutral: "bg-muted text-primary",
+  1014→    info: "bg-muted text-foreground",
+  1015→    warn: "bg-muted text-foreground",
+  1016→    ok: "bg-muted text-foreground",
+  1017→  }[tone];
+  1018→  return (
+  1019→    <div className={cn("rounded-2xl border border-border/60 bg-card p-3", toneCls)}>
+  1020→      <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+  1021→      <p className={cn("mt-1 truncate text-[14px] font-bold text-foreground", mono && "font-mono")}>
+  1022→        {value}
+  1023→      </p>
+  1024→    </div>
+  1025→  );
+  1026→}
+  1027→

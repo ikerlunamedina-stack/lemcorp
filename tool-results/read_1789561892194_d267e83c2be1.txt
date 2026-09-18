@@ -1,0 +1,892 @@
+     1→     1→"use client";
+     2→     2→
+     3→     3→import { useRef, useState, useMemo } from "react";
+     4→     4→import { AppShell } from "@/components/lem/app-shell";
+     5→     5→import { useStore } from "@/lib/store";
+     6→     6→import {
+     7→     7→  ArrowLeftRight, Upload, FileSpreadsheet, Loader2, AlertCircle,
+     8→     8→  CheckCircle2, Package, Cpu, Trash2, ChevronDown, ChevronRight,
+     9→     9→  MapPin, User, Calendar, Hash,
+    10→    10→} from "lucide-react";
+    11→    11→import { Button } from "@/components/ui/button";
+    12→    12→import { useConfirm } from "@/components/lem/use-confirm";
+    13→    13→import {
+    14→    14→  Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle,
+    15→    15→} from "@/components/ui/dialog";
+    16→    16→import { fmtNum } from "@/lib/num";
+    17→    17→import { cn } from "@/lib/utils";
+    18→    18→
+    19→    19→const ICON_PROPS = { strokeWidth: 1.5 } as const;
+    20→    20→
+    21→    21→interface ItemOp {
+    22→    22→  sku: string;
+    23→    23→  producto: string;
+    24→    24→  unidad: string;
+    25→    25→  cantidad: number;
+    26→    26→  precioUnitario: number;
+    27→    27→  requiereSerie: boolean;
+    28→    28→  series: string[];
+    29→    29→  seriesFaltantes: number;
+    30→    30→  seriesSobrantes: number;
+    31→    31→  estado: "ok" | "falta_serie" | "sobran_series" | "sin_cantidad" | "sin_sku";
+    32→    32→  observacion?: string;
+    33→    33→}
+    34→    34→
+    35→    35→interface OperacionAgrupada {
+    36→    36→  nOperacion: string;
+    37→    37→  flujo: "IN" | "OUT" | "INT";
+    38→    38→  tipoOperacion: string;
+    39→    39→  proyectoMacro?: string;
+    40→    40→  obra?: string;
+    41→    41→  codigoPep?: string;
+    42→    42→  almacenOrigen: string;
+    43→    43→  ubicacionOrigen: string;
+    44→    44→  almacenDestino: string;
+    45→    45→  ubicacionDestino: string;
+    46→    46→  razonSocialDestino: string;
+    47→    47→  rucDniDestino: string;
+    48→    48→  guiaRemision: string;
+    49→    49→  responsable: string;
+    50→    50→  tecnico: string;
+    51→    51→  fechaTraslado: number | null;
+    52→    52→  estadoOp: string;
+    53→    53→  observaciones: string;
+    54→    54→  items: ItemOp[];
+    55→    55→  totalUnidades: number;
+    56→    56→  totalSeries: number;
+    57→    57→  totalPrecio: number;
+    58→    58→  itemsOK: number;
+    59→    59→  itemsConError: number;
+    60→    60→  seriesFaltantesTotal: number;
+    61→    61→}
+    62→    62→
+    63→    63→function fmtFecha(ts: number | null | undefined): string {
+    64→    64→  if (!ts) return "—";
+    65→    65→  try {
+    66→    66→    return new Date(ts).toLocaleString("es-PE", {
+    67→    67→      timeZone: "America/Lima",
+    68→    68→      day: "2-digit", month: "2-digit", year: "numeric",
+    69→    69→      hour: "2-digit", minute: "2-digit",
+    70→    70→    });
+    71→    71→  } catch { return new Date(ts).toLocaleString("es-PE"); }
+    72→    72→}
+    73→    73→
+    74→    74→const ESTADO_ITEM_META: Record<ItemOp["estado"], { label: string; tone: string; icon: typeof CheckCircle2 }> = {
+    75→    75→  ok: { label: "OK", tone: "text-emerald-600", icon: CheckCircle2 },
+    76→    76→  falta_serie: { label: "Falta serie", tone: "text-rose-600", icon: AlertCircle },
+    77→    77→  sobran_series: { label: "Series de más", tone: "text-amber-600", icon: AlertCircle },
+    78→    78→  sin_cantidad: { label: "Sin cantidad", tone: "text-rose-600", icon: AlertCircle },
+    79→    79→  sin_sku: { label: "Sin SKU", tone: "text-rose-600", icon: AlertCircle },
+    80→    80→};
+    81→    81→
+    82→    82→export default function TransferenciasPage() {
+    83→    83→  const { confirm, ConfirmDialog } = useConfirm();
+    84→    84→  const despachos = useStore((s) => s.despachos) ?? [];
+    85→    85→  const products = useStore((s) => s.products) ?? [];
+    86→    86→  const equipos = useStore((s) => s.equipos) ?? [];
+    87→    87→  const findProductBySku = useStore((s) => s.findProductBySku);
+    88→    88→  const findEquipmentBySerie = useStore((s) => s.findEquipmentBySerie);
+    89→    89→  const registrarTransferencia = useStore((s) => s.registrarTransferencia);
+    90→    90→  const deleteTransferencia = useStore((s) => s.deleteTransferencia);
+    91→    91→
+    92→    92→  const fileRef = useRef<HTMLInputElement>(null);
+    93→    93→  const [importing, setImporting] = useState(false);
+    94→    94→  const [previewOps, setPreviewOps] = useState<OperacionAgrupada[]>([]);
+    95→    95→  const [previewOpen, setPreviewOpen] = useState(false);
+    96→    96→  const [expandedOp, setExpandedOp] = useState<string | null>(null);
+    97→    97→  const [result, setResult] = useState<{
+    98→    98→    ok: number; fail: number; fails: string[]; totalUnidades: number; totalSeries: number;
+    99→    99→    despachosCreados: number; productosActualizados: number; equiposMarcados: number;
+   100→   100→  } | null>(null);
+   101→   101→  const [error, setError] = useState<string | null>(null);
+   102→   102→  const [confirming, setConfirming] = useState(false);
+   103→   103→  const [expandedHist, setExpandedHist] = useState<string | null>(null);
+   104→   104→
+   105→   105→  const transferencias = useMemo(
+   106→   106→    () => despachos.filter((d) => d.tipo === "transferencia"),
+   107→   107→    [despachos]
+   108→   108→  );
+   109→   109→
+   110→   110→  const opsAgrupadas = useMemo(() => {
+   111→   111→    const map = new Map<string, {
+   112→   112→      nOperacion: string;
+   113→   113→      items: typeof despachos;
+   114→   114→      tecnico?: string;
+   115→   115→      destino?: string;
+   116→   116→      fecha: number;
+   117→   117→      guiaRemision?: string;
+   118→   118→      tipoOperacion?: string;
+   119→   119→      razonSocialDestino?: string;
+   120→   120→      almacenOrigen?: string;
+   121→   121→      almacenDestino?: string;
+   122→   122→    }>();
+   123→   123→    for (const t of transferencias) {
+   124→   124→      const key = t.nOperacion || "(sin op)";
+   125→   125→      if (!map.has(key)) {
+   126→   126→        map.set(key, {
+   127→   127→          nOperacion: key,
+   128→   128→          items: [],
+   129→   129→          tecnico: t.tecnico,
+   130→   130→          destino: t.destino,
+   131→   131→          fecha: t.fecha,
+   132→   132→          guiaRemision: t.guiaRemision,
+   133→   133→          tipoOperacion: t.tipoOperacion,
+   134→   134→          razonSocialDestino: t.razonSocialDestino,
+   135→   135→          almacenOrigen: t.almacenOrigen,
+   136→   136→          almacenDestino: t.almacenDestino,
+   137→   137→        });
+   138→   138→      }
+   139→   139→      map.get(key)!.items.push(t);
+   140→   140→    }
+   141→   141→    return Array.from(map.values()).sort((a, b) => b.fecha - a.fecha);
+   142→   142→  }, [transferencias]);
+   143→   143→
+   144→   144→  const totalUnidades = useMemo(
+   145→   145→    () => transferencias.reduce((s, t) => s + t.cantidad, 0),
+   146→   146→    [transferencias]
+   147→   147→  );
+   148→   148→  const totalSeries = useMemo(
+   149→   149→    () => transferencias.reduce((s, t) => s + (t.series?.length || 0), 0),
+   150→   150→    [transferencias]
+   151→   151→  );
+   152→   152→  const totalDestinatarios = useMemo(
+   153→   153→    () => new Set(transferencias.map((t) => t.tecnico || t.razonSocialDestino).filter(Boolean)).size,
+   154→   154→    [transferencias]
+   155→   155→  );
+   156→   156→
+   157→   157→  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+   158→   158→    const file = e.target.files?.[0];
+   159→   159→    if (!file) return;
+   160→   160→    setImporting(true);
+   161→   161→    setError(null);
+   162→   162→    setResult(null);
+   163→   163→    setPreviewOps([]);
+   164→   164→    try {
+   165→   165→      const formData = new FormData();
+   166→   166→      formData.append("file", file);
+   167→   167→      const res = await fetch("/api/import-operaciones", {
+   168→   168→        method: "POST",
+   169→   169→        body: formData,
+   170→   170→      });
+   171→   171→      const data = await res.json();
+   172→   172→      if (!data.ok) throw new Error(data.error || "Error al procesar Excel");
+   173→   173→      setPreviewOps(data.operaciones || []);
+   174→   174→      setPreviewOpen(true);
+   175→   175→      setExpandedOp(null);
+   176→   176→    } catch (err: any) {
+   177→   177→      setError(err?.message || "Error al importar el Excel");
+   178→   178→    } finally {
+   179→   179→      setImporting(false);
+   180→   180→      if (fileRef.current) fileRef.current.value = "";
+   181→   181→    }
+   182→   182→  };
+   183→   183→
+   184→   184→  const confirmarImportacion = async () => {
+   185→   185→    setConfirming(true);
+   186→   186→    setError(null);
+   187→   187→    try {
+   188→   188→      // ─── Bloqueo: si hay series del Excel que no están en el inventario de equipos ───
+   189→   189→      // Los routers/modems/etc NO se pueden despachar si sus series no están registradas.
+   190→   190→      // El usuario debe recibir los equipos primero (PDF de guía en /recepciones).
+   191→   191→      if (seriesFaltantesInventario.length > 0) {
+   192→   192→        setError(
+   193→   193→          `${seriesFaltantesInventario.length} serie(s) del Excel NO están registradas en el inventario de equipos. ` +
+   194→   194→          `Recibe los equipos primero subiendo un PDF de guía SUNAT en /recepciones.`
+   195→   195→        );
+   196→   196→        setConfirming(false);
+   197→   197→        return;
+   198→   198→      }
+   199→   199→      if (seriesNoDisponibles.length > 0) {
+   200→   200→        setError(
+   201→   201→          `${seriesNoDisponibles.length} serie(s) existen pero no están disponibles (averiadas o en retiro). ` +
+   202→   202→          `No se pueden despachar equipos que no estén disponibles.`
+   203→   203→        );
+   204→   204→        setConfirming(false);
+   205→   205→        return;
+   206→   206→      }
+   207→   207→
+   208→   208→      let ok = 0, fail = 0, totalUnd = 0, totalSer = 0;
+   209→   209→      let despachosCreados = 0, productosActualizados = 0, equiposMarcados = 0;
+   210→   210→      const allFails: string[] = [];
+   211→   211→
+   212→   212→      for (const op of previewOps) {
+   213→   213→        const itemsValidos = op.items.filter((it) => it.estado === "ok" || it.estado === "sobran_series");
+   214→   214→        if (itemsValidos.length === 0) {
+   215→   215→          allFails.push(`Operación ${op.nOperacion}: no hay items válidos`);
+   216→   216→          continue;
+   217→   217→        }
+   218→   218→        const r = registrarTransferencia({
+   219→   219→          nOperacion: op.nOperacion,
+   220→   220→          flujo: op.flujo,
+   221→   221→          tipoOperacion: op.tipoOperacion,
+   222→   222→          almacenOrigen: op.almacenOrigen,
+   223→   223→          ubicacionOrigen: op.ubicacionOrigen,
+   224→   224→          almacenDestino: op.almacenDestino,
+   225→   225→          ubicacionDestino: op.ubicacionDestino,
+   226→   226→          razonSocialDestino: op.razonSocialDestino,
+   227→   227→          rucDniDestino: op.rucDniDestino,
+   228→   228→          guiaRemision: op.guiaRemision,
+   229→   229→          responsable: op.responsable,
+   230→   230→          tecnico: op.tecnico,
+   231→   231→          fechaTraslado: op.fechaTraslado,
+   232→   232→          observaciones: op.observaciones,
+   233→   233→          items: itemsValidos.map((it) => ({
+   234→   234→            sku: it.sku,
+   235→   235→            producto: it.producto,
+   236→   236→            unidad: it.unidad,
+   237→   237→            cantidad: it.cantidad,
+   238→   238→            precioUnitario: it.precioUnitario,
+   239→   239→            series: it.requiereSerie ? it.series.slice(0, it.cantidad) : it.series,
+   240→   240→            requiereSerie: it.requiereSerie,
+   241→   241→          })),
+   242→   242→        });
+   243→   243→        ok += r.ok;
+   244→   244→        fail += r.fail;
+   245→   245→        totalUnd += r.totalUnidades;
+   246→   246→        totalSer += r.totalSeries;
+   247→   247→        despachosCreados += r.despachosCreados;
+   248→   248→        productosActualizados += r.productosActualizados;
+   249→   249→        equiposMarcados += r.equiposMarcados;
+   250→   250→        if (r.fails.length) allFails.push(...r.fails.map((f) => `[${op.nOperacion}] ${f}`));
+   251→   251→      }
+   252→   252→
+   253→   253→      setResult({
+   254→   254→        ok, fail, fails: allFails, totalUnidades: totalUnd, totalSeries: totalSer,
+   255→   255→        despachosCreados, productosActualizados, equiposMarcados,
+   256→   256→      });
+   257→   257→    } catch (err: any) {
+   258→   258→      setError(err?.message || "Error al confirmar");
+   259→   259→    } finally {
+   260→   260→      setConfirming(false);
+   261→   261→    }
+   262→   262→  };
+   263→   263→
+   264→   264→  const cerrarPreview = () => {
+   265→   265→    setPreviewOpen(false);
+   266→   266→    setPreviewOps([]);
+   267→   267→    setResult(null);
+   268→   268→    setError(null);
+   269→   269→    setExpandedOp(null);
+   270→   270→  };
+   271→   271→
+   272→   272→  const itemsPreviewOK = previewOps.reduce((s, o) => s + o.itemsOK, 0);
+   273→   273→  const itemsPreviewError = previewOps.reduce((s, o) => s + o.itemsConError, 0);
+   274→   274→  const faltanSeriesTotal = previewOps.reduce((s, o) => s + o.seriesFaltantesTotal, 0);
+   275→   275→
+   276→   276→  // ─── Series del Excel que NO están registradas en el inventario de equipos ───
+   277→   277→  // Para despachar routers/modems/decodificadores, las series TIENEN que existir
+   278→   278→  // en /equipos. Si no existen → no se pueden despachar.
+   279→   279→  const seriesFaltantesInventario = useMemo(() => {
+   280→   280→    const faltantes: Array<{ serie: string; producto: string; sku: string }> = [];
+   281→   281→    const vistas = new Set<string>();
+   282→   282→    for (const op of previewOps) {
+   283→   283→      for (const it of op.items) {
+   284→   284→        if (!it.requiereSerie) continue;
+   285→   285→        for (const serie of it.series) {
+   286→   286→          const serieNorm = serie.trim().toLowerCase();
+   287→   287→          if (vistas.has(serieNorm)) continue;
+   288→   288→          vistas.add(serieNorm);
+   289→   289→          if (!findEquipmentBySerie(serie)) {
+   290→   290→            faltantes.push({ serie, producto: it.producto, sku: it.sku });
+   291→   291→          }
+   292→   292→        }
+   293→   293→      }
+   294→   294→    }
+   295→   295→    return faltantes;
+   296→   296→  }, [previewOps, findEquipmentBySerie]);
+   297→   297→
+   298→   298→  // ─── Series del Excel que existen pero NO están "disponibles" (averiadas/en_retiro) ───
+   299→   299→  const seriesNoDisponibles = useMemo(() => {
+   300→   300→    const noDisp: Array<{ serie: string; estado: string; producto: string }> = [];
+   301→   301→    const vistas = new Set<string>();
+   302→   302→    for (const op of previewOps) {
+   303→   303→      for (const it of op.items) {
+   304→   304→        if (!it.requiereSerie) continue;
+   305→   305→        for (const serie of it.series) {
+   306→   306→          const serieNorm = serie.trim().toLowerCase();
+   307→   307→          if (vistas.has(serieNorm)) continue;
+   308→   308→          vistas.add(serieNorm);
+   309→   309→          const eq = findEquipmentBySerie(serie);
+   310→   310→          if (eq && eq.estado !== "disponible") {
+   311→   311→            noDisp.push({ serie, estado: eq.estado, producto: it.producto });
+   312→   312→          }
+   313→   313→        }
+   314→   314→      }
+   315→   315→    }
+   316→   316→    return noDisp;
+   317→   317→  }, [previewOps, findEquipmentBySerie]);
+   318→   318→
+   319→   319→  return (
+   320→   320→    <AppShell>
+   321→   321→      <div className="px-4 py-6 sm:px-6 lg:px-8 anim-fade-in">
+   322→   322→        {/* Header */}
+   323→   323→        <div className="anim-slide-up flex flex-wrap items-end justify-between gap-3 mb-6">
+   324→   324→          <div>
+   325→   325→            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Operaciones</p>
+   326→   326→            <h1 className="text-[28px] font-semibold tracking-tight text-foreground flex items-center gap-2">
+   327→   327→              <ArrowLeftRight className="h-7 w-7" strokeWidth={1.5} /> Transferencias
+   328→   328→            </h1>
+   329→   329→            <p className="mt-1 text-[13px] text-muted-foreground">
+   330→   330→              Sube el Excel de operaciones → descuenta del inventario y marca equipos con serie
+   331→   331→            </p>
+   332→   332→          </div>
+   333→   333→          <div className="flex flex-wrap items-center gap-2">
+   334→   334→            <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleFileChange} className="hidden" />
+   335→   335→            <Button
+   336→   336→              onClick={() => fileRef.current?.click()}
+   337→   337→              disabled={importing}
+   338→   338→              className="h-9 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+   339→   339→            >
+   340→   340→              {importing
+   341→   341→                ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" {...ICON_PROPS} />
+   342→   342→                : <Upload className="mr-1.5 h-4 w-4" {...ICON_PROPS} />}
+   343→   343→              {importing ? "Procesando…" : "Subir Excel de operaciones"}
+   344→   344→            </Button>
+   345→   345→          </div>
+   346→   346→        </div>
+   347→   347→
+   348→   348→        {/* Stats */}
+   349→   349→        <div className="anim-slide-up grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-4">
+   350→   350→          <div className="bg-background px-4 py-3.5">
+   351→   351→            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Operaciones</p>
+   352→   352→            <p className="mt-1 text-[24px] font-semibold tabular-nums text-foreground">{opsAgrupadas.length}</p>
+   353→   353→          </div>
+   354→   354→          <div className="bg-background px-4 py-3.5">
+   355→   355→            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Unidades</p>
+   356→   356→            <p className="mt-1 text-[24px] font-semibold tabular-nums text-foreground">{fmtNum(totalUnidades)}</p>
+   357→   357→          </div>
+   358→   358→          <div className="bg-background px-4 py-3.5">
+   359→   359→            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Series</p>
+   360→   360→            <p className="mt-1 text-[24px] font-semibold tabular-nums text-primary">{totalSeries}</p>
+   361→   361→          </div>
+   362→   362→          <div className="bg-background px-4 py-3.5">
+   363→   363→            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Destinatarios</p>
+   364→   364→            <p className="mt-1 text-[24px] font-semibold tabular-nums text-foreground">{totalDestinatarios}</p>
+   365→   365→          </div>
+   366→   366→        </div>
+   367→   367→
+   368→   368→        {/* Estado inventario */}
+   369→   369→        <div className="anim-slide-up mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3 text-[12px] text-muted-foreground">
+   370→   370→          <div className="rounded-lg border border-border bg-background px-3 py-2 flex items-center gap-2">
+   371→   371→            <Package className="h-3.5 w-3.5" {...ICON_PROPS} />
+   372→   372→            <span>Catálogo: <strong className="text-foreground tabular-nums">{products.length}</strong> productos</span>
+   373→   373→          </div>
+   374→   374→          <div className="rounded-lg border border-border bg-background px-3 py-2 flex items-center gap-2">
+   375→   375→            <Cpu className="h-3.5 w-3.5" {...ICON_PROPS} />
+   376→   376→            <span>Equipos: <strong className="text-foreground tabular-nums">{equipos.length}</strong> en almacén</span>
+   377→   377→          </div>
+   378→   378→          <div className="rounded-lg border border-border bg-background px-3 py-2 flex items-center gap-2">
+   379→   379→            <ArrowLeftRight className="h-3.5 w-3.5" {...ICON_PROPS} />
+   380→   380→            <span>Transferencias: <strong className="text-foreground tabular-nums">{transferencias.length}</strong> items</span>
+   381→   381→          </div>
+   382→   382→        </div>
+   383→   383→
+   384→   384→        {/* Historial agrupado por operación */}
+   385→   385→        <div className="anim-slide-up mt-6">
+   386→   386→          <div className="mb-3 flex items-center justify-between">
+   387→   387→            <h2 className="text-[14px] font-semibold text-foreground">Historial por operación</h2>
+   388→   388→            {opsAgrupadas.length > 0 && (
+   389→   389→              <span className="text-[11px] text-muted-foreground">{opsAgrupadas.length} operación(es)</span>
+   390→   390→            )}
+   391→   391→          </div>
+   392→   392→
+   393→   393→          {opsAgrupadas.length === 0 ? (
+   394→   394→            <div className="rounded-lg border border-dashed border-border bg-background px-4 py-16 text-center">
+   395→   395→              <FileSpreadsheet className="mx-auto h-10 w-10 text-muted-foreground/40" {...ICON_PROPS} />
+   396→   396→              <p className="mt-2 text-[13px] text-muted-foreground">
+   397→   397→                No hay transferencias registradas todavía.
+   398→   398→              </p>
+   399→   399→              <p className="mt-1 text-[12px] text-muted-foreground">
+   400→   400→                Pulsa <strong className="text-foreground">&ldquo;Subir Excel de operaciones&rdquo;</strong> para cargar tu archivo.
+   401→   401→              </p>
+   402→   402→            </div>
+   403→   403→          ) : (
+   404→   404→            <div className="space-y-2">
+   405→   405→              {opsAgrupadas.map((op) => {
+   406→   406→                const isExp = expandedHist === op.nOperacion;
+   407→   407→                const undTotal = op.items.reduce((s, i) => s + i.cantidad, 0);
+   408→   408→                const serTotal = op.items.reduce((s, i) => s + (i.series?.length || 0), 0);
+   409→   409→                return (
+   410→   410→                  <div key={op.nOperacion} className="overflow-hidden rounded-lg border border-border bg-background">
+   411→   411→                    <button
+   412→   412→                      onClick={() => setExpandedHist(isExp ? null : op.nOperacion)}
+   413→   413→                      className="flex w-full items-center gap-3 px-4 py-3 hover:bg-muted/40 transition-colors text-left"
+   414→   414→                    >
+   415→   415→                      {isExp
+   416→   416→                        ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" {...ICON_PROPS} />
+   417→   417→                        : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" {...ICON_PROPS} />}
+   418→   418→                      <div className="min-w-0 flex-1">
+   419→   419→                        <div className="flex items-baseline gap-2 flex-wrap">
+   420→   420→                          <span className="text-[14px] font-medium text-foreground tabular-nums">{op.nOperacion}</span>
+   421→   421→                          {op.tipoOperacion && (
+   422→   422→                            <span className="text-[11px] text-muted-foreground">· {op.tipoOperacion}</span>
+   423→   423→                          )}
+   424→   424→                          {op.guiaRemision && (
+   425→   425→                            <span className="text-[11px] text-muted-foreground">· Guía {op.guiaRemision}</span>
+   426→   426→                          )}
+   427→   427→                        </div>
+   428→   428→                        <div className="mt-0.5 flex items-baseline gap-3 flex-wrap text-[11px] text-muted-foreground">
+   429→   429→                          <span className="flex items-center gap-1">
+   430→   430→                            <User className="h-3 w-3" {...ICON_PROPS} />
+   431→   431→                            {op.tecnico || op.razonSocialDestino || "—"}
+   432→   432→                          </span>
+   433→   433→                          {op.almacenOrigen && op.almacenDestino && (
+   434→   434→                            <span className="flex items-center gap-1">
+   435→   435→                              <MapPin className="h-3 w-3" {...ICON_PROPS} />
+   436→   436→                              {op.almacenOrigen} → {op.almacenDestino}
+   437→   437→                            </span>
+   438→   438→                          )}
+   439→   439→                          <span className="flex items-center gap-1">
+   440→   440→                            <Calendar className="h-3 w-3" {...ICON_PROPS} />
+   441→   441→                            {fmtFecha(op.fecha)}
+   442→   442→                          </span>
+   443→   443→                        </div>
+   444→   444→                      </div>
+   445→   445→                      <div className="flex items-center gap-4 text-[12px]">
+   446→   446→                        <div className="text-right">
+   447→   447→                          <p className="tabular-nums text-foreground">{fmtNum(undTotal)}</p>
+   448→   448→                          <p className="text-[10px] uppercase text-muted-foreground">unidades</p>
+   449→   449→                        </div>
+   450→   450→                        {serTotal > 0 && (
+   451→   451→                          <div className="text-right">
+   452→   452→                            <p className="tabular-nums text-primary">{serTotal}</p>
+   453→   453→                            <p className="text-[10px] uppercase text-muted-foreground">series</p>
+   454→   454→                          </div>
+   455→   455→                        )}
+   456→   456→                      </div>
+   457→   457→                      <button
+   458→   458→                        onClick={async (e) => {
+   459→   459→                          e.stopPropagation();
+   460→   460→                          const ok = await confirm({
+   461→   461→                            title: "Eliminar operación de transferencia",
+   462→   462→                            description: `¿Eliminar operación ${op.nOperacion}? Se restaurará el stock y se reactivarán las series.`,
+   463→   463→                            critical: true,
+   464→   464→                            details: `Items: ${op.items.length}\nUnidades: ${undTotal}${serTotal > 0 ? `\nSeries: ${serTotal}` : ""}\nTécnico: ${op.tecnico || "—"}\n\n⚠️ Esta acción no se puede deshacer. Quedará registrada en /auditoría.`,
+   465→   465→                          });
+   466→   466→                          if (ok) {
+   467→   467→                            deleteTransferencia(op.nOperacion);
+   468→   468→                            setExpandedHist(null);
+   469→   469→                          }
+   470→   470→                        }}
+   471→   471→                        className="ml-2 flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+   472→   472→                        title="Eliminar operación y restaurar stock"
+   473→   473→                      >
+   474→   474→                        <Trash2 className="h-3.5 w-3.5" {...ICON_PROPS} />
+   475→   475→                      </button>
+   476→   476→                    </button>
+   477→   477→
+   478→   478→                    {isExp && (
+   479→   479→                      <div className="border-t border-border">
+   480→   480→                        <div className="max-h-[400px] overflow-y-auto scroll-thin">
+   481→   481→                          <table className="w-full text-[12px]">
+   482→   482→                            <thead>
+   483→   483→                              <tr className="border-b border-border text-left text-[10px] uppercase tracking-wider text-muted-foreground">
+   484→   484→                                <th className="px-4 py-2 font-medium">SKU</th>
+   485→   485→                                <th className="px-4 py-2 font-medium">Producto</th>
+   486→   486→                                <th className="px-4 py-2 text-right font-medium">Cant.</th>
+   487→   487→                                <th className="px-4 py-2 font-medium">Series</th>
+   488→   488→                              </tr>
+   489→   489→                            </thead>
+   490→   490→                            <tbody className="divide-y divide-border">
+   491→   491→                              {op.items.map((it) => (
+   492→   492→                                <tr key={it.id} className="hover:bg-muted/30">
+   493→   493→                                  <td className="px-4 py-2.5 font-mono text-[11px] text-muted-foreground">{it.sku || "—"}</td>
+   494→   494→                                  <td className="px-4 py-2.5 text-foreground">{it.producto || "—"}</td>
+   495→   495→                                  <td className="px-4 py-2.5 text-right tabular-nums text-foreground">{it.cantidad}</td>
+   496→   496→                                  <td className="px-4 py-2.5">
+   497→   497→                                    {it.series && it.series.length > 0 ? (
+   498→   498→                                      <div className="flex flex-wrap gap-1">
+   499→   499→                                        {it.series.map((s: string, i: number) => (
+   500→   500→                                          <span key={i} className="inline-flex items-center gap-1 rounded border border-border bg-muted/30 px-1.5 py-0.5 font-mono text-[10px] text-foreground">
+   501→   501→                                            <Hash className="h-2.5 w-2.5 text-muted-foreground" />
+   502→   502→                                            {s}
+   503→   503→                                          </span>
+   504→   504→                                        ))}
+   505→   505→                                      </div>
+   506→   506→                                    ) : (
+   507→   507→                                      <span className="text-[10px] text-muted-foreground">— sin serie —</span>
+   508→   508→                                    )}
+   509→   509→                                  </td>
+   510→   510→                                </tr>
+   511→   511→                              ))}
+   512→   512→                            </tbody>
+   513→   513→                          </table>
+   514→   514→                        </div>
+   515→   515→                      </div>
+   516→   516→                    )}
+   517→   517→                  </div>
+   518→   518→                );
+   519→   519→              })}
+   520→   520→            </div>
+   521→   521→          )}
+   522→   522→        </div>
+   523→   523→
+   524→   524→        {/* Dialog de preview */}
+   525→   525→        <Dialog open={previewOpen} onOpenChange={(o) => { if (!o) cerrarPreview(); }}>
+   526→   526→          <DialogContent className="max-w-5xl p-0 gap-0 rounded-lg">
+   527→   527→            <DialogHeader className="border-b border-border px-5 py-3.5">
+   528→   528→              <DialogTitle className="text-[15px] font-semibold flex items-center gap-2">
+   529→   529→                <FileSpreadsheet className="h-4 w-4" {...ICON_PROPS} />
+   530→   530→                Vista previa — {previewOps.length} operación(es) detectada(s)
+   531→   531→              </DialogTitle>
+   532→   532→            </DialogHeader>
+   533→   533→
+   534→   534→            <div className="p-0 max-h-[70vh] overflow-y-auto scroll-thin">
+   535→   535→              {/* Resumen */}
+   536→   536→              <div className="border-b border-border px-5 py-4 bg-muted/20">
+   537→   537→                <div className="grid grid-cols-2 gap-3 sm:grid-cols-5 text-center">
+   538→   538→                  <div>
+   539→   539→                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Items OK</p>
+   540→   540→                    <p className="mt-1 text-[20px] font-semibold tabular-nums text-emerald-600">{itemsPreviewOK}</p>
+   541→   541→                  </div>
+   542→   542→                  <div>
+   543→   543→                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Con error</p>
+   544→   544→                    <p className="mt-1 text-[20px] font-semibold tabular-nums text-rose-600">{itemsPreviewError}</p>
+   545→   545→                  </div>
+   546→   546→                  <div>
+   547→   547→                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Series faltan</p>
+   548→   548→                    <p className="mt-1 text-[20px] font-semibold tabular-nums text-amber-600">{faltanSeriesTotal}</p>
+   549→   549→                  </div>
+   550→   550→                  <div>
+   551→   551→                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Unidades</p>
+   552→   552→                    <p className="mt-1 text-[20px] font-semibold tabular-nums text-foreground">
+   553→   553→                      {previewOps.reduce((s, o) => s + o.totalUnidades, 0)}
+   554→   554→                    </p>
+   555→   555→                  </div>
+   556→   556→                  <div>
+   557→   557→                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Series</p>
+   558→   558→                    <p className="mt-1 text-[20px] font-semibold tabular-nums text-primary">
+   559→   559→                      {previewOps.reduce((s, o) => s + o.totalSeries, 0)}
+   560→   560→                    </p>
+   561→   561→                  </div>
+   562→   562→                </div>
+   563→   563→                {faltanSeriesTotal > 0 && (
+   564→   564→                  <div className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-[12px] text-amber-700 dark:text-amber-400 flex items-start gap-2">
+   565→   565→                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" {...ICON_PROPS} />
+   566→   566→                    <span>
+   567→   567→                      <strong>{faltanSeriesTotal} serie(s) faltan</strong> en items que requieren serie obligatoria (routers, modems, decodificadores, etc.).
+   568→   568→                      Esos items NO se procesarán. Los demás sí.
+   569→   569→                    </span>
+   570→   570→                  </div>
+   571→   571→                )}
+   572→   572→
+   573→   573→                {/* Series del Excel NO registradas en el inventario de equipos */}
+   574→   574→                {seriesFaltantesInventario.length > 0 && (
+   575→   575→                  <div className="mt-3 rounded-md border border-rose-500/40 bg-rose-500/5 px-3 py-3">
+   576→   576→                    <div className="flex items-start gap-2">
+   577→   577→                      <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-rose-600" {...ICON_PROPS} />
+   578→   578→                      <div className="flex-1 min-w-0">
+   579→   579→                        <p className="text-[12px] font-semibold text-rose-700 dark:text-rose-400">
+   580→   580→                          {seriesFaltantesInventario.length} serie(s) del Excel NO están registradas en el inventario de equipos
+   581→   581→                        </p>
+   582→   582→                        <p className="text-[11px] text-rose-700 dark:text-rose-400 mt-0.5">
+   583→   583→                          Para despachar estos routers/modems/decodificadores, primero debes recibirlos en el almacén
+   584→   584→                          subiendo su PDF de guía de remisión SUNAT en /recepciones. Sin esa recepción,
+   585→   585→                          no hay trazabilidad de dónde salieron.
+   586→   586→                        </p>
+   587→   587→                        <div className="mt-2 max-h-[120px] overflow-y-auto scroll-thin">
+   588→   588→                          <div className="flex flex-wrap gap-1">
+   589→   589→                            {seriesFaltantesInventario.slice(0, 30).map((f, i) => (
+   590→   590→                              <span key={i} className="inline-flex items-center rounded border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 font-mono text-[10px] text-rose-700 dark:text-rose-400" title={`${f.producto} (SKU ${f.sku})`}>
+   591→   591→                                {f.serie}
+   592→   592→                              </span>
+   593→   593→                            ))}
+   594→   594→                            {seriesFaltantesInventario.length > 30 && (
+   595→   595→                              <span className="text-[10px] text-rose-700 dark:text-rose-400 self-center">
+   596→   596→                                +{seriesFaltantesInventario.length - 30} más
+   597→   597→                              </span>
+   598→   598→                            )}
+   599→   599→                          </div>
+   600→   600→                        </div>
+   601→   601→                      </div>
+   602→   602→                    </div>
+   603→   603→                  </div>
+   604→   604→                )}
+   605→   605→
+   606→   606→                {/* Series que existen pero NO están disponibles */}
+   607→   607→                {seriesNoDisponibles.length > 0 && (
+   608→   608→                  <div className="mt-3 rounded-md border border-amber-500/40 bg-amber-500/5 px-3 py-3">
+   609→   609→                    <div className="flex items-start gap-2">
+   610→   610→                      <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" {...ICON_PROPS} />
+   611→   611→                      <div className="flex-1 min-w-0">
+   612→   612→                        <p className="text-[12px] font-semibold text-amber-700 dark:text-amber-400">
+   613→   613→                          {seriesNoDisponibles.length} serie(s) NO disponibles
+   614→   614→                        </p>
+   615→   615→                        <p className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
+   616→   616→                          Existen en el inventario pero su estado no es "disponible" (averiadas o en retiro).
+   617→   617→                          No se pueden despachar equipos que no estén disponibles.
+   618→   618→                        </p>
+   619→   619→                        <div className="mt-2 flex flex-wrap gap-1">
+   620→   620→                          {seriesNoDisponibles.slice(0, 20).map((s, i) => (
+   621→   621→                            <span key={i} className="inline-flex items-center rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 font-mono text-[10px] text-amber-700 dark:text-amber-400" title={s.producto}>
+   622→   622→                              {s.serie} · {s.estado}
+   623→   623→                            </span>
+   624→   624→                          ))}
+   625→   625→                          {seriesNoDisponibles.length > 20 && (
+   626→   626→                            <span className="text-[10px] text-amber-700 dark:text-amber-400 self-center">
+   627→   627→                              +{seriesNoDisponibles.length - 20} más
+   628→   628→                            </span>
+   629→   629→                          )}
+   630→   630→                        </div>
+   631→   631→                      </div>
+   632→   632→                    </div>
+   633→   633→                  </div>
+   634→   634→                )}
+   635→   635→
+   636→   636→                {error && (
+   637→   637→                  <div className="mt-3 rounded-md border border-rose-500/30 bg-rose-500/5 px-3 py-2 text-[12px] text-rose-700 dark:text-rose-400 flex items-start gap-2">
+   638→   638→                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" {...ICON_PROPS} />
+   639→   639→                    <span>{error}</span>
+   640→   640→                  </div>
+   641→   641→                )}
+   642→   642→              </div>
+   643→   643→
+   644→   644→              {/* Resultado de confirmación */}
+   645→   645→              {result && (
+   646→   646→                <div className="border-b border-border px-5 py-4 bg-emerald-500/5">
+   647→   647→                  <div className="flex items-center gap-2 mb-2">
+   648→   648→                    <CheckCircle2 className="h-5 w-5 text-emerald-600" {...ICON_PROPS} />
+   649→   649→                    <p className="text-[14px] font-semibold text-foreground">Transferencia registrada</p>
+   650→   650→                  </div>
+   651→   651→                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 text-[12px]">
+   652→   652→                    <div>
+   653→   653→                      <span className="text-muted-foreground">Items procesados: </span>
+   654→   654→                      <strong className="text-foreground tabular-nums">{result.ok}</strong>
+   655→   655→                    </div>
+   656→   656→                    <div>
+   657→   657→                      <span className="text-muted-foreground">Unidades: </span>
+   658→   658→                      <strong className="text-foreground tabular-nums">{result.totalUnidades}</strong>
+   659→   659→                    </div>
+   660→   660→                    <div>
+   661→   661→                      <span className="text-muted-foreground">Series marcadas: </span>
+   662→   662→                      <strong className="text-primary tabular-nums">{result.equiposMarcados}</strong>
+   663→   663→                    </div>
+   664→   664→                    <div>
+   665→   665→                      <span className="text-muted-foreground">Productos actualizados: </span>
+   666→   666→                      <strong className="text-foreground tabular-nums">{result.productosActualizados}</strong>
+   667→   667→                    </div>
+   668→   668→                  </div>
+   669→   669→                  {result.fails.length > 0 && (
+   670→   670→                    <details className="mt-2">
+   671→   671→                      <summary className="cursor-pointer text-[12px] text-rose-600">
+   672→   672→                        {result.fails.length} error(es) no bloqueantes
+   673→   673→                      </summary>
+   674→   674→                      <ul className="mt-1 space-y-0.5 text-[11px] text-rose-600">
+   675→   675→                        {result.fails.map((f, i) => <li key={i}>• {f}</li>)}
+   676→   676→                      </ul>
+   677→   677→                    </details>
+   678→   678→                  )}
+   679→   679→                </div>
+   680→   680→              )}
+   681→   681→
+   682→   682→              {/* Lista de operaciones detectadas */}
+   683→   683→              <div className="divide-y divide-border">
+   684→   684→                {previewOps.map((op) => {
+   685→   685→                  const isExp = expandedOp === op.nOperacion;
+   686→   686→                  return (
+   687→   687→                    <div key={op.nOperacion}>
+   688→   688→                      <button
+   689→   689→                        onClick={() => setExpandedOp(isExp ? null : op.nOperacion)}
+   690→   690→                        className="flex w-full items-center gap-3 px-5 py-3 hover:bg-muted/40 text-left"
+   691→   691→                      >
+   692→   692→                        {isExp
+   693→   693→                          ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" {...ICON_PROPS} />
+   694→   694→                          : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" {...ICON_PROPS} />}
+   695→   695→                        <div className="min-w-0 flex-1">
+   696→   696→                          <div className="flex items-baseline gap-2 flex-wrap">
+   697→   697→                            <span className="text-[14px] font-medium text-foreground tabular-nums">{op.nOperacion}</span>
+   698→   698→                            <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{op.flujo}</span>
+   699→   699→                            {op.tipoOperacion && (
+   700→   700→                              <span className="text-[11px] text-muted-foreground">{op.tipoOperacion}</span>
+   701→   701→                            )}
+   702→   702→                          </div>
+   703→   703→                          <div className="mt-0.5 flex items-baseline gap-2 flex-wrap text-[11px] text-muted-foreground">
+   704→   704→                            <span className="flex items-center gap-1">
+   705→   705→                              <User className="h-3 w-3" {...ICON_PROPS} />
+   706→   706→                              {op.tecnico || op.razonSocialDestino || "—"}
+   707→   707→                            </span>
+   708→   708→                            {op.almacenOrigen && (
+   709→   709→                              <span className="flex items-center gap-1">
+   710→   710→                                <MapPin className="h-3 w-3" {...ICON_PROPS} />
+   711→   711→                                {op.almacenOrigen} → {op.almacenDestino}
+   712→   712→                              </span>
+   713→   713→                            )}
+   714→   714→                          </div>
+   715→   715→                        </div>
+   716→   716→                        <div className="flex items-center gap-3 text-[11px]">
+   717→   717→                          {op.itemsOK > 0 && (
+   718→   718→                            <span className="text-emerald-600">✓ {op.itemsOK}</span>
+   719→   719→                          )}
+   720→   720→                          {op.itemsConError > 0 && (
+   721→   721→                            <span className="text-rose-600">✗ {op.itemsConError}</span>
+   722→   722→                          )}
+   723→   723→                          <span className="text-muted-foreground tabular-nums">{op.totalUnidades} und</span>
+   724→   724→                          {op.totalSeries > 0 && (
+   725→   725→                            <span className="text-primary tabular-nums">{op.totalSeries} ser</span>
+   726→   726→                          )}
+   727→   727→                        </div>
+   728→   728→                      </button>
+   729→   729→
+   730→   730→                      {isExp && (
+   731→   731→                        <div className="bg-muted/20 px-5 pb-4">
+   732→   732→                          {/* Metadatos de la operación */}
+   733→   733→                          <div className="mb-3 grid grid-cols-2 gap-x-4 gap-y-1.5 py-3 text-[11px] sm:grid-cols-3">
+   734→   734→                            {op.obra && (
+   735→   735→                              <div>
+   736→   736→                                <span className="text-muted-foreground">Obra: </span>
+   737→   737→                                <span className="text-foreground">{op.obra}</span>
+   738→   738→                              </div>
+   739→   739→                            )}
+   740→   740→                            {op.guiaRemision && (
+   741→   741→                              <div>
+   742→   742→                                <span className="text-muted-foreground">Guía: </span>
+   743→   743→                                <span className="text-foreground font-mono">{op.guiaRemision}</span>
+   744→   744→                              </div>
+   745→   745→                            )}
+   746→   746→                            {op.rucDniDestino && (
+   747→   747→                              <div>
+   748→   748→                                <span className="text-muted-foreground">RUC/DNI: </span>
+   749→   749→                                <span className="text-foreground font-mono">{op.rucDniDestino}</span>
+   750→   750→                              </div>
+   751→   751→                            )}
+   752→   752→                            {op.responsable && (
+   753→   753→                              <div>
+   754→   754→                                <span className="text-muted-foreground">Responsable: </span>
+   755→   755→                                <span className="text-foreground">{op.responsable}</span>
+   756→   756→                              </div>
+   757→   757→                            )}
+   758→   758→                            {op.fechaTraslado && (
+   759→   759→                              <div>
+   760→   760→                                <span className="text-muted-foreground">Fecha traslado: </span>
+   761→   761→                                <span className="text-foreground">{fmtFecha(op.fechaTraslado)}</span>
+   762→   762→                              </div>
+   763→   763→                            )}
+   764→   764→                            {op.observaciones && (
+   765→   765→                              <div className="col-span-2 sm:col-span-3">
+   766→   766→                                <span className="text-muted-foreground">Obs: </span>
+   767→   767→                                <span className="text-foreground">{op.observaciones}</span>
+   768→   768→                              </div>
+   769→   769→                            )}
+   770→   770→                          </div>
+   771→   771→
+   772→   772→                          {/* Items */}
+   773→   773→                          <div className="overflow-hidden rounded-md border border-border bg-background">
+   774→   774→                            <table className="w-full text-[12px]">
+   775→   775→                              <thead>
+   776→   776→                                <tr className="border-b border-border text-left text-[10px] uppercase tracking-wider text-muted-foreground">
+   777→   777→                                  <th className="px-3 py-2 font-medium">Estado</th>
+   778→   778→                                  <th className="px-3 py-2 font-medium">SKU</th>
+   779→   779→                                  <th className="px-3 py-2 font-medium">Producto</th>
+   780→   780→                                  <th className="px-3 py-2 text-right font-medium">Cant.</th>
+   781→   781→                                  <th className="px-3 py-2 font-medium">Series</th>
+   782→   782→                                </tr>
+   783→   783→                              </thead>
+   784→   784→                              <tbody className="divide-y divide-border">
+   785→   785→                                {op.items.map((it, i) => {
+   786→   786→                                  const meta = ESTADO_ITEM_META[it.estado];
+   787→   787→                                  const Icon = meta.icon;
+   788→   788→                                  return (
+   789→   789→                                    <tr key={i} className="align-top">
+   790→   790→                                      <td className="px-3 py-2.5">
+   791→   791→                                        <span className={cn("inline-flex items-center gap-1 text-[11px] font-medium", meta.tone)}>
+   792→   792→                                          <Icon className="h-3.5 w-3.5" {...ICON_PROPS} />
+   793→   793→                                          {meta.label}
+   794→   794→                                        </span>
+   795→   795→                                      </td>
+   796→   796→                                      <td className="px-3 py-2.5 font-mono text-[11px] text-muted-foreground">{it.sku || "—"}</td>
+   797→   797→                                      <td className="px-3 py-2.5 text-foreground">
+   798→   798→                                        {it.producto}
+   799→   799→                                        {it.requiereSerie && (
+   800→   800→                                          <span className="ml-1.5 inline-flex items-center gap-0.5 text-[10px] text-primary">
+   801→   801→                                            <Cpu className="h-2.5 w-2.5" {...ICON_PROPS} />
+   802→   802→                                            serie
+   803→   803→                                          </span>
+   804→   804→                                        )}
+   805→   805→                                        {it.observacion && (
+   806→   806→                                          <p className="mt-0.5 text-[10px] text-amber-600">{it.observacion}</p>
+   807→   807→                                        )}
+   808→   808→                                      </td>
+   809→   809→                                      <td className="px-3 py-2.5 text-right tabular-nums text-foreground">{it.cantidad}</td>
+   810→   810→                                      <td className="px-3 py-2.5">
+   811→   811→                                        {it.series.length > 0 ? (
+   812→   812→                                          <div className="flex flex-wrap gap-1">
+   813→   813→                                            {it.series.map((s, j) => (
+   814→   814→                                              <span key={j} className="inline-flex items-center gap-0.5 rounded border border-border bg-muted/30 px-1.5 py-0.5 font-mono text-[10px] text-foreground">
+   815→   815→                                                {s}
+   816→   816→                                              </span>
+   817→   817→                                            ))}
+   818→   818→                                            {it.seriesFaltantes > 0 && (
+   819→   819→                                              <span className="inline-flex items-center rounded border border-rose-500/30 bg-rose-500/5 px-1.5 py-0.5 font-mono text-[10px] text-rose-600">
+   820→   820→                                                +{it.seriesFaltantes} faltante(s)
+   821→   821→                                              </span>
+   822→   822→                                            )}
+   823→   823→                                          </div>
+   824→   824→                                        ) : it.requiereSerie ? (
+   825→   825→                                          <span className="text-[11px] text-rose-600">Sin series</span>
+   826→   826→                                        ) : (
+   827→   827→                                          <span className="text-[10px] text-muted-foreground">— no requiere —</span>
+   828→   828→                                        )}
+   829→   829→                                      </td>
+   830→   830→                                    </tr>
+   831→   831→                                  );
+   832→   832→                                })}
+   833→   833→                              </tbody>
+   834→   834→                            </table>
+   835→   835→                          </div>
+   836→   836→                        </div>
+   837→   837→                      )}
+   838→   838→                    </div>
+   839→   839→                  );
+   840→   840→                })}
+   841→   841→              </div>
+   842→   842→            </div>
+   843→   843→
+   844→   844→            <DialogFooter className="border-t border-border px-5 py-3.5 flex items-center justify-between gap-2">
+   845→   845→              <Button
+   846→   846→                variant="outline"
+   847→   847→                onClick={cerrarPreview}
+   848→   848→                className="h-9 rounded-lg border-border bg-background text-[13px] hover:bg-muted"
+   849→   849→              >
+   850→   850→                {result ? "Cerrar" : "Cancelar"}
+   851→   851→              </Button>
+   852→   852→              {!result ? (
+   853→   853→                <Button
+   854→   854→                  onClick={confirmarImportacion}
+   855→   855→                  disabled={confirming || itemsPreviewOK === 0 || seriesFaltantesInventario.length > 0 || seriesNoDisponibles.length > 0}
+   856→   856→                  className="h-9 rounded-lg bg-foreground px-4 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90 disabled:opacity-50"
+   857→   857→                  title={
+   858→   858→                    seriesFaltantesInventario.length > 0
+   859→   859→                      ? `${seriesFaltantesInventario.length} series no están en el inventario`
+   860→   860→                      : seriesNoDisponibles.length > 0
+   861→   861→                        ? `${seriesNoDisponibles.length} series no están disponibles`
+   862→   862→                        : undefined
+   863→   863→                  }
+   864→   864→                >
+   865→   865→                  {confirming
+   866→   866→                    ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" {...ICON_PROPS} />
+   867→   867→                    : <CheckCircle2 className="mr-1.5 h-4 w-4" {...ICON_PROPS} />}
+   868→   868→                  {confirming
+   869→   869→                    ? "Procesando…"
+   870→   870→                    : seriesFaltantesInventario.length > 0
+   871→   871→                      ? `Recibe ${seriesFaltantesInventario.length} serie(s) faltantes primero`
+   872→   872→                      : seriesNoDisponibles.length > 0
+   873→   873→                        ? `${seriesNoDisponibles.length} serie(s) no disponibles`
+   874→   874→                        : `Confirmar y descontar inventario (${itemsPreviewOK} items)`}
+   875→   875→                </Button>
+   876→   876→              ) : (
+   877→   877→                <Button
+   878→   878→                  onClick={cerrarPreview}
+   879→   879→                  className="h-9 rounded-lg bg-foreground px-4 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+   880→   880→                >
+   881→   881→                  Listo
+   882→   882→                </Button>
+   883→   883→              )}
+   884→   884→            </DialogFooter>
+   885→   885→          </DialogContent>
+   886→   886→        </Dialog>
+   887→   887→        {ConfirmDialog}
+   888→   888→      </div>
+   889→   889→    </AppShell>
+   890→   890→  );
+   891→   891→}
+   892→   892→

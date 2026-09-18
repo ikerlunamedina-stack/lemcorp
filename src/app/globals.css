@@ -1,0 +1,495 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LEMCORP — DISEÑO PREMIUM CORPORATIVO (referencia Apple/Linear)
+   - Fondo blanco con tinte sutil / negro casi negro (#0A0A0C)
+   - Cards con fondo ligeramente diferente para profundidad
+   - Acentos de marca en dosis medidas (puntos, bordes activos)
+   - Iconografía line-art (contornos finos, sin relleno de color)
+   - Tipografía con jerarquía clara: pesos distintos, tamaños variados
+   - Sombras sutiles pero presentes para dar profundidad
+   - Microanimaciones fluidas: fade, slide, draw-in
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --radius: 0.75rem;
+  --font-geist-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-geist-mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
+
+  /* ====== LIGHT: blanco puro (igual al SpaceCom / shadcn/ui default) ====== */
+  /* Background blanco puro, sin tinte azul */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.10 0 0);
+  /* Cards: blanco puro para coincidir con el background */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.10 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.10 0 0);
+  /* Acento de marca: indigo/violeta del SpaceCom */
+  --primary: oklch(0.48 0.20 270);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.96 0 0);
+  --secondary-foreground: oklch(0.20 0 0);
+  --muted: oklch(0.965 0 0);
+  /* muted-foreground más oscuro para mejor legibilidad */
+  --muted-foreground: oklch(0.42 0 0);
+  --accent: oklch(0.96 0 0);
+  --accent-foreground: oklch(0.20 0 0);
+  --destructive: oklch(0.55 0.20 25);
+  /* Borders más visibles que antes para mejor separación */
+  --border: oklch(0.91 0 0);
+  --input: oklch(0.93 0 0);
+  --ring: oklch(0.48 0.20 270);
+  /* Charts neutros: grises + 1 acento indigo */
+  --chart-1: oklch(0.20 0 0);
+  --chart-2: oklch(0.50 0 0);
+  --chart-3: oklch(0.70 0 0);
+  --chart-4: oklch(0.48 0.20 270);
+  --chart-5: oklch(0.85 0 0);
+  --sidebar: oklch(0.99 0 0);
+  --sidebar-foreground: oklch(0.10 0 0);
+  --sidebar-primary: oklch(0.48 0.155 255);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.96 0 0);
+  --sidebar-accent-foreground: oklch(0.20 0 0);
+  --sidebar-border: oklch(0.91 0 0);
+  --sidebar-ring: oklch(0.48 0.155 255);
+
+  /* Tailwind v4 color mapping */
+  --color-background: oklch(0.985 0.002 250);
+  --color-foreground: oklch(0.10 0 0);
+  --color-card: oklch(1 0 0);
+  --color-card-foreground: oklch(0.10 0 0);
+  --color-popover: oklch(1 0 0);
+  --color-popover-foreground: oklch(0.10 0 0);
+  --color-primary: oklch(0.48 0.155 255);
+  --color-primary-foreground: oklch(1 0 0);
+  --color-secondary: oklch(0.96 0.002 250);
+  --color-secondary-foreground: oklch(0.20 0 0);
+  --color-muted: oklch(0.965 0.001 250);
+  --color-muted-foreground: oklch(0.42 0 0);
+  --color-accent: oklch(0.96 0.003 250);
+  --color-accent-foreground: oklch(0.20 0 0);
+  --color-destructive: oklch(0.55 0.20 25);
+  --color-border: oklch(0.91 0 0);
+  --color-input: oklch(0.93 0 0);
+  --color-ring: oklch(0.48 0.155 255);
+
+  /* Sombras sutiles pero presentes — dan profundidad premium */
+  --shadow-xs: 0 1px 2px 0 oklch(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 3px 0 oklch(0 0 0 / 0.07), 0 1px 2px -1px oklch(0 0 0 / 0.04);
+  --shadow-md: 0 4px 8px -2px oklch(0 0 0 / 0.08), 0 2px 4px -1px oklch(0 0 0 / 0.04);
+  --shadow-lg: 0 12px 24px -6px oklch(0 0 0 / 0.10), 0 4px 8px -2px oklch(0 0 0 / 0.05);
+  --shadow-primary: 0 4px 12px -2px oklch(0.48 0.155 255 / 0.20);
+  --shadow-glow: none;
+}
+
+/* ====== DARK: negro gris apagado (estilo SpaceCom #1a1a1c) ====== */
+.dark {
+  /* Color de fondo: #35383B (gris oscuro con tinte azul, como pidio el usuario) */
+  --background: #35383B;
+  --foreground: #E4E6E8;
+  /* Cards ligeramente mas claros que el background para profundidad */
+  --card: #404448;
+  --card-foreground: #E4E6E8;
+  --popover: #404448;
+  --popover-foreground: #E4E6E8;
+  /* Acento: indigo (mismo que light mode) */
+  --primary: oklch(0.48 0.20 270);
+  --primary-foreground: #FFFFFF;
+  --secondary: #3C4044;
+  --secondary-foreground: #E4E6E8;
+  --muted: #3C4044;
+  --muted-foreground: #9CA3AF;
+  --accent: #3C4044;
+  --accent-foreground: #E4E6E8;
+  --destructive: oklch(0.55 0.20 25);
+  /* Borders visibles sobre fondo oscuro */
+  --border: #4D5258;
+  --input: #4D5258;
+  --ring: oklch(0.48 0.20 270);
+  --chart-1: #E4E6E8;
+  --chart-2: #9CA3AF;
+  --chart-3: #6B7280;
+  --chart-4: oklch(0.48 0.20 270);
+  --chart-5: #4A4350;
+  --sidebar: #35383B;
+  --sidebar-foreground: #E4E6E8;
+  --sidebar-primary: oklch(0.48 0.20 270);
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-border: #4A4350;
+  --sidebar-accent: #35303A;
+  --sidebar-accent-foreground: #E4E6E8;
+  --sidebar-ring: oklch(0.48 0.20 270);
+
+  --color-background: #35383B;
+  --color-foreground: #E4E6E8;
+  --color-card: #404448;
+  --color-card-foreground: #E4E6E8;
+  --color-popover: #404448;
+  --color-popover-foreground: #E4E6E8;
+  --color-primary: oklch(0.48 0.20 270);
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #3C4044;
+  --color-secondary-foreground: #E4E6E8;
+  --color-muted: #3C4044;
+  --color-muted-foreground: #9CA3AF;
+  --color-accent: #3C4044;
+  --color-accent-foreground: #E4E6E8;
+  --color-destructive: oklch(0.60 0.20 25);
+  --color-border: #4D5258;
+  --color-input: #4D5258;
+  --color-ring: oklch(0.48 0.20 270);
+
+  --shadow-xs: 0 1px 2px 0 oklch(0 0 0 / 0.30);
+  --shadow-sm: 0 1px 3px 0 oklch(0 0 0 / 0.40), 0 1px 2px -1px oklch(0 0 0 / 0.20);
+  --shadow-md: 0 2px 6px -1px oklch(0 0 0 / 0.50), 0 1px 3px -1px oklch(0 0 0 / 0.25);
+  --shadow-lg: 0 8px 24px -4px oklch(0 0 0 / 0.60), 0 2px 8px -2px oklch(0 0 0 / 0.30);
+  --shadow-primary: 0 2px 8px -2px oklch(0.62 0.17 255 / 0.20);
+  --shadow-glow: none;
+}
+
+/* Default theme */
+html {
+  color-scheme: light;
+}
+html:not(.light) {
+  background-color: oklch(0.12 0 0);
+  color-scheme: dark;
+}
+html.light {
+  background-color: oklch(0.985 0.002 250);
+  color-scheme: light;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply text-foreground;
+    background: var(--background);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Tipografía: pesos medios, jerarquía clara */
+  h1, h2, h3, h4 {
+    font-weight: 590;
+    letter-spacing: -0.02em;
+    color: var(--foreground);
+  }
+  h1 { font-size: clamp(1.5rem, 2.5vw, 1.875rem); }
+  h2 { font-size: clamp(1.125rem, 2vw, 1.375rem); }
+  h3 { font-size: 1rem; }
+
+  /* Inputs: font-size 16px previene zoom en iOS */
+  input, textarea, select {
+    font-size: 16px;
+  }
+
+  /* Focus: ring sutil, no glow */
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px var(--ring), 0 0 0 4px color-mix(in oklch, var(--ring) 12%, transparent);
+  }
+
+  /* Scrollbar minimalista */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: color-mix(in oklch, var(--foreground) 15%, transparent);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklch, var(--foreground) 25%, transparent);
+  }
+
+  /* Selection */
+  ::selection {
+    background: color-mix(in oklch, var(--primary) 18%, transparent);
+    color: var(--foreground);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MICROANIMACIONES SUTILES (fade, slide, draw-in de líneas)
+   Sin spinners genéricos ni elementos giratorios
+   ═══════════════════════════════════════════════════════════════ */
+
+@keyframes lem-fade-in {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes lem-slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes lem-slide-down {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes lem-draw-in {
+  from { opacity: 0; transform: scaleX(0.95); }
+  to { opacity: 1; transform: scaleX(1); }
+}
+
+@keyframes lem-drawer-in {
+  from { transform: translateX(-100%); opacity: 0.5; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes lem-overlay-in {
+  from { opacity: 0; backdrop-filter: blur(0px); }
+  to { opacity: 1; backdrop-filter: blur(8px); }
+}
+
+@keyframes lem-notification-in {
+  from { opacity: 0; transform: translateY(-12px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes lem-bar-pulse {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes lem-card-hover {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes lem-pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.6; }
+}
+
+@keyframes lem-shimmer-bg {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes lem-pop-in {
+  0% { opacity: 0; transform: scale(0.9); }
+  60% { opacity: 1; transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+@keyframes lem-fade-slide-right {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Clases de animación utilitarias */
+.anim-fade-in { animation: lem-fade-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-slide-up { animation: lem-slide-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-slide-down { animation: lem-slide-down 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-draw-in { animation: lem-draw-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; transform-origin: left; }
+.anim-drawer-in { animation: lem-drawer-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-overlay-in { animation: lem-overlay-in 0.3s ease-out both; }
+.anim-notification-in { animation: lem-notification-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.anim-bar-pulse { animation: lem-bar-pulse 2s ease-in-out infinite; }
+.anim-pop-in { animation: lem-pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.anim-pulse-dot { animation: lem-pulse-dot 1.5s ease-in-out infinite; }
+.anim-fade-slide-right { animation: lem-fade-slide-right 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Animación de entrada de página (sutil, solo fade+slide) */
+.anim-page-enter {
+  animation: lem-slide-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   UTILIDADES MINIMALISTAS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Scrollbar fina para paneles */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklch, var(--foreground) 15%, transparent) transparent;
+}
+
+/* Glass MUY sutil (no aurora, no neón) */
+.glass {
+  background: color-mix(in oklch, var(--card) 90%, transparent);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+}
+
+.glass-topbar {
+  background: color-mix(in oklch, var(--card) 92%, transparent);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+}
+
+/* Efecto press (tactil) */
+.press {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, opacity 0.2s ease;
+}
+.press:hover {
+  transform: translateY(-1px);
+}
+.press:active {
+  transform: scale(0.96);
+  transition: transform 0.08s ease;
+}
+
+/* Cards premium: sombra sutil + elevación fluida al hover */
+.press-card {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease, opacity 0.3s ease;
+  box-shadow: var(--shadow-sm);
+}
+.press-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+.press-card:active {
+  transform: translateY(-1px);
+  transition: transform 0.1s ease;
+}
+
+/* Glow border sutil en hover */
+.glow-border:hover {
+  border-color: color-mix(in oklch, var(--primary) 40%, var(--border));
+}
+
+/* Skeleton shimmer minimalista */
+.shimmer {
+  background: linear-gradient(90deg, transparent, color-mix(in oklch, var(--muted) 60%, transparent), transparent);
+  background-size: 200% 100%;
+  animation: lem-shimmer 1.8s infinite;
+}
+@keyframes lem-shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Botón primario premium: sombra sutil + transición fluida */
+.btn-primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  box-shadow: var(--shadow-primary);
+  transition: transform 0.15s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-primary:hover {
+  background: color-mix(in oklch, var(--primary) 88%, black);
+  box-shadow: 0 6px 16px -2px oklch(0.48 0.155 255 / 0.25);
+}
+.btn-primary:active {
+  transform: scale(0.97);
+}
+
+/* Botón foreground (primario neutral) premium */
+.btn-foreground {
+  background: var(--foreground);
+  color: var(--background);
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-foreground:hover {
+  background: color-mix(in oklch, var(--foreground) 88%, var(--background));
+  box-shadow: var(--shadow-md);
+}
+.btn-foreground:active {
+  transform: scale(0.97);
+}
+
+/* Para elementos line-art: contorno fino sin relleno de color */
+.line-art {
+  border: 1px solid color-mix(in oklch, var(--foreground) 20%, transparent);
+  background: transparent;
+}
+
+/* Linea divisora fina */
+.hairline {
+  background: var(--border);
+  height: 1px;
+}
+
+/* Esconde elementos visualmente pero los deja para screen readers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Safe area para iOS */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}

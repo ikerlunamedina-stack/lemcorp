@@ -1,0 +1,39 @@
+// Prisma schema for LEMCORP WMS — PostgreSQL (Neon/Supabase) multi-device sync
+// Base de datos en la nube para persistencia entre dispositivos.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Snapshot completo del estado de un dispositivo.
+/// Se sincroniza entre todos los dispositivos.
+model DeviceSnapshot {
+  id        String   @id @default(cuid())
+  /// Identificador del dispositivo (almacenado en localStorage del navegador).
+  /// En LEMCORP todos usan el mismo deviceId ("lemcorp-shared") para compartir datos.
+  deviceId  String   @unique
+  /// Nombre opcional para debug.
+  label     String?
+  /// Timestamp del último sync desde el dispositivo.
+  updatedAt DateTime @updatedAt
+  /// JSON blob completo del estado del store (products, equipos, etc.)
+  payload   String
+
+  @@index([deviceId])
+}
+
+/// Log de eventos de sync para debugging.
+model SyncLog {
+  id        String   @id @default(cuid())
+  deviceId  String
+  action    String // "push" | "pull"
+  bytes     Int
+  createdAt DateTime @default(now())
+
+  @@index([deviceId])
+}
