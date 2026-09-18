@@ -155,14 +155,19 @@ export function InventarioView() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className={cn(
-            "group relative w-56 transition-all duration-300",
-            searchFocused && "w-64"
+            "group relative transition-all duration-300",
+            searchFocused ? "w-64" : "w-56"
           )}>
+            {/* Ripple concéntrico detrás del icono al hacer focus */}
+            {searchFocused && (
+              <span className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground/10 anim-ripple" />
+            )}
             <Search
+              key={searchFocused ? "focused" : "blurred"}
               className={cn(
-                "pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 transition-all duration-300",
+                "pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 transition-colors duration-300",
                 searchFocused
-                  ? "text-foreground scale-110 rotate-3"
+                  ? "anim-icon-bounce text-foreground"
                   : "text-muted-foreground"
               )}
               {...ICON_PROPS}
@@ -173,15 +178,28 @@ export function InventarioView() {
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
               placeholder={searchFocused ? "Escribe para filtrar…" : "Buscar SKU o producto…"}
-              className="h-9 rounded-lg border-border bg-background pl-8 text-[13px] transition-all duration-300 outline-none focus-visible:border-foreground focus-visible:bg-muted/40 focus-visible:shadow-sm focus-visible:ring-0"
+              className={cn(
+                "h-9 rounded-lg border bg-background pl-8 text-[13px] transition-all duration-300 outline-none",
+                searchFocused
+                  ? "border-foreground bg-muted/40 shadow-md anim-search-glow"
+                  : "border-border"
+              )}
+              style={{ ["--tw-ring-color" as any]: "transparent" }}
             />
-            {/* Indicador inferior animado al hacer focus */}
+            {/* Línea inferior que se DIBUJA desde el centro al hacer focus */}
             <span
               className={cn(
-                "pointer-events-none absolute bottom-0 left-1/2 h-0.5 -translate-x-1/2 rounded-full bg-foreground transition-all duration-300",
-                searchFocused ? "w-3/4 opacity-100" : "w-0 opacity-0"
+                "pointer-events-none absolute -bottom-px left-1/2 h-0.5 rounded-full bg-foreground",
+                searchFocused ? "anim-underline-draw" : "w-0 opacity-0"
               )}
+              style={{ transformOrigin: "center" }}
             />
+            {/* Shimmer line que recorre el input al hacer focus (1 sola vez) */}
+            {searchFocused && (
+              <span className="pointer-events-none absolute inset-x-0 top-0 h-full overflow-hidden rounded-lg">
+                <span className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-foreground/5 to-transparent anim-shimmer-line" />
+              </span>
+            )}
           </div>
           <Button
             variant="outline"
