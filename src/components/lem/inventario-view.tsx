@@ -389,10 +389,13 @@ export function InventarioView() {
       {/* ─── TAB: INVENTARIO (KPIs + chips + tabla) ─── */}
       {tab === "inventario" && (
         <>
-      {/* KPIs superiores */}
-      <section className="anim-slide-up mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      {/* KPIs superiores — entrada escalonada con stagger delay */}
+      <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {/* 1. Productos en catálogo */}
-        <div className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md">
+        <div
+          className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+          style={{ animationDelay: "0ms" }}
+        >
           <div className="flex items-center gap-1.5">
             <Package className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Catálogo</p>
@@ -400,7 +403,10 @@ export function InventarioView() {
           <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(products.length)}</p>
         </div>
         {/* 2. Unidades totales */}
-        <div className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md">
+        <div
+          className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+          style={{ animationDelay: "60ms" }}
+        >
           <div className="flex items-center gap-1.5">
             <Boxes className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Unidades</p>
@@ -408,7 +414,10 @@ export function InventarioView() {
           <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(totalUnidades)}</p>
         </div>
         {/* 3. Valor del inventario */}
-        <div className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md">
+        <div
+          className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+          style={{ animationDelay: "120ms" }}
+        >
           <div className="flex items-center gap-1.5">
             <DollarSign className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Valor</p>
@@ -417,27 +426,36 @@ export function InventarioView() {
             S/ {kpis.valor.toLocaleString("es-PE", { maximumFractionDigits: 0 })}
           </p>
         </div>
-        {/* 4. Bajo stock */}
-        <div className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md">
+        {/* 4. Bajo stock — pulse dot si hay alerta */}
+        <div
+          className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+          style={{ animationDelay: "180ms" }}
+        >
           <div className="flex items-center gap-1.5">
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Bajo stock</p>
-            {kpis.bajoStock > 0 && <span className="h-2 w-2 rounded-full bg-amber-500" />}
+            {kpis.bajoStock > 0 && <span className="anim-pulse-dot h-2 w-2 rounded-full bg-amber-500" />}
           </div>
           <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.bajoStock)}</p>
         </div>
-        {/* 5. Agotados */}
-        <div className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md">
+        {/* 5. Agotados — pulse dot si hay alerta */}
+        <div
+          className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+          style={{ animationDelay: "240ms" }}
+        >
           <div className="flex items-center gap-1.5">
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Agotados</p>
-            {kpis.agotados > 0 && <span className="h-2 w-2 rounded-full bg-destructive" />}
+            {kpis.agotados > 0 && <span className="anim-pulse-dot h-2 w-2 rounded-full bg-destructive" />}
           </div>
           <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.agotados)}</p>
         </div>
         {/* 6. Sin mínimo */}
-        <div className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md">
+        <div
+          className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+          style={{ animationDelay: "300ms" }}
+        >
           <div className="flex items-center gap-1.5">
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Sin mínimo</p>
-            {kpis.sinMin > 0 && <span className="h-2 w-2 rounded-full bg-amber-500" />}
+            {kpis.sinMin > 0 && <span className="anim-pulse-dot h-2 w-2 rounded-full bg-amber-500" />}
           </div>
           <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.sinMin)}</p>
         </div>
@@ -511,13 +529,17 @@ export function InventarioView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {paginaProductos.map((p) => {
+              {paginaProductos.map((p, idx) => {
                 const bajo = p.minStock !== undefined && p.minStock > 0 && p.quantity <= p.minStock;
                 const agotado = p.quantity === 0;
                 const sinMin = !p.minStock || p.minStock === 0;
                 const ok = !sinMin && p.quantity > (p.minStock ?? 0);
                 return (
-                  <tr key={p.id} className="group transition-colors duration-150 hover:bg-muted/50">
+                  <tr
+                    key={p.id}
+                    className="anim-fade-in group transition-colors duration-150 hover:bg-muted/50"
+                    style={{ animationDelay: `${idx * 25}ms` }}
+                  >
                     <td className="px-4 py-3">
                       <span className="font-mono text-[12px] text-foreground">{p.sku}</span>
                     </td>
@@ -542,13 +564,13 @@ export function InventarioView() {
                     <td className="px-4 py-3">
                       {agotado ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-destructive/15 px-2 py-0.5 text-[11px] font-medium text-destructive">
-                          <span className="h-1.5 w-1.5 rounded-full bg-destructive" /> Agotado
+                          <span className="anim-pulse-dot h-1.5 w-1.5 rounded-full bg-destructive" /> Agotado
                         </span>
                       ) : sinMin ? (
                         <span className="text-[11px] text-muted-foreground">— Sin mínimo</span>
                       ) : bajo ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-600">
-                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> Bajo
+                          <span className="anim-pulse-dot h-1.5 w-1.5 rounded-full bg-amber-500" /> Bajo
                         </span>
                       ) : ok ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-600">
@@ -662,7 +684,10 @@ export function InventarioView() {
               </h2>
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {/* Card 1: Reponer urgentemente */}
-            <div className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md">
+            <div
+              className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+              style={{ animationDelay: "0ms" }}
+            >
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-amber-600" {...ICON_PROPS} />
@@ -698,7 +723,7 @@ export function InventarioView() {
                         </div>
                         <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                           <div
-                            className={cn("h-full rounded-full", p.quantity === 0 ? "bg-destructive" : "bg-amber-500")}
+                            className={cn("anim-draw-in h-full rounded-full", p.quantity === 0 ? "bg-destructive" : "bg-amber-500")}
                             style={{ width: `${pct}%` }}
                           />
                         </div>
@@ -718,7 +743,10 @@ export function InventarioView() {
 
             {/* Card 2: Sin mínimo configurado */}
             {recomendaciones.sinMinimo.length > 0 && (
-              <div className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md">
+              <div
+                className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+                style={{ animationDelay: "80ms" }}
+              >
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Settings className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
@@ -747,7 +775,10 @@ export function InventarioView() {
 
             {/* Card 3: Stock sin movimiento */}
             {recomendaciones.sinMovimiento.length > 0 && (
-              <div className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md">
+              <div
+                className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+                style={{ animationDelay: "160ms" }}
+              >
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
@@ -786,7 +817,10 @@ export function InventarioView() {
 
             {/* Card 4: Top consumo (30 días) */}
             {recomendaciones.topConsumo.length > 0 && (
-              <div className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md">
+              <div
+                className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+                style={{ animationDelay: "240ms" }}
+              >
                 <div className="mb-3 flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
                   <h3 className="text-[13px] font-semibold text-foreground">Top consumo (30 días)</h3>
@@ -807,7 +841,7 @@ export function InventarioView() {
                           </span>
                         </div>
                         <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                          <div className="h-full rounded-full bg-foreground/60" style={{ width: `${pct}%` }} />
+                          <div className="anim-draw-in h-full rounded-full bg-foreground/60" style={{ width: `${pct}%` }} />
                         </div>
                       </div>
                     );
