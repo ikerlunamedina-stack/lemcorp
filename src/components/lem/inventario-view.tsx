@@ -15,7 +15,6 @@ import {
   Upload,
   Loader2,
   AlertCircle,
-  ClipboardPaste,
   AlertTriangle,
   Settings,
   ChevronLeft,
@@ -49,7 +48,6 @@ export function InventarioView() {
   const updateProduct = useStore((s) => s.updateProduct);
   const deleteProduct = useStore((s) => s.deleteProduct);
   const findProductBySku = useStore((s) => s.findProductBySku);
-  const registrarEntrada = useStore((s) => s.registrarEntrada);
   const entradas = useStore((s) => s.entradas);
   const despachos = useStore((s) => s.despachos);
   const deleteEntrada = useStore((s) => s.deleteEntrada);
@@ -64,9 +62,6 @@ export function InventarioView() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState({ sku: "", name: "", quantity: "", minStock: "", udm: "UNIDADES" });
   const [dupError, setDupError] = useState(false);
-  const [entradaOpen, setEntradaOpen] = useState(false);
-  const [entradaText, setEntradaText] = useState("");
-  const [entradaMsg, setEntradaMsg] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const [importingInv, setImportingInv] = useState(false);
   const [importPreview, setImportPreview] = useState<Array<{ sku: string; nombre: string; cantidad: number; udm?: string; existe: boolean }>>([]);
@@ -208,15 +203,6 @@ export function InventarioView() {
     setDialogOpen(false);
   };
 
-  const handleEntrada = () => {
-    const result = registrarEntrada(entradaText);
-    setEntradaMsg(result.msg);
-    if (result.ok) {
-      setEntradaText("");
-      setTimeout(() => { setEntradaMsg(""); setEntradaOpen(false); }, 2000);
-    }
-  };
-
   const handleImportInventario = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -264,45 +250,6 @@ export function InventarioView() {
     setTimeout(() => { setImportOpen(false); setImportResult(null); setImportPreview([]); }, 3000);
   };
 
-  // ─── Live preview de la entrada (parseo SKU*cantidad, SKU<tab>cantidad, o solo SKU) ───
-  const entradaPreview = useMemo(() => {
-    const lines = entradaText.split("\n").map((l) => l.trim()).filter(Boolean);
-    return lines.map((line, i) => {
-      // Separar por * o por tab
-      let parts: string[];
-      if (line.includes("*")) {
-        parts = line.split("*");
-      } else if (line.includes("\t")) {
-        parts = line.split("\t");
-      } else {
-        // Solo SKU → cantidad = 1
-        parts = [line, "1"];
-      }
-      const sku = (parts[0] ?? "").trim();
-      const cantidadRaw = (parts[1] ?? "1").trim();
-      const cantidad = parseInt(cantidadRaw, 10);
-      if (!sku) {
-        return { i, line, sku: "", cantidad: NaN, producto: null, ok: false, motivo: "SKU vacío." };
-      }
-      if (isNaN(cantidad) || cantidad <= 0) {
-        return { i, line, sku, cantidad: NaN, producto: null, ok: false, motivo: "Cantidad inválida." };
-      }
-      const prod = findProductBySku(sku);
-      return {
-        i,
-        line,
-        sku,
-        cantidad,
-        producto: prod,
-        ok: true,
-        motivo: prod ? "" : "SKU no encontrado en el catálogo (se registrará como SKU literal).",
-      };
-    });
-  }, [entradaText, findProductBySku]);
-
-  const validCount = entradaPreview.filter((p) => p.ok && p.producto).length;
-  const invalidCount = entradaPreview.filter((p) => !p.ok || !p.producto).length;
-
   return (
     <div className="px-6 py-6 anim-fade-in">
       {/* Header */}
@@ -334,13 +281,6 @@ export function InventarioView() {
               ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" {...ICON_PROPS} />
               : <Upload className="mr-1.5 h-4 w-4" {...ICON_PROPS} />}
             {importingInv ? "Importando…" : "Importar"}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setEntradaOpen(true)}
-            className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted"
-          >
-            <ClipboardPaste className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Importar SKUs
           </Button>
           <Button
             variant="outline"
@@ -1009,119 +949,6 @@ export function InventarioView() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog Importar SKUs (entrada masiva) */}
-      <Dialog open={entradaOpen} onOpenChange={setEntradaOpen}>
-        <DialogContent className="rounded-lg border-border p-0">
-          <DialogHeader className="border-b border-border px-6 py-4">
-            <DialogTitle className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
-              <ClipboardPaste className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
-              Importar SKUs
-            </DialogTitle>
-            <DialogDescription className="text-[13px] text-muted-foreground">
-              Pega una lista de productos en formato <span className="font-mono text-foreground">SKU*Cantidad</span>, uno por linea.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="px-6 py-5">
-            {/* Botón pegar del portapapeles */}
-            <div className="mb-3 flex items-center justify-between">
-              <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Texto a importar
-              </Label>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  try {
-                    const text = await navigator.clipboard.readText();
-                    if (text) {
-                      setEntradaText(text);
-                      setEntradaMsg("");
-                    }
-                  } catch {
-                    // permiso denegado — el usuario pega manualmente
-                  }
-                }}
-                className="h-7 rounded-md border-border bg-background px-2.5 text-[11px] font-medium hover:bg-muted"
-              >
-                <ClipboardPaste className="mr-1 h-3 w-3" {...ICON_PROPS} /> Pegar
-              </Button>
-            </div>
-            <Textarea
-              value={entradaText}
-              onChange={(e) => { setEntradaText(e.target.value); setEntradaMsg(""); }}
-              placeholder={"SKU001*10\nSKU002*5\nSKU003*20"}
-              className="min-h-[140px] rounded-lg border-border font-mono text-[13px]"
-              autoFocus
-            />
-            <p className="mt-2 text-[11px] text-muted-foreground">
-              Formatos: <span className="font-mono text-foreground">SKU*QTY</span>, <span className="font-mono text-foreground">SKU&lt;tab&gt;QTY</span>, o solo <span className="font-mono text-foreground">SKU</span> (cantidad = 1)
-            </p>
-
-            {/* Live preview */}
-            {entradaPreview.length > 0 && (
-              <div className="mt-4 space-y-1">
-                {entradaPreview.map((p) => (
-                  <div
-                    key={p.i}
-                    className={cn(
-                      "flex items-center gap-2 rounded-lg border px-3 py-2 text-[12px]",
-                      p.ok && p.producto
-                        ? "border-border bg-muted/40"
-                        : "border-destructive/30 bg-destructive/5"
-                    )}
-                  >
-                    {p.ok && p.producto ? (
-                      <Check className="h-3.5 w-3.5 shrink-0 text-muted-foreground" {...ICON_PROPS} />
-                    ) : (
-                      <X className="h-3.5 w-3.5 shrink-0 text-destructive" {...ICON_PROPS} />
-                    )}
-                    <span className="font-mono text-[11px] text-foreground">{p.sku || "?"}</span>
-                    <span className="text-muted-foreground">×</span>
-                    <span className="tabular-nums text-foreground">{isNaN(p.cantidad) ? "?" : p.cantidad}</span>
-                    <span className="min-w-0 flex-1 truncate text-muted-foreground">
-                      {p.producto ? p.producto.name : p.motivo}
-                    </span>
-                  </div>
-                ))}
-                <div className="flex items-center justify-between pt-2 text-[11px] text-muted-foreground">
-                  <span className="inline-flex items-center gap-1">
-                    <Check className="h-3 w-3" {...ICON_PROPS} /> {validCount} válida(s)
-                  </span>
-                  {invalidCount > 0 && (
-                    <span className="inline-flex items-center gap-1 text-destructive">
-                      <X className="h-3 w-3" {...ICON_PROPS} /> {invalidCount} con problema(s)
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {entradaMsg && (
-              <p className={cn("mt-4 text-[12px] font-medium", entradaMsg.includes("incorrecto") ? "text-destructive" : "text-foreground")}>
-                {entradaMsg}
-              </p>
-            )}
-          </div>
-
-          <DialogFooter className="flex-row justify-end gap-2 border-t border-border px-6 py-4">
-            <Button
-              variant="ghost"
-              onClick={() => setEntradaOpen(false)}
-              className="h-9 rounded-lg px-3.5 text-[13px] font-medium hover:bg-muted"
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleEntrada}
-              disabled={!entradaText.trim()}
-              className="h-9 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
-            >
-              <ClipboardPaste className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Importar SKUs
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Dialog importar inventario completo */}
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
