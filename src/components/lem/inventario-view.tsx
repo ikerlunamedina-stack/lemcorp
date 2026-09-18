@@ -31,6 +31,7 @@ export function InventarioView() {
   const exportInventarioExcel = useStore((s) => s.exportInventarioExcel);
 
   const [query, setQuery] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
   const [filtro, setFiltro] = useState<"todos" | "bajo" | "agotados" | "sinMin" | "ok">("todos");
   const [tab, setTab] = useState<"inventario" | "recomendaciones" | "entradas">("inventario");
   const [pagina, setPagina] = useState(1);
@@ -153,13 +154,33 @@ export function InventarioView() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative w-56">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" {...ICON_PROPS} />
+          <div className={cn(
+            "group relative w-56 transition-all duration-300",
+            searchFocused && "w-64"
+          )}>
+            <Search
+              className={cn(
+                "pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 transition-all duration-300",
+                searchFocused
+                  ? "text-foreground scale-110 rotate-3"
+                  : "text-muted-foreground"
+              )}
+              {...ICON_PROPS}
+            />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar SKU o producto…"
-              className="h-9 rounded-lg border-border bg-background pl-8 text-[13px]"
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              placeholder={searchFocused ? "Escribe para filtrar…" : "Buscar SKU o producto…"}
+              className="h-9 rounded-lg border-border bg-background pl-8 text-[13px] transition-all duration-300 outline-none focus-visible:border-foreground focus-visible:bg-muted/40 focus-visible:shadow-sm focus-visible:ring-0"
+            />
+            {/* Indicador inferior animado al hacer focus */}
+            <span
+              className={cn(
+                "pointer-events-none absolute bottom-0 left-1/2 h-0.5 -translate-x-1/2 rounded-full bg-foreground transition-all duration-300",
+                searchFocused ? "w-3/4 opacity-100" : "w-0 opacity-0"
+              )}
             />
           </div>
           <Button
