@@ -158,12 +158,12 @@ export function InventarioView() {
             "group relative transition-all duration-300",
             searchFocused ? "w-64" : "w-56"
           )}>
-            {/* 3 dots decorativos que aparecen en secuencia al hacer focus (snappy) */}
+            {/* 3 dots decorativos MÁS GRANDES que aparecen en secuencia al hacer focus */}
             {searchFocused && (
               <>
-                <span className="anim-dot-pop pointer-events-none absolute right-2 top-1/2 h-1 w-1 -translate-y-1/2 rounded-full bg-foreground" style={{ animationDelay: "0ms" }} />
-                <span className="anim-dot-pop pointer-events-none absolute right-2 top-1/2 h-1 w-1 -translate-y-1/2 rounded-full bg-foreground" style={{ animationDelay: "80ms" }} />
-                <span className="anim-dot-pop pointer-events-none absolute right-2 top-1/2 h-1 w-1 -translate-y-1/2 rounded-full bg-foreground" style={{ animationDelay: "160ms" }} />
+                <span className="anim-dot-pop pointer-events-none absolute right-2 top-1/2 h-1.5 w-1.5 rounded-full bg-foreground" style={{ animationDelay: "0ms" }} />
+                <span className="anim-dot-pop pointer-events-none absolute right-2 top-1/2 h-1.5 w-1.5 rounded-full bg-foreground" style={{ animationDelay: "100ms" }} />
+                <span className="anim-dot-pop pointer-events-none absolute right-2 top-1/2 h-1.5 w-1.5 rounded-full bg-foreground" style={{ animationDelay: "200ms" }} />
               </>
             )}
             <Search
@@ -183,16 +183,16 @@ export function InventarioView() {
               onBlur={() => setSearchFocused(false)}
               placeholder={searchFocused ? "Escribe para filtrar…" : "Buscar SKU o producto…"}
               className={cn(
-                "h-9 rounded-lg border bg-background pl-8 pr-7 text-[13px] outline-none transition-all duration-200",
+                "h-9 rounded-lg border bg-background pl-8 pr-7 text-[13px] outline-none transition-colors duration-200",
                 searchFocused
-                  ? "anim-search-shake border-foreground bg-muted/30"
+                  ? "anim-search-shake anim-flash-border border-foreground bg-muted/50"
                   : "border-border"
               )}
             />
-            {/* Línea inferior que se DIBUJA de izq a der (snappy, no infinite) */}
+            {/* Línea inferior MÁS GRUESA que crece de izq a der */}
             <span
               className={cn(
-                "pointer-events-none absolute -bottom-px left-0 h-0.5 rounded-full bg-foreground",
+                "pointer-events-none absolute -bottom-px left-0 h-1 rounded-full bg-foreground",
                 searchFocused ? "anim-underline-grow" : "w-0 opacity-0"
               )}
               style={{ transformOrigin: "left" }}
