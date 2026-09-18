@@ -4,7 +4,6 @@ import { useMemo, useState, useEffect } from "react";
 import {
   Search,
   Download,
-  Trash,
   AlertTriangle,
   Settings,
   ChevronLeft,
@@ -21,17 +20,14 @@ import { parseNum, fmtNum } from "@/lib/num";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useConfirm } from "@/components/lem/use-confirm";
 
 const ICON_PROPS = { strokeWidth: 1.5 } as const;
 
 export function InventarioView() {
-  const { confirm, ConfirmDialog } = useConfirm();
   const products = useStore((s) => s.products);
   const findProductBySku = useStore((s) => s.findProductBySku);
   const entradas = useStore((s) => s.entradas);
   const despachos = useStore((s) => s.despachos);
-  const deleteEntrada = useStore((s) => s.deleteEntrada);
   const exportInventarioExcel = useStore((s) => s.exportInventarioExcel);
 
   const [query, setQuery] = useState("");
@@ -687,21 +683,6 @@ export function InventarioView() {
                       <span className="text-[11px] tabular-nums text-muted-foreground">
                         {new Date(e.fecha).toLocaleDateString("es-PE")}
                       </span>
-                      <button
-                        onClick={async () => {
-                          const ok = await confirm({
-                            title: "Eliminar entrada de inventario",
-                            description: `¿Eliminar la entrada de ${e.cantidad} × ${e.producto || e.sku}? Se descontará del stock.`,
-                            critical: e.series && e.series.length > 0,
-                            details: `Fecha: ${new Date(e.fecha).toLocaleString("es-PE")}\nSKU: ${e.sku}${e.nGuia ? `\nGuía: ${e.nGuia}` : ""}${e.series?.length ? `\nSeries: ${e.series.length}` : ""}\n\n${e.series?.length ? "Las series también se eliminarán." : "El stock será descontado."}`,
-                          });
-                          if (ok) deleteEntrada(e.id);
-                        }}
-                        aria-label="Eliminar entrada"
-                        className="rounded-lg p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-                      >
-                        <Trash className="h-3.5 w-3.5" {...ICON_PROPS} />
-                      </button>
                     </div>
                   );
                 })}
@@ -717,7 +698,6 @@ export function InventarioView() {
 
 
 
-      {ConfirmDialog}
     </div>
   );
 }
