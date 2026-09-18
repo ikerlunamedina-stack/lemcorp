@@ -126,7 +126,7 @@ export function Navbar() {
   return (
     <>
     <header
-      className="sticky top-0 z-50 border-b border-border bg-card/90 backdrop-blur-xl shadow-sm"
+      className="sticky top-0 z-50 select-none border-b border-border bg-card/90 backdrop-blur-xl shadow-sm"
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       <div className="flex h-12 items-center gap-1 px-4 lg:px-6">

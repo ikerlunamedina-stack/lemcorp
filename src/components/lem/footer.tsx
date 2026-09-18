@@ -33,7 +33,7 @@ export function Footer() {
 
   return (
     <footer
-      className="flex min-h-8 shrink-0 items-center gap-3 border-t border-border px-4 text-[11px] text-muted-foreground sm:gap-4 sm:px-6"
+      className="flex min-h-8 shrink-0 select-none items-center gap-3 border-t border-border px-4 text-[11px] text-muted-foreground sm:gap-4 sm:px-6"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <span className="whitespace-nowrap">

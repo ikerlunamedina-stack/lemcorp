@@ -128,7 +128,7 @@ export function AppShell({ children, isChat = false }: AppShellProps) {
 
   return (
     <SyncProvider>
-      <div className="flex h-screen flex-col bg-background text-foreground select-none">
+      <div className="flex h-screen flex-col bg-background text-foreground">
         <Navbar />
         {!isChat && <SubHeader />}
         <main className={cn("relative flex-1", isChat ? "overflow-hidden" : "overflow-auto scroll-thin")}>
