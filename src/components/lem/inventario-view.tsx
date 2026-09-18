@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import {
   Plus,
   Search,
@@ -18,6 +18,8 @@ import {
   ClipboardPaste,
   AlertTriangle,
   Settings,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   TrendingUp,
   Package,
@@ -56,6 +58,8 @@ export function InventarioView() {
   const [query, setQuery] = useState("");
   const [filtro, setFiltro] = useState<"todos" | "bajo" | "agotados" | "sinMin" | "ok">("todos");
   const [tab, setTab] = useState<"inventario" | "recomendaciones" | "entradas">("inventario");
+  const [pagina, setPagina] = useState(1);
+  const PRODUCTOS_POR_PAGINA = 15;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState({ sku: "", name: "", quantity: "", minStock: "", udm: "UNIDADES" });
@@ -82,6 +86,17 @@ export function InventarioView() {
         return true; // "todos"
       });
   }, [products, query, filtro]);
+
+  // Resetear página a 1 cuando cambian los filtros o el query
+  useEffect(() => {
+    setPagina(1);
+  }, [query, filtro, products]);
+
+  // Cálculo de paginación: productos a mostrar en la página actual
+  const totalPaginas = Math.max(1, Math.ceil(filtered.length / PRODUCTOS_POR_PAGINA));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const indiceInicio = (paginaActual - 1) * PRODUCTOS_POR_PAGINA;
+  const paginaProductos = filtered.slice(indiceInicio, indiceInicio + PRODUCTOS_POR_PAGINA);
 
   const totalUnidades = useMemo(() => products.reduce((s, p) => s + p.quantity, 0), [products]);
 
@@ -496,7 +511,7 @@ export function InventarioView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((p) => {
+              {paginaProductos.map((p) => {
                 const bajo = p.minStock !== undefined && p.minStock > 0 && p.quantity <= p.minStock;
                 const agotado = p.quantity === 0;
                 const sinMin = !p.minStock || p.minStock === 0;
@@ -582,6 +597,56 @@ export function InventarioView() {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Controles de paginación — solo si hay más de 1 página */}
+      {filtered.length > PRODUCTOS_POR_PAGINA && (
+        <div className="anim-slide-up mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+          <p className="text-[12px] text-muted-foreground">
+            Mostrando <span className="font-semibold tabular-nums text-foreground">{indiceInicio + 1}</span>–
+            <span className="font-semibold tabular-nums text-foreground">{Math.min(indiceInicio + PRODUCTOS_POR_PAGINA, filtered.length)}</span> de{" "}
+            <span className="font-semibold tabular-nums text-foreground">{filtered.length}</span> productos
+          </p>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPagina((p) => Math.max(1, p - 1))}
+              disabled={paginaActual === 1}
+              aria-label="Página anterior"
+              className="inline-flex h-8 items-center gap-1 rounded-lg border border-border bg-background px-3 text-[12px] font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" {...ICON_PROPS} /> Anterior
+            </button>
+            {Array.from({ length: totalPaginas }, (_, i) => i + 1)
+              .filter((p) => p === 1 || p === totalPaginas || (p >= paginaActual - 1 && p <= paginaActual + 1))
+              .map((p, i, arr) => (
+                <span key={p} className="flex items-center">
+                  {i > 0 && arr[i - 1] !== p - 1 && (
+                    <span className="px-1 text-[12px] text-muted-foreground">…</span>
+                  )}
+                  <button
+                    onClick={() => setPagina(p)}
+                    aria-label={`Ir a página ${p}`}
+                    className={cn(
+                      "inline-flex h-8 min-w-[2rem] items-center justify-center rounded-lg border px-2 text-[12px] font-medium tabular-nums transition-colors",
+                      p === paginaActual
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-border bg-background text-foreground hover:bg-muted",
+                    )}
+                  >
+                    {p}
+                  </button>
+                </span>
+              ))}
+            <button
+              onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+              disabled={paginaActual === totalPaginas}
+              aria-label="Página siguiente"
+              className="inline-flex h-8 items-center gap-1 rounded-lg border border-border bg-background px-3 text-[12px] font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Siguiente <ChevronRight className="h-3.5 w-3.5" {...ICON_PROPS} />
+            </button>
+          </div>
         </div>
       )}
         </>
