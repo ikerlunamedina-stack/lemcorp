@@ -55,6 +55,7 @@ export function InventarioView() {
 
   const [query, setQuery] = useState("");
   const [filtro, setFiltro] = useState<"todos" | "bajo" | "agotados" | "sinMin" | "ok">("todos");
+  const [tab, setTab] = useState<"inventario" | "recomendaciones" | "entradas">("inventario");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState({ sku: "", name: "", quantity: "", minStock: "", udm: "UNIDADES" });
@@ -339,6 +340,40 @@ export function InventarioView() {
         </div>
       </header>
 
+      {/* Pestañas: Inventario | Recomendaciones | Entradas */}
+      <div className="anim-slide-up mb-6 flex items-center gap-1 border-b border-border">
+        {([
+          ["inventario", "Inventario", products.length],
+          ["recomendaciones", "Recomendaciones", (recomendaciones.reponer.length + recomendaciones.sinMinimo.length + recomendaciones.sinMovimiento.length)],
+          ["entradas", "Entradas", entradas.length],
+        ] as const).map(([key, label, count]) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={cn(
+              "relative inline-flex h-10 items-center gap-2 px-4 text-[13px] font-medium transition-colors",
+              tab === key ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {label}
+            <span
+              className={cn(
+                "rounded-full px-1.5 py-0.5 text-[10px] tabular-nums",
+                tab === key ? "bg-foreground text-background" : "bg-muted text-muted-foreground",
+              )}
+            >
+              {count}
+            </span>
+            {tab === key && (
+              <span className="absolute inset-x-0 -bottom-px h-0.5 bg-foreground" />
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* ─── TAB: INVENTARIO (KPIs + chips + tabla) ─── */}
+      {tab === "inventario" && (
+        <>
       {/* KPIs superiores */}
       <section className="anim-slide-up mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {/* 1. Productos en catálogo */}
@@ -393,180 +428,15 @@ export function InventarioView() {
         </div>
       </section>
 
-      {/* Recomendaciones Inteligentes */}
-      {(recomendaciones.reponer.length > 0 || recomendaciones.sinMinimo.length > 0 || recomendaciones.sinMovimiento.length > 0 || recomendaciones.topConsumo.length > 0) && (
-        <section className="anim-slide-up mb-6">
-          <h2 className="mb-3 text-[13px] font-medium uppercase tracking-wider text-muted-foreground">
-            Recomendaciones Inteligentes
-          </h2>
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            {/* Card 1: Reponer urgentemente */}
-            <div className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md">
-              <div className="mb-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-amber-600" {...ICON_PROPS} />
-                  <h3 className="text-[13px] font-semibold text-foreground">Reponer urgentemente</h3>
-                </div>
-                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-amber-600">
-                  {recomendaciones.reponer.length}
-                </span>
-              </div>
-              {recomendaciones.reponer.length === 0 ? (
-                <p className="text-[12px] text-muted-foreground">✅ Todo el inventario está por encima del mínimo</p>
-              ) : (
-                <div className="space-y-2.5">
-                  {recomendaciones.reponer.slice(0, 6).map((p) => {
-                    const pct = Math.min(100, Math.max(0, (p.quantity / Math.max(p.minStock!, 1)) * 100));
-                    return (
-                      <div key={p.id} className="space-y-1">
-                        <div className="flex items-baseline justify-between gap-2">
-                          <span className="truncate text-[12px] font-medium text-foreground">{p.name}</span>
-                          <span className="shrink-0 font-mono text-[10px] text-muted-foreground">{p.sku}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className={cn("font-semibold tabular-nums", p.quantity === 0 ? "text-destructive" : "text-amber-600")}>
-                            {fmtNum(p.quantity)} / {fmtNum(p.minStock)}
-                          </span>
-                          <span className="text-right text-muted-foreground">
-                            {p.sugerido === 0 ? (
-                              "Stock suficiente p/ 14 días"
-                            ) : (
-                              <>Pedir: <span className="font-semibold text-foreground">{fmtNum(p.sugerido)}</span> u.</>
-                            )}
-                          </span>
-                        </div>
-                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                          <div
-                            className={cn("h-full rounded-full", p.quantity === 0 ? "bg-destructive" : "bg-amber-500")}
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {recomendaciones.reponer.length > 6 && (
-                    <p className="text-[11px] text-muted-foreground">+{recomendaciones.reponer.length - 6} más</p>
-                  )}
-                  <div className="border-t border-border pt-2 text-[11px] text-muted-foreground">
-                    Total: <span className="font-semibold text-foreground">{recomendaciones.reponer.length}</span> productos, ~
-                    <span className="font-semibold tabular-nums text-foreground">{fmtNum(recomendaciones.reponer.reduce((s, p) => s + p.sugerido, 0))}</span> u. a pedir
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Card 2: Sin mínimo configurado */}
-            {recomendaciones.sinMinimo.length > 0 && (
-              <div className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md">
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Settings className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
-                    <h3 className="text-[13px] font-semibold text-foreground">Sin mínimo configurado</h3>
-                  </div>
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
-                    {recomendaciones.sinMinimo.length}
-                  </span>
-                </div>
-                <p className="mb-2 text-[12px] text-muted-foreground">Configura el stock mínimo para monitorearlos</p>
-                <div className="space-y-1.5">
-                  {recomendaciones.sinMinimo.slice(0, 5).map((p) => (
-                    <div key={p.id} className="flex items-baseline justify-between gap-2">
-                      <span className="truncate text-[12px] text-foreground">{p.name}</span>
-                      <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
-                        {fmtNum(p.quantity)} {p.udm || "u."}
-                      </span>
-                    </div>
-                  ))}
-                  {recomendaciones.sinMinimo.length > 5 && (
-                    <p className="text-[11px] text-muted-foreground">+{recomendaciones.sinMinimo.length - 5} productos más</p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Card 3: Stock sin movimiento */}
-            {recomendaciones.sinMovimiento.length > 0 && (
-              <div className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md">
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
-                    <h3 className="text-[13px] font-semibold text-foreground">Stock sin movimiento</h3>
-                  </div>
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
-                    {recomendaciones.sinMovimiento.length}
-                  </span>
-                </div>
-                <p className="mb-2 text-[12px] text-muted-foreground">Productos en stock sin despachos en 30+ días</p>
-                <div className="space-y-1.5">
-                  {recomendaciones.sinMovimiento.map((p) => {
-                    const ultimoDespacho = despachos
-                      .filter((d) => d.sku === p.sku)
-                      .sort((a, b) => b.fecha - a.fecha)[0];
-                    return (
-                      <div key={p.id} className="flex items-baseline justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <span className="block truncate text-[12px] text-foreground">{p.name}</span>
-                          <span className="font-mono text-[10px] text-muted-foreground">{p.sku}</span>
-                        </div>
-                        <div className="shrink-0 text-right">
-                          <span className="block text-[11px] tabular-nums text-muted-foreground">
-                            {fmtNum(p.quantity)} {p.udm || "u."}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">
-                            {ultimoDespacho ? fmtRelativo(ultimoDespacho.fecha) : "Nunca despachado"}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Card 4: Top consumo (30 días) */}
-            {recomendaciones.topConsumo.length > 0 && (
-              <div className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md">
-                <div className="mb-3 flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
-                  <h3 className="text-[13px] font-semibold text-foreground">Top consumo (30 días)</h3>
-                </div>
-                <div className="space-y-2">
-                  {recomendaciones.topConsumo.map((c, i) => {
-                    const max = recomendaciones.topConsumo[0].unidades || 1;
-                    const pct = Math.max(4, (c.unidades / max) * 100);
-                    return (
-                      <div key={c.sku} className="space-y-1">
-                        <div className="flex items-baseline justify-between gap-2 text-[12px]">
-                          <span className="flex min-w-0 items-center gap-1.5">
-                            <span className="font-mono text-[10px] tabular-nums text-muted-foreground">{i + 1}.</span>
-                            <span className="truncate font-medium text-foreground">{c.nombre}</span>
-                          </span>
-                          <span className="shrink-0 tabular-nums text-muted-foreground">
-                            {fmtNum(c.unidades)} u · {c.eventos} evt
-                          </span>
-                        </div>
-                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                          <div className="h-full rounded-full bg-foreground/60" style={{ width: `${pct}%` }} />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
       {/* Chips de filtro por estado */}
       <div className="anim-slide-up mb-4 flex flex-wrap items-center gap-2">
         <Filter className="h-3.5 w-3.5 text-muted-foreground" {...ICON_PROPS} />
         {([
           ["todos", "Todos", products.length],
-          ["bajo", "🚨 Bajo stock", kpis.bajoStock],
-          ["agotados", "❌ Agotados", kpis.agotados],
-          ["sinMin", "⚙️ Sin mínimo", kpis.sinMin],
-          ["ok", "✅ OK", kpis.ok],
+          ["bajo", "Bajo stock", kpis.bajoStock],
+          ["agotados", "Agotados", kpis.agotados],
+          ["sinMin", "Sin mínimo", kpis.sinMin],
+          ["ok", "OK", kpis.ok],
         ] as const).map(([key, label, count]) => (
           <button
             key={key}
@@ -714,57 +584,242 @@ export function InventarioView() {
           </table>
         </div>
       )}
-
-      {/* Entradas recientes */}
-      {entradas.length > 0 && (
-        <section className="anim-slide-up mt-10">
-          <h2 className="mb-3 text-[13px] font-medium uppercase tracking-wider text-muted-foreground">
-            Entradas recientes
-          </h2>
-          <div className="divide-y divide-border rounded-lg border border-border bg-background">
-            {entradas.slice(0, 15).map((e) => {
-              const prodActual = findProductBySku(e.sku);
-              const nombreMostrar = prodActual?.name ?? e.producto;
-              const enCatalogo = !!prodActual;
-              return (
-                <div key={e.id} className="group flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/40">
-                  <span className="font-mono text-[12px] tabular-nums text-foreground">+{e.cantidad}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="flex items-center gap-2 truncate text-[13px] font-medium text-foreground">
-                      {nombreMostrar}
-                      {!enCatalogo && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-normal text-muted-foreground">
-                          <span className="h-1 w-1 rounded-full bg-muted-foreground" />
-                          no en catálogo
-                        </span>
-                      )}
-                    </p>
-                    <p className="font-mono text-[11px] text-muted-foreground">{e.sku}</p>
-                  </div>
-                  <span className="text-[11px] tabular-nums text-muted-foreground">
-                    {new Date(e.fecha).toLocaleDateString("es-PE")}
-                  </span>
-                  <button
-                    onClick={async () => {
-                      const ok = await confirm({
-                        title: "Eliminar entrada de inventario",
-                        description: `¿Eliminar la entrada de ${e.cantidad} × ${e.producto || e.sku}? Se descontará del stock.`,
-                        critical: e.series && e.series.length > 0,
-                        details: `Fecha: ${new Date(e.fecha).toLocaleString("es-PE")}\nSKU: ${e.sku}${e.nGuia ? `\nGuía: ${e.nGuia}` : ""}${e.series?.length ? `\nSeries: ${e.series.length}` : ""}\n\n${e.series?.length ? "Las series también se eliminarán." : "El stock será descontado."}`,
-                      });
-                      if (ok) deleteEntrada(e.id);
-                    }}
-                    aria-label="Eliminar entrada"
-                    className="rounded-lg p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-                  >
-                    <Trash className="h-3.5 w-3.5" {...ICON_PROPS} />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </section>
+        </>
       )}
+
+      {/* ─── TAB: RECOMENDACIONES (las 4 cards inteligentes) ─── */}
+      {tab === "recomendaciones" && (
+        <>
+          {(recomendaciones.reponer.length > 0 || recomendaciones.sinMinimo.length > 0 || recomendaciones.sinMovimiento.length > 0 || recomendaciones.topConsumo.length > 0) ? (
+            <section className="anim-slide-up">
+              <h2 className="mb-3 text-[13px] font-medium uppercase tracking-wider text-muted-foreground">
+                Recomendaciones Inteligentes
+              </h2>
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {/* Card 1: Reponer urgentemente */}
+            <div className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" {...ICON_PROPS} />
+                  <h3 className="text-[13px] font-semibold text-foreground">Reponer urgentemente</h3>
+                </div>
+                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-amber-600">
+                  {recomendaciones.reponer.length}
+                </span>
+              </div>
+              {recomendaciones.reponer.length === 0 ? (
+                <p className="text-[12px] text-muted-foreground">Todo el inventario está por encima del mínimo</p>
+              ) : (
+                <div className="space-y-2.5">
+                  {recomendaciones.reponer.slice(0, 6).map((p) => {
+                    const pct = Math.min(100, Math.max(0, (p.quantity / Math.max(p.minStock!, 1)) * 100));
+                    return (
+                      <div key={p.id} className="space-y-1">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="truncate text-[12px] font-medium text-foreground">{p.name}</span>
+                          <span className="shrink-0 font-mono text-[10px] text-muted-foreground">{p.sku}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className={cn("font-semibold tabular-nums", p.quantity === 0 ? "text-destructive" : "text-amber-600")}>
+                            {fmtNum(p.quantity)} / {fmtNum(p.minStock)}
+                          </span>
+                          <span className="text-right text-muted-foreground">
+                            {p.sugerido === 0 ? (
+                              "Stock suficiente p/ 14 días"
+                            ) : (
+                              <>Pedir: <span className="font-semibold text-foreground">{fmtNum(p.sugerido)}</span> u.</>
+                            )}
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                          <div
+                            className={cn("h-full rounded-full", p.quantity === 0 ? "bg-destructive" : "bg-amber-500")}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {recomendaciones.reponer.length > 6 && (
+                    <p className="text-[11px] text-muted-foreground">+{recomendaciones.reponer.length - 6} más</p>
+                  )}
+                  <div className="border-t border-border pt-2 text-[11px] text-muted-foreground">
+                    Total: <span className="font-semibold text-foreground">{recomendaciones.reponer.length}</span> productos, ~
+                    <span className="font-semibold tabular-nums text-foreground">{fmtNum(recomendaciones.reponer.reduce((s, p) => s + p.sugerido, 0))}</span> u. a pedir
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Card 2: Sin mínimo configurado */}
+            {recomendaciones.sinMinimo.length > 0 && (
+              <div className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md">
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Settings className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+                    <h3 className="text-[13px] font-semibold text-foreground">Sin mínimo configurado</h3>
+                  </div>
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
+                    {recomendaciones.sinMinimo.length}
+                  </span>
+                </div>
+                <p className="mb-2 text-[12px] text-muted-foreground">Configura el stock mínimo para monitorearlos</p>
+                <div className="space-y-1.5">
+                  {recomendaciones.sinMinimo.slice(0, 5).map((p) => (
+                    <div key={p.id} className="flex items-baseline justify-between gap-2">
+                      <span className="truncate text-[12px] text-foreground">{p.name}</span>
+                      <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                        {fmtNum(p.quantity)} {p.udm || "u."}
+                      </span>
+                    </div>
+                  ))}
+                  {recomendaciones.sinMinimo.length > 5 && (
+                    <p className="text-[11px] text-muted-foreground">+{recomendaciones.sinMinimo.length - 5} productos más</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Card 3: Stock sin movimiento */}
+            {recomendaciones.sinMovimiento.length > 0 && (
+              <div className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md">
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+                    <h3 className="text-[13px] font-semibold text-foreground">Stock sin movimiento</h3>
+                  </div>
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
+                    {recomendaciones.sinMovimiento.length}
+                  </span>
+                </div>
+                <p className="mb-2 text-[12px] text-muted-foreground">Productos en stock sin despachos en 30+ días</p>
+                <div className="space-y-1.5">
+                  {recomendaciones.sinMovimiento.map((p) => {
+                    const ultimoDespacho = despachos
+                      .filter((d) => d.sku === p.sku)
+                      .sort((a, b) => b.fecha - a.fecha)[0];
+                    return (
+                      <div key={p.id} className="flex items-baseline justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <span className="block truncate text-[12px] text-foreground">{p.name}</span>
+                          <span className="font-mono text-[10px] text-muted-foreground">{p.sku}</span>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <span className="block text-[11px] tabular-nums text-muted-foreground">
+                            {fmtNum(p.quantity)} {p.udm || "u."}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {ultimoDespacho ? fmtRelativo(ultimoDespacho.fecha) : "Nunca despachado"}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Card 4: Top consumo (30 días) */}
+            {recomendaciones.topConsumo.length > 0 && (
+              <div className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md">
+                <div className="mb-3 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+                  <h3 className="text-[13px] font-semibold text-foreground">Top consumo (30 días)</h3>
+                </div>
+                <div className="space-y-2">
+                  {recomendaciones.topConsumo.map((c, i) => {
+                    const max = recomendaciones.topConsumo[0].unidades || 1;
+                    const pct = Math.max(4, (c.unidades / max) * 100);
+                    return (
+                      <div key={c.sku} className="space-y-1">
+                        <div className="flex items-baseline justify-between gap-2 text-[12px]">
+                          <span className="flex min-w-0 items-center gap-1.5">
+                            <span className="font-mono text-[10px] tabular-nums text-muted-foreground">{i + 1}.</span>
+                            <span className="truncate font-medium text-foreground">{c.nombre}</span>
+                          </span>
+                          <span className="shrink-0 tabular-nums text-muted-foreground">
+                            {fmtNum(c.unidades)} u · {c.eventos} evt
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                          <div className="h-full rounded-full bg-foreground/60" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+              </div>
+            </section>
+          ) : (
+            <div className="anim-fade-in rounded-lg border border-dashed border-border bg-background px-4 py-16 text-center text-[13px] text-muted-foreground">
+              No hay recomendaciones activas. Todo el inventario está por encima del mínimo.
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ─── TAB: ENTRADAS (entradas recientes) ─── */}
+      {tab === "entradas" && (
+        <>
+          {entradas.length > 0 ? (
+            <section className="anim-slide-up">
+              <h2 className="mb-3 text-[13px] font-medium uppercase tracking-wider text-muted-foreground">
+                Entradas recientes
+              </h2>
+              <div className="divide-y divide-border rounded-lg border border-border bg-background">
+                {entradas.slice(0, 15).map((e) => {
+                  const prodActual = findProductBySku(e.sku);
+                  const nombreMostrar = prodActual?.name ?? e.producto;
+                  const enCatalogo = !!prodActual;
+                  return (
+                    <div key={e.id} className="group flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/40">
+                      <span className="font-mono text-[12px] tabular-nums text-foreground">+{e.cantidad}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="flex items-center gap-2 truncate text-[13px] font-medium text-foreground">
+                          {nombreMostrar}
+                          {!enCatalogo && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-normal text-muted-foreground">
+                              <span className="h-1 w-1 rounded-full bg-muted-foreground" />
+                              no en catálogo
+                            </span>
+                          )}
+                        </p>
+                        <p className="font-mono text-[11px] text-muted-foreground">{e.sku}</p>
+                      </div>
+                      <span className="text-[11px] tabular-nums text-muted-foreground">
+                        {new Date(e.fecha).toLocaleDateString("es-PE")}
+                      </span>
+                      <button
+                        onClick={async () => {
+                          const ok = await confirm({
+                            title: "Eliminar entrada de inventario",
+                            description: `¿Eliminar la entrada de ${e.cantidad} × ${e.producto || e.sku}? Se descontará del stock.`,
+                            critical: e.series && e.series.length > 0,
+                            details: `Fecha: ${new Date(e.fecha).toLocaleString("es-PE")}\nSKU: ${e.sku}${e.nGuia ? `\nGuía: ${e.nGuia}` : ""}${e.series?.length ? `\nSeries: ${e.series.length}` : ""}\n\n${e.series?.length ? "Las series también se eliminarán." : "El stock será descontado."}`,
+                          });
+                          if (ok) deleteEntrada(e.id);
+                        }}
+                        aria-label="Eliminar entrada"
+                        className="rounded-lg p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                      >
+                        <Trash className="h-3.5 w-3.5" {...ICON_PROPS} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          ) : (
+            <div className="anim-fade-in rounded-lg border border-dashed border-border bg-background px-4 py-16 text-center text-[13px] text-muted-foreground">
+              No hay entradas registradas. Ingresa materiales desde la página de Recepciones.
+            </div>
+          )}
+        </>
+      )}
+
+
 
       {/* Dialog añadir/editar */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
