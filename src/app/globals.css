@@ -335,61 +335,20 @@ html.light {
   from { opacity: 0; transform: translateX(-10px); }
   to { opacity: 1; transform: translateX(0); }
 }
-/* === Animaciones INTENSAS y visibles para el buscador === */
-@keyframes lem-search-shake {
-  0% { transform: translateX(0) scale(1); }
-  15% { transform: translateX(-8px) scale(1.02); }
-  30% { transform: translateX(8px) scale(1.02); }
-  45% { transform: translateX(-6px) scale(1.01); }
-  60% { transform: translateX(6px) scale(1.01); }
-  75% { transform: translateX(-3px) scale(1); }
-  90% { transform: translateX(3px) scale(1); }
-  100% { transform: translateX(0) scale(1); }
+/* === Animaciones SIMPLES tipo chat (glow + giro lento) === */
+@keyframes lem-glow-soft {
+  0%, 100% { box-shadow: 0 0 10px 1px rgba(0,0,0,0.08), 0 0 20px 3px rgba(0,0,0,0.05); }
+  50% { box-shadow: 0 0 14px 2px rgba(0,0,0,0.10), 0 0 28px 5px rgba(0,0,0,0.06); }
 }
 
-@keyframes lem-icon-spin {
-  0% { transform: translateY(-50%) rotate(0deg) scale(1); }
-  25% { transform: translateY(-50%) rotate(-180deg) scale(1.4); }
-  50% { transform: translateY(-50%) rotate(-360deg) scale(1.5); }
-  75% { transform: translateY(-50%) rotate(-540deg) scale(1.3); }
-  100% { transform: translateY(-50%) rotate(-720deg) scale(1.15); }
+@keyframes lem-spin-slow {
+  from { transform: translateY(-50%) rotate(0deg); }
+  to { transform: translateY(-50%) rotate(360deg); }
 }
 
-@keyframes lem-underline-grow {
-  0% { width: 0%; opacity: 0; transform: scaleX(0); }
-  30% { width: 30%; opacity: 1; transform: scaleX(1); }
-  60% { width: 70%; opacity: 1; transform: scaleX(1); }
-  100% { width: 100%; opacity: 1; transform: scaleX(1); }
-}
-
-@keyframes lem-dot-pop {
-  0% { transform: translateY(-50%) scale(0); opacity: 0; }
-  40% { transform: translateY(-50%) scale(1.8); opacity: 1; }
-  70% { transform: translateY(-50%) scale(0.9); opacity: 1; }
-  100% { transform: translateY(-50%) scale(1.3); opacity: 0.7; }
-}
-
-@keyframes lem-flash-border {
-  0% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
-  30% { box-shadow: 0 0 0 6px rgba(0,0,0,0.08); }
-  100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
-}
-
-@keyframes lem-input-bounce {
-  0% { transform: scale(1); }
-  40% { transform: scale(1.05); }
-  100% { transform: scale(1.02); }
-}
-
-/* Clases snappy intensas */
-.anim-search-shake { animation: lem-search-shake 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
-.anim-icon-spin { animation: lem-icon-spin 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-.anim-underline-grow { animation: lem-underline-grow 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.anim-dot-pop { animation: lem-dot-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-.anim-flash-border { animation: lem-flash-border 0.5s ease-out both; }
-.anim-input-bounce { animation: lem-input-bounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-
-
+/* Clases simples */
+.anim-glow-soft { animation: lem-glow-soft 2.5s ease-in-out infinite; }
+.anim-spin-slow { animation: lem-spin-slow 2.5s linear infinite; }
 
 /* Clases de animación utilitarias */
 .anim-fade-in { animation: lem-fade-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }

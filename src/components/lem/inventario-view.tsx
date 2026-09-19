@@ -158,24 +158,17 @@ export function InventarioView() {
             "group relative transition-all duration-300",
             searchFocused ? "w-64" : "w-56"
           )}>
-            {/* 3 dots decorativos MÁS GRANDES que aparecen en secuencia al hacer focus */}
-            {searchFocused && (
-              <>
-                <span className="anim-dot-pop pointer-events-none absolute right-2 top-1/2 h-1.5 w-1.5 rounded-full bg-foreground" style={{ animationDelay: "0ms" }} />
-                <span className="anim-dot-pop pointer-events-none absolute right-2 top-1/2 h-1.5 w-1.5 rounded-full bg-foreground" style={{ animationDelay: "100ms" }} />
-                <span className="anim-dot-pop pointer-events-none absolute right-2 top-1/2 h-1.5 w-1.5 rounded-full bg-foreground" style={{ animationDelay: "200ms" }} />
-              </>
-            )}
+            {/* Icono Search: gira lentamente en loop infinito mientras se hace focus */}
             <Search
-              key={searchFocused ? "focused" : "blurred"}
               className={cn(
-                "pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 transition-colors duration-200",
+                "pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 transition-colors duration-300",
                 searchFocused
-                  ? "anim-icon-spin text-foreground"
+                  ? "anim-spin-slow text-foreground"
                   : "text-muted-foreground"
               )}
               {...ICON_PROPS}
             />
+            {/* Input con glow suave alrededor cuando se hace focus */}
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -183,19 +176,11 @@ export function InventarioView() {
               onBlur={() => setSearchFocused(false)}
               placeholder={searchFocused ? "Escribe para filtrar…" : "Buscar SKU o producto…"}
               className={cn(
-                "h-9 rounded-lg border bg-background pl-8 pr-7 text-[13px] outline-none transition-colors duration-200",
+                "h-9 rounded-lg border bg-background pl-8 text-[13px] outline-none transition-colors duration-300",
                 searchFocused
-                  ? "anim-search-shake anim-flash-border border-foreground bg-muted/50"
+                  ? "anim-glow-soft border-foreground bg-muted/20"
                   : "border-border"
               )}
-            />
-            {/* Línea inferior MÁS GRUESA que crece de izq a der */}
-            <span
-              className={cn(
-                "pointer-events-none absolute -bottom-px left-0 h-1 rounded-full bg-foreground",
-                searchFocused ? "anim-underline-grow" : "w-0 opacity-0"
-              )}
-              style={{ transformOrigin: "left" }}
             />
           </div>
           <Button
