@@ -341,14 +341,30 @@ html.light {
   50% { box-shadow: 0 0 14px 2px rgba(0,0,0,0.10), 0 0 28px 5px rgba(0,0,0,0.06); }
 }
 
-@keyframes lem-spin-slow {
-  from { transform: translateY(-50%) rotate(0deg); }
-  to { transform: translateY(-50%) rotate(360deg); }
-}
-
 /* Clases simples */
 .anim-glow-soft { animation: lem-glow-soft 2.5s ease-in-out infinite; }
-.anim-spin-slow { animation: lem-spin-slow 2.5s linear infinite; }
+
+@keyframes lem-orbit-light {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg) translateX(125px) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg) translateX(125px) rotate(-360deg);
+  }
+}
+
+@keyframes lem-orbit-light-reverse {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg) translateX(-125px) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(-360deg) translateX(-125px) rotate(360deg);
+  }
+}
+
+/* Clase orbital */
+.anim-orbit-light { animation: lem-orbit-light 3s linear infinite; }
+.anim-orbit-light-reverse { animation: lem-orbit-light-reverse 4s linear infinite; }
 
 /* Clases de animación utilitarias */
 .anim-fade-in { animation: lem-fade-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }

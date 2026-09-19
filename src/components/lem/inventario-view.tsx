@@ -158,17 +158,17 @@ export function InventarioView() {
             "group relative transition-all duration-300",
             searchFocused ? "w-64" : "w-56"
           )}>
-            {/* Icono Search: gira lentamente en loop infinito mientras se hace focus */}
+            {/* Icono Search quieto, solo cambia de color al hacer focus */}
             <Search
               className={cn(
                 "pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 transition-colors duration-300",
                 searchFocused
-                  ? "anim-spin-slow text-foreground"
+                  ? "text-foreground"
                   : "text-muted-foreground"
               )}
               {...ICON_PROPS}
             />
-            {/* Input con glow suave alrededor cuando se hace focus */}
+            {/* Input con glow suave cuando se hace focus */}
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -182,6 +182,20 @@ export function InventarioView() {
                   : "border-border"
               )}
             />
+            {/* LUZ que ORBITA alrededor del input en sentido horario (mientras se hace focus) */}
+            {searchFocused && (
+              <span
+                className="anim-orbit-light pointer-events-none absolute left-1/2 top-1/2 h-1.5 w-1.5 rounded-full bg-foreground"
+                style={{ boxShadow: "0 0 8px 2px rgba(0,0,0,0.4)" }}
+              />
+            )}
+            {/* LUZ que ORBITA en sentido antihorario (más lenta) */}
+            {searchFocused && (
+              <span
+                className="anim-orbit-light-reverse pointer-events-none absolute left-1/2 top-1/2 h-1 w-1 rounded-full bg-foreground/70"
+                style={{ boxShadow: "0 0 6px 2px rgba(0,0,0,0.3)" }}
+              />
+            )}
           </div>
           <Button
             variant="outline"
