@@ -68,6 +68,8 @@ interface StoreState {
   pistoleoCampo: PistoleoCampo;
   pistoleoModelo: string;
   pistoleoEstado: EstadoEquipo;
+  /** Ubicación física donde se guardará el equipo pistoleado (Almacén, Taller, Cuarto Técnico, etc.) */
+  pistoleoUbicacion: string;
   pistoleoFilas: FilaPistoleo[];
   /** Equipo del inventario seleccionado para aplicar a nuevas capturas */
   pistoleoModeloSeleccionado: string;
@@ -89,6 +91,7 @@ interface StoreState {
     pistoleoCampo: PistoleoCampo;
     pistoleoModelo: string;
     pistoleoEstado: EstadoEquipo;
+    pistoleoUbicacion: string;
     pistoleoModeloSeleccionado: string;
     pistoleoCamposMarcados: string[];
   }>) => void;
@@ -334,6 +337,7 @@ export const useStore = create<StoreState>()(
       pistoleoCampo: "serie",
       pistoleoModelo: "",
       pistoleoEstado: "disponible",
+      pistoleoUbicacion: "",
       pistoleoFilas: [],
       pistoleoModeloSeleccionado: "",
       pistoleoCamposMarcados: ["serie"],
@@ -435,7 +439,7 @@ export const useStore = create<StoreState>()(
       confirmarPistoleo: () => {
         const filas = get().pistoleoFilas;
         if (filas.length === 0) return { ok: false, msg: "No hay series para guardar.", count: 0 };
-        const { pistoleoModelo, pistoleoEstado } = get();
+        const { pistoleoModelo, pistoleoEstado, pistoleoUbicacion } = get();
         const camposMarcadosGlobal = get().pistoleoCamposMarcados || ["serie"];
         let count = 0;
         const nuevos: Equipment[] = [];
@@ -475,7 +479,7 @@ export const useStore = create<StoreState>()(
             serie,
             modelo,
             estado: pistoleoEstado,
-            ubicacion: "Almacén HUB",
+            ubicacion: pistoleoUbicacion || "Almacén",
             cmMac,
             mtaMac,
             ua,
@@ -2150,6 +2154,7 @@ export const useStore = create<StoreState>()(
           pistoleoCampo: "serie",
           pistoleoModelo: "",
           pistoleoEstado: "disponible",
+          pistoleoUbicacion: "",
           pistoleoModeloSeleccionado: "",
           horario: [],
           memoriaIA: [],
@@ -2243,6 +2248,7 @@ export const useStore = create<StoreState>()(
         pistoleoCampo: s.pistoleoCampo,
         pistoleoModelo: s.pistoleoModelo,
         pistoleoEstado: s.pistoleoEstado,
+        pistoleoUbicacion: s.pistoleoUbicacion || "",
         pistoleoFilas: s.pistoleoFilas,
         pistoleoModeloSeleccionado: s.pistoleoModeloSeleccionado,
         pistoleoCamposMarcados: s.pistoleoCamposMarcados,
@@ -2285,6 +2291,7 @@ export const useStore = create<StoreState>()(
         if (!p.pistoleoCampo) p.pistoleoCampo = "serie";
         if (!p.pistoleoModelo) p.pistoleoModelo = "";
         if (!p.pistoleoEstado) p.pistoleoEstado = "disponible";
+        if (p.pistoleoUbicacion === undefined) p.pistoleoUbicacion = "";
         if (!Array.isArray(p.pistoleoCamposMarcados)) p.pistoleoCamposMarcados = ["serie"];
         // Normalizar products.quantity
         p.products = p.products.map((x: any) => ({

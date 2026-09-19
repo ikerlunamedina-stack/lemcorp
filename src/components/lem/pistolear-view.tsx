@@ -107,6 +107,7 @@ export function PistolearView() {
   const setSetting = useStore((s) => s.setSetting);
   const pistoleoModelo = useStore((s) => s.pistoleoModelo);
   const pistoleoEstado = useStore((s) => s.pistoleoEstado);
+  const pistoleoUbicacion = useStore((s) => s.pistoleoUbicacion);
   const pistoleoFilas = useStore((s) => s.pistoleoFilas);
   const pistoleoModeloSeleccionado = useStore((s) => s.pistoleoModeloSeleccionado);
   const pistoleoCamposMarcados = useStore((s) => s.pistoleoCamposMarcados);
@@ -473,25 +474,48 @@ export function PistolearView() {
         </div>
       </div>
 
-      {/* Config panel avanzado (colapsable) — solo estado de destino */}
+      {/* Config panel avanzado (colapsable) — estado de destino + ubicación de guardado */}
       {showConfig && (
         <div className="anim-slide-up mb-4 rounded-lg bg-muted/30 p-4">
           <div className="flex flex-wrap items-center gap-3">
-            <Select
-              value={pistoleoEstado}
-              onValueChange={(v) => setPistoleoConfig({ pistoleoEstado: v as EstadoEquipo })}
-            >
-              <SelectTrigger className="h-9 rounded-lg border-border bg-background text-[13px] w-auto min-w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="rounded-lg">
-                {ESTADOS.map((est) => (
-                  <SelectItem key={est} value={est}>
-                    {ESTADO_META[est].label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Estado</Label>
+              <Select
+                value={pistoleoEstado}
+                onValueChange={(v) => setPistoleoConfig({ pistoleoEstado: v as EstadoEquipo })}
+              >
+                <SelectTrigger className="h-9 rounded-lg border-border bg-background text-[13px] w-auto min-w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-lg">
+                  {ESTADOS.map((est) => (
+                    <SelectItem key={est} value={est}>
+                      {ESTADO_META[est].label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Guardar en</Label>
+              <Select
+                value={pistoleoUbicacion || "Almacén"}
+                onValueChange={(v) => setPistoleoConfig({ pistoleoUbicacion: v })}
+              >
+                <SelectTrigger className="h-9 rounded-lg border-border bg-background text-[13px] w-auto min-w-[160px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-lg">
+                  <SelectItem value="Almacén">Almacén</SelectItem>
+                  <SelectItem value="Taller">Taller</SelectItem>
+                  <SelectItem value="Cuarto Técnico">Cuarto Técnico</SelectItem>
+                  <SelectItem value="Bodega de Averías">Bodega de Averías</SelectItem>
+                  <SelectItem value="Bodega de Retiro">Bodega de Retiro</SelectItem>
+                  <SelectItem value="Devolver a Proveedor">Devolver a Proveedor</SelectItem>
+                  <SelectItem value="Estantería">Estantería</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       )}

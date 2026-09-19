@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Clock } from "lucide-react";
+import { ArrowRight, Clock, MapPin } from "lucide-react";
 import { useStore } from "@/lib/store";
 import {
   ESTADO_META, ANTIGUEDAD_META, calcularAntiguedad,
@@ -86,6 +86,13 @@ export function EquiposView() {
                 <p className="text-[15px] font-medium text-foreground">{modelo}</p>
                 <p className="mt-0.5 text-[12px] text-muted-foreground">
                   {items.length} equipo(s) · {disp.length} disponibles
+                  {items.some((e) => e.ubicacion) && (
+                    <span className="ml-1.5 inline-flex items-center gap-1 text-[11px]">
+                      <MapPin className="h-3 w-3" strokeWidth={1.5} />
+                      {[...new Set(items.map((e) => e.ubicacion).filter(Boolean))].slice(0, 3).join(", ")}
+                      {[...new Set(items.map((e) => e.ubicacion).filter(Boolean))].length > 3 && "…"}
+                    </span>
+                  )}
                   {antTotal > 0 && (
                     <span className="ml-1.5 inline-flex items-center gap-1 text-[11px]">
                       <Clock className="h-3 w-3" strokeWidth={1.5} />
