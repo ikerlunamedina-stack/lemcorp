@@ -350,8 +350,8 @@ html.light {
   height: calc(100% + 28px);
   pointer-events: none;
   overflow: visible;
-  opacity: 0;
-  transition: opacity .6s cubic-bezier(.4,0,.2,1);
+  opacity: 0.15;
+  transition: opacity 1.5s cubic-bezier(.4, 0, .2, 1);
   z-index: 0;
 }
 .aurora-wrap.active .aurora { opacity: 1; }
@@ -360,9 +360,8 @@ html.light {
 
 .aurora-veil {
   animation: aurora-drift 8s linear infinite;
-  animation-play-state: paused;
+  animation-play-state: running;
 }
-.aurora-wrap.active .aurora-veil { animation-play-state: running; }
 
 @keyframes aurora-drift {
   from { stroke-dashoffset: 0; }
@@ -371,26 +370,25 @@ html.light {
 
 .aurora-breathe {
   animation: aurora-breathe 6.5s ease-in-out infinite;
-  animation-play-state: paused;
+  animation-play-state: running;
 }
-.aurora-wrap.active .aurora-breathe { animation-play-state: running; }
 
 @keyframes aurora-breathe {
-  0%, 100% { opacity: .8; }
-  50%      { opacity: 1;  }
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1;    }
 }
 
-/* Dark mode: usar tonos blancos/grises claros para el aurora */
-.dark .aurora-grad-stop-1 { stop-color: rgba(180, 180, 180, 0.8); }
-.dark .aurora-grad-stop-2 { stop-color: rgba(220, 220, 220, 0.9); }
-.dark .aurora-grad-stop-3 { stop-color: rgba(150, 150, 150, 0.7); }
-.dark .aurora-grad-stop-4 { stop-color: rgba(200, 200, 200, 0.8); }
+/* Dark mode: grises claros suaves (niebla luminosa sobre oscuro) */
+.dark .aurora-grad-stop-1 { stop-color: rgba(200, 200, 200, 0.55); }
+.dark .aurora-grad-stop-2 { stop-color: rgba(230, 230, 230, 0.65); }
+.dark .aurora-grad-stop-3 { stop-color: rgba(170, 170, 170, 0.50); }
+.dark .aurora-grad-stop-4 { stop-color: rgba(210, 210, 210, 0.60); }
 
-/* Light mode: usar tonos grises oscuros/negros para el aurora */
-.aurora-grad-stop-1 { stop-color: rgba(60, 60, 60, 0.8); }
-.aurora-grad-stop-2 { stop-color: rgba(100, 100, 100, 0.9); }
-.aurora-grad-stop-3 { stop-color: rgba(40, 40, 40, 0.7); }
-.aurora-grad-stop-4 { stop-color: rgba(80, 80, 80, 0.8); }
+/* Light mode: grises muy claros casi transparentes (luz etérea/niebla sutil sobre blanco) */
+.aurora-grad-stop-1 { stop-color: rgba(180, 180, 180, 0.55); }
+.aurora-grad-stop-2 { stop-color: rgba(200, 200, 200, 0.65); }
+.aurora-grad-stop-3 { stop-color: rgba(160, 160, 160, 0.50); }
+.aurora-grad-stop-4 { stop-color: rgba(190, 190, 190, 0.60); }
 
 /* Clases de animación utilitarias */
 .anim-fade-in { animation: lem-fade-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
