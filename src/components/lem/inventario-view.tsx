@@ -269,7 +269,7 @@ export function InventarioView() {
               </g>
             </svg>
 
-            {/* Input real encima del aurora */}
+            {/* Input real encima del aurora — transparente, sin border azul, sin shadow */}
             <div className="relative z-10 flex items-center gap-2">
               <Search
                 className={cn(
@@ -285,10 +285,8 @@ export function InventarioView() {
                 onBlur={() => setSearchFocused(false)}
                 placeholder={searchFocused ? "Escribe para filtrar…" : "Buscar SKU o producto…"}
                 className={cn(
-                  "h-9 w-full rounded-lg border bg-background pl-8 text-[13px] outline-none transition-all duration-500",
-                  searchFocused
-                    ? "border-foreground/30 bg-muted/30 shadow-sm"
-                    : "border-border"
+                  "h-9 w-full rounded-lg border-transparent bg-transparent pl-8 text-[13px] outline-none transition-all duration-500",
+                  "focus-visible:ring-0 focus-visible:border-transparent focus-visible:ring-offset-0 focus-visible:shadow-none"
                 )}
               />
             </div>
