@@ -2,14 +2,14 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ArrowRight, Clock } from "lucide-react";
+import { ArrowRight, Clock } from "lucide-react";
 import { useStore } from "@/lib/store";
 import {
   ESTADO_META, ANTIGUEDAD_META, calcularAntiguedad,
   type EstadoEquipo,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
+import { AuroraSearchInput } from "@/components/lem/aurora-search-input";
 import { EstadoIcon } from "@/components/lem/estado-icon";
 
 const ESTADOS: EstadoEquipo[] = ["disponible", "averiado", "en_retiro"];
@@ -47,10 +47,14 @@ export function EquiposView() {
           </p>
           <h1 className="mt-1 text-[28px] font-semibold tracking-tight text-foreground sm:text-[32px]">Equipos</h1>
         </div>
-        <div className="relative w-48">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" strokeWidth={1.5} />
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar serie…" className="h-9 rounded-lg border-border bg-background pl-8 text-[13px]" />
-        </div>
+        <AuroraSearchInput
+          value={query}
+          onChange={setQuery}
+          placeholder="Buscar serie…"
+          placeholderFocused="Escribe para filtrar series…"
+          className="w-48"
+          iconSize="h-3.5 w-3.5"
+        />
       </div>
 
       {/* Filtros minimalistas */}

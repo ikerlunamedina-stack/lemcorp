@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useRef } from "react";
 import {
-  TrendingDown, Search, Trash2, Check, AlertTriangle, Package, Users,
+  TrendingDown, Trash2, Check, AlertTriangle, Package, Users,
   Send, MapPin, ClipboardPaste, FileSpreadsheet, Save, Sparkles,
   ChevronDown, ChevronRight, User, Loader2, Calendar, FileUp,
   TrendingUp, Hash, Clock,
@@ -11,7 +11,7 @@ import { useStore } from "@/lib/store";
 import { fmtNum } from "@/lib/num";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { AuroraSearchInput } from "@/components/lem/aurora-search-input";
 import { Textarea } from "@/components/ui/textarea";
 import { useConfirm } from "@/components/lem/use-confirm";
 import {
@@ -299,15 +299,13 @@ export function DespachosView() {
 
       {/* Toolbar historial */}
       <div className="anim-slide-up mt-6 flex flex-wrap items-center gap-2">
-        <div className="relative w-full sm:w-72">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" {...ICON_PROPS} />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por producto, destinatario, destino…"
-            className="h-9 rounded-lg border-border bg-background pl-9 text-[13px]"
-          />
-        </div>
+        <AuroraSearchInput
+          value={query}
+          onChange={setQuery}
+          placeholder="Buscar por producto, destinatario, destino…"
+          placeholderFocused="Escribe para filtrar despachos…"
+          className="w-full sm:w-72"
+        />
         <button
           onClick={() => setFilterToday(!filterToday)}
           className={cn(

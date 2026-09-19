@@ -3,7 +3,6 @@
 import { useState } from "react";
 import {
   Plus,
-  Search,
   Pencil,
   Trash2,
   AlertTriangle,
@@ -19,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AuroraSearchInput } from "@/components/lem/aurora-search-input";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
@@ -101,10 +101,14 @@ export function InventarioView() {
           <p className="text-sm text-muted-foreground">{products.length} producto(s) · {fmtNum(totalUnidades)} unidades</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="relative w-48">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar SKU…" className="h-9 rounded-xl bg-muted/50 pl-8 text-sm" />
-          </div>
+          <AuroraSearchInput
+            value={query}
+            onChange={setQuery}
+            placeholder="Buscar SKU…"
+            placeholderFocused="Escribe para filtrar…"
+            className="w-48"
+            iconSize="h-3.5 w-3.5"
+          />
           <Button variant="outline" onClick={() => setEntradaOpen(true)} className="press h-9 rounded-xl">
             <ArrowDownToLine className="mr-1.5 h-4 w-4" /> Entrada
           </Button>

@@ -338,8 +338,9 @@ html.light {
 /* Clase orbital */
 
 /* ═══════════════════════════════════════════════════════════════
-   EFECTO AURORA — luz suave alrededor del input de búsqueda
-   Adaptado al tema minimalista (gris/negro, sin colores neon)
+   EFECTO AURORA BOREAL — luz suave alrededor de TODOS los inputs de búsqueda
+   Inspirado en las auroras boreales de Finlandia:
+   verde-cyan (oxígeno bajo) + azul (nitrógeno) + morado (alta altitud) + rosa-magenta
    ═══════════════════════════════════════════════════════════════ */
 .aurora-wrap { position: relative; }
 
@@ -378,17 +379,17 @@ html.light {
   50%      { opacity: 1;    }
 }
 
-/* Dark mode: grises claros suaves (niebla luminosa sobre oscuro) */
-.dark .aurora-grad-stop-1 { stop-color: rgba(200, 200, 200, 0.55); }
-.dark .aurora-grad-stop-2 { stop-color: rgba(230, 230, 230, 0.65); }
-.dark .aurora-grad-stop-3 { stop-color: rgba(170, 170, 170, 0.50); }
-.dark .aurora-grad-stop-4 { stop-color: rgba(210, 210, 210, 0.60); }
+/* Dark mode: Aurora Boreal más intensa (visible sobre oscuro) */
+.dark .aurora-grad-stop-1 { stop-color: rgba(70, 224, 192, 0.75); }  /* verde-cyan */
+.dark .aurora-grad-stop-2 { stop-color: rgba(90, 184, 255, 0.85); } /* azul */
+.dark .aurora-grad-stop-3 { stop-color: rgba(154, 123, 255, 0.75); } /* morado */
+.dark .aurora-grad-stop-4 { stop-color: rgba(255, 123, 194, 0.75); } /* rosa-magenta */
 
-/* Light mode: grises muy claros casi transparentes (luz etérea/niebla sutil sobre blanco) */
-.aurora-grad-stop-1 { stop-color: rgba(180, 180, 180, 0.55); }
-.aurora-grad-stop-2 { stop-color: rgba(200, 200, 200, 0.65); }
-.aurora-grad-stop-3 { stop-color: rgba(160, 160, 160, 0.50); }
-.aurora-grad-stop-4 { stop-color: rgba(190, 190, 190, 0.60); }
+/* Light mode: Aurora Boreal de Finlandia (verde-cyan + azul + morado + rosa-magenta, sutiles) */
+.aurora-grad-stop-1 { stop-color: rgba(70, 224, 192, 0.55); }  /* verde-cyan (oxígeno bajo) */
+.aurora-grad-stop-2 { stop-color: rgba(90, 184, 255, 0.65); } /* azul (nitrógeno) */
+.aurora-grad-stop-3 { stop-color: rgba(154, 123, 255, 0.55); } /* morado (alta altitud) */
+.aurora-grad-stop-4 { stop-color: rgba(255, 123, 194, 0.55); } /* rosa-magenta (combinación) */
 
 /* Clases de animación utilitarias */
 .anim-fade-in { animation: lem-fade-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
