@@ -18,6 +18,8 @@ import {
   Search,
   PackageSearch,
   Download,
+  MapPin,
+  Boxes,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import {
@@ -556,6 +558,75 @@ export function PistolearView() {
               </span>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* KPIs compactos del pistoleo actual */}
+      <div className="anim-slide-up mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {/* KPI 1: Series escaneadas (este lote) */}
+        <div
+          className="press-card anim-slide-up rounded-lg border border-border bg-card p-3 text-card-foreground shadow transition-shadow hover:shadow-md"
+          style={{ animationDelay: "0ms" }}
+        >
+          <div className="flex items-center gap-1.5">
+            <ScanLine className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Escaneadas
+            </p>
+          </div>
+          <p className="mt-0.5 text-xl font-bold tabular-nums text-foreground">
+            {pistoleoFilas.length}
+          </p>
+        </div>
+
+        {/* KPI 2: Estado de destino seleccionado */}
+        <div
+          className="press-card anim-slide-up rounded-lg border border-border bg-card p-3 text-card-foreground shadow transition-shadow hover:shadow-md"
+          style={{ animationDelay: "60ms" }}
+        >
+          <div className="flex items-center gap-1.5">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Estado
+            </p>
+            {pistoleoEstado === "averiado" && (
+              <span className="anim-pulse-dot h-2 w-2 rounded-full bg-destructive" />
+            )}
+          </div>
+          <p className="mt-0.5 text-[13px] font-semibold text-foreground">
+            {ESTADO_META[pistoleoEstado].label}
+          </p>
+        </div>
+
+        {/* KPI 3: Ubicación de guardado */}
+        <div
+          className="press-card anim-slide-up rounded-lg border border-border bg-card p-3 text-card-foreground shadow transition-shadow hover:shadow-md"
+          style={{ animationDelay: "120ms" }}
+        >
+          <div className="flex items-center gap-1.5">
+            <MapPin className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Guardar en
+            </p>
+          </div>
+          <p className="mt-0.5 truncate text-[13px] font-semibold text-foreground">
+            {pistoleoUbicacion || "Almacén"}
+          </p>
+        </div>
+
+        {/* KPI 4: Total equipos en el sistema */}
+        <div
+          className="press-card anim-slide-up rounded-lg border border-border bg-card p-3 text-card-foreground shadow transition-shadow hover:shadow-md"
+          style={{ animationDelay: "180ms" }}
+        >
+          <div className="flex items-center gap-1.5">
+            <Boxes className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              En sistema
+            </p>
+          </div>
+          <p className="mt-0.5 text-xl font-bold tabular-nums text-foreground">
+            {equipos.length}
+          </p>
         </div>
       </div>
 
