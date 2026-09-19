@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   Search,
   Download,
@@ -36,6 +36,41 @@ export function InventarioView() {
   const [tab, setTab] = useState<"inventario" | "recomendaciones" | "entradas">("inventario");
   const [pagina, setPagina] = useState(1);
   const PRODUCTOS_POR_PAGINA = 15;
+  const auroraWrapRef = useRef<HTMLDivElement>(null);
+  const auroraSvgRef = useRef<SVGSVGElement>(null);
+  const auroraLayersRef = useRef<SVGGElement>(null);
+
+  // ResizeObserver para sincronizar el SVG aurora con el tamaño del input
+  useEffect(() => {
+    const wrap = auroraWrapRef.current;
+    const svg = auroraSvgRef.current;
+    const layers = auroraLayersRef.current;
+    if (!wrap || !svg || !layers) return;
+
+    const PAD = 14;
+    const RADIUS = 8;
+
+    const sync = () => {
+      const w = wrap.offsetWidth + PAD * 2;
+      const h = wrap.offsetHeight + PAD * 2;
+      svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+      const rects = layers.querySelectorAll("rect");
+      rects.forEach((r) => {
+        r.setAttribute("x", String(PAD));
+        r.setAttribute("y", String(PAD));
+        r.setAttribute("width", String(Math.max(0, w - PAD * 2)));
+        r.setAttribute("height", String(Math.max(0, h - PAD * 2)));
+        r.setAttribute("rx", String(RADIUS));
+        r.setAttribute("ry", String(RADIUS));
+      });
+    };
+
+    const ro = new ResizeObserver(sync);
+    ro.observe(wrap);
+    sync();
+    return () => ro.disconnect();
+  }, []);
+
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -154,48 +189,109 @@ export function InventarioView() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className={cn(
-            "group relative transition-all duration-300",
-            searchFocused ? "w-64" : "w-56"
-          )}>
-            {/* Icono Search quieto, solo cambia de color al hacer focus */}
-            <Search
-              className={cn(
-                "pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 transition-colors duration-300",
-                searchFocused
-                  ? "text-foreground"
-                  : "text-muted-foreground"
-              )}
-              {...ICON_PROPS}
-            />
-            {/* Input con glow suave cuando se hace focus */}
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
-              placeholder={searchFocused ? "Escribe para filtrar…" : "Buscar SKU o producto…"}
-              className={cn(
-                "h-9 rounded-lg border bg-background pl-8 text-[13px] outline-none transition-colors duration-300",
-                searchFocused
-                  ? "anim-glow-soft border-foreground bg-muted/20"
-                  : "border-border"
-              )}
-            />
-            {/* LUZ que ORBITA alrededor del input en sentido horario (mientras se hace focus) */}
-            {searchFocused && (
-              <span
-                className="anim-orbit-light pointer-events-none absolute left-1/2 top-1/2 h-1.5 w-1.5 rounded-full bg-foreground"
-                style={{ boxShadow: "0 0 8px 2px rgba(0,0,0,0.4)" }}
-              />
+          {/* Wrapper del aurora — activa el efecto cuando se hace focus */}
+          <div
+            ref={auroraWrapRef}
+            className={cn(
+              "aurora-wrap relative transition-all duration-300",
+              searchFocused ? "w-64" : "w-56",
+              searchFocused && "active"
             )}
-            {/* LUZ que ORBITA en sentido antihorario (más lenta) */}
-            {searchFocused && (
-              <span
-                className="anim-orbit-light-reverse pointer-events-none absolute left-1/2 top-1/2 h-1 w-1 rounded-full bg-foreground/70"
-                style={{ boxShadow: "0 0 6px 2px rgba(0,0,0,0.3)" }}
+          >
+            {/* SVG aurora: luz suave que rodea el input con efecto drift + breathe */}
+            <svg
+              ref={auroraSvgRef}
+              className="aurora"
+              aria-hidden="true"
+            >
+              <defs>
+                {/* Gradiente de color: recorre toda la vuelta en tonos grises/negros (minimalista) */}
+                <linearGradient id="auroraGrad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" className="aurora-grad-stop-1" />
+                  <stop offset="30%" className="aurora-grad-stop-2" />
+                  <stop offset="60%" className="aurora-grad-stop-3" />
+                  <stop offset="100%" className="aurora-grad-stop-4" />
+                </linearGradient>
+
+                {/* Filtros de desenfoque (gaussian blur) para suavizar los bordes */}
+                <filter id="aurora-soft-xwide" x="-100%" y="-100%" width="300%" height="300%">
+                  <feGaussianBlur stdDeviation="14" />
+                </filter>
+                <filter id="aurora-soft-wide" x="-100%" y="-100%" width="300%" height="300%">
+                  <feGaussianBlur stdDeviation="9" />
+                </filter>
+                <filter id="aurora-soft-mid" x="-100%" y="-100%" width="300%" height="300%">
+                  <feGaussianBlur stdDeviation="5" />
+                </filter>
+                <filter id="aurora-soft-core" x="-100%" y="-100%" width="300%" height="300%">
+                  <feGaussianBlur stdDeviation="3" />
+                </filter>
+              </defs>
+
+              {/* Capas del aurora: varias copias del mismo segmento con distinto blur y opacidad */}
+              <g ref={auroraLayersRef} className="aurora-breathe">
+                <rect
+                  className="aurora-veil"
+                  pathLength={100}
+                  stroke="url(#auroraGrad)"
+                  strokeWidth={20}
+                  strokeDasharray="42 58"
+                  opacity={0.22}
+                  filter="url(#aurora-soft-xwide)"
+                />
+                <rect
+                  className="aurora-veil"
+                  pathLength={100}
+                  stroke="url(#auroraGrad)"
+                  strokeWidth={14}
+                  strokeDasharray="40 60"
+                  opacity={0.32}
+                  filter="url(#aurora-soft-wide)"
+                />
+                <rect
+                  className="aurora-veil"
+                  pathLength={100}
+                  stroke="url(#auroraGrad)"
+                  strokeWidth={8}
+                  strokeDasharray="38 62"
+                  opacity={0.45}
+                  filter="url(#aurora-soft-mid)"
+                />
+                <rect
+                  className="aurora-veil"
+                  pathLength={100}
+                  stroke="url(#auroraGrad)"
+                  strokeWidth={4}
+                  strokeDasharray="34 66"
+                  opacity={0.55}
+                  filter="url(#aurora-soft-core)"
+                />
+              </g>
+            </svg>
+
+            {/* Input real encima del aurora */}
+            <div className="relative z-10 flex items-center gap-2">
+              <Search
+                className={cn(
+                  "pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 transition-colors duration-500",
+                  searchFocused ? "text-foreground" : "text-muted-foreground"
+                )}
+                {...ICON_PROPS}
               />
-            )}
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
+                placeholder={searchFocused ? "Escribe para filtrar…" : "Buscar SKU o producto…"}
+                className={cn(
+                  "h-9 w-full rounded-lg border bg-background pl-8 text-[13px] outline-none transition-all duration-500",
+                  searchFocused
+                    ? "border-foreground/30 bg-muted/30 shadow-sm"
+                    : "border-border"
+                )}
+              />
+            </div>
           </div>
           <Button
             variant="outline"

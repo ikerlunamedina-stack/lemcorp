@@ -335,36 +335,62 @@ html.light {
   from { opacity: 0; transform: translateX(-10px); }
   to { opacity: 1; transform: translateX(0); }
 }
-/* === Animaciones SIMPLES tipo chat (glow + giro lento) === */
-@keyframes lem-glow-soft {
-  0%, 100% { box-shadow: 0 0 10px 1px rgba(0,0,0,0.08), 0 0 20px 3px rgba(0,0,0,0.05); }
-  50% { box-shadow: 0 0 14px 2px rgba(0,0,0,0.10), 0 0 28px 5px rgba(0,0,0,0.06); }
-}
-
-/* Clases simples */
-.anim-glow-soft { animation: lem-glow-soft 2.5s ease-in-out infinite; }
-
-@keyframes lem-orbit-light {
-  0% {
-    transform: translate(-50%, -50%) rotate(0deg) translateX(125px) rotate(0deg);
-  }
-  100% {
-    transform: translate(-50%, -50%) rotate(360deg) translateX(125px) rotate(-360deg);
-  }
-}
-
-@keyframes lem-orbit-light-reverse {
-  0% {
-    transform: translate(-50%, -50%) rotate(0deg) translateX(-125px) rotate(0deg);
-  }
-  100% {
-    transform: translate(-50%, -50%) rotate(-360deg) translateX(-125px) rotate(360deg);
-  }
-}
-
 /* Clase orbital */
-.anim-orbit-light { animation: lem-orbit-light 3s linear infinite; }
-.anim-orbit-light-reverse { animation: lem-orbit-light-reverse 4s linear infinite; }
+
+/* ═══════════════════════════════════════════════════════════════
+   EFECTO AURORA — luz suave alrededor del input de búsqueda
+   Adaptado al tema minimalista (gris/negro, sin colores neon)
+   ═══════════════════════════════════════════════════════════════ */
+.aurora-wrap { position: relative; }
+
+.aurora {
+  position: absolute;
+  inset: -14px;
+  width: calc(100% + 28px);
+  height: calc(100% + 28px);
+  pointer-events: none;
+  overflow: visible;
+  opacity: 0;
+  transition: opacity .6s cubic-bezier(.4,0,.2,1);
+  z-index: 0;
+}
+.aurora-wrap.active .aurora { opacity: 1; }
+
+.aurora rect { fill: none; stroke-linecap: round; }
+
+.aurora-veil {
+  animation: aurora-drift 8s linear infinite;
+  animation-play-state: paused;
+}
+.aurora-wrap.active .aurora-veil { animation-play-state: running; }
+
+@keyframes aurora-drift {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: -100; }
+}
+
+.aurora-breathe {
+  animation: aurora-breathe 6.5s ease-in-out infinite;
+  animation-play-state: paused;
+}
+.aurora-wrap.active .aurora-breathe { animation-play-state: running; }
+
+@keyframes aurora-breathe {
+  0%, 100% { opacity: .8; }
+  50%      { opacity: 1;  }
+}
+
+/* Dark mode: usar tonos blancos/grises claros para el aurora */
+.dark .aurora-grad-stop-1 { stop-color: rgba(180, 180, 180, 0.8); }
+.dark .aurora-grad-stop-2 { stop-color: rgba(220, 220, 220, 0.9); }
+.dark .aurora-grad-stop-3 { stop-color: rgba(150, 150, 150, 0.7); }
+.dark .aurora-grad-stop-4 { stop-color: rgba(200, 200, 200, 0.8); }
+
+/* Light mode: usar tonos grises oscuros/negros para el aurora */
+.aurora-grad-stop-1 { stop-color: rgba(60, 60, 60, 0.8); }
+.aurora-grad-stop-2 { stop-color: rgba(100, 100, 100, 0.9); }
+.aurora-grad-stop-3 { stop-color: rgba(40, 40, 40, 0.7); }
+.aurora-grad-stop-4 { stop-color: rgba(80, 80, 80, 0.8); }
 
 /* Clases de animación utilitarias */
 .anim-fade-in { animation: lem-fade-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
