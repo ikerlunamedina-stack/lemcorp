@@ -29,6 +29,8 @@ import { fmtNum } from "@/lib/num";
 import { cn } from "@/lib/utils";
 import { AuroraSearchInput } from "@/components/lem/aurora-search-input";
 import { EstadoIcon } from "@/components/lem/estado-icon";
+import { motion, AnimatePresence } from "framer-motion";
+import { useCountUp } from "@/lib/hooks/use-count-up";
 
 const ICON_PROPS = { strokeWidth: 1.5 } as const;
 const ESTADOS: EstadoEquipo[] = ["disponible", "averiado", "en_retiro"];
@@ -184,6 +186,14 @@ export function EquiposView() {
 
   const goSeries = () => router.push("/series");
 
+  // ─── Count-up animations (Apple/iOS) para KPIs ───
+  const animCatalogo = useCountUp(equipos.length);
+  const animDisponibles = useCountUp(kpis.disponibles);
+  const animAveriados = useCountUp(kpis.averiados);
+  const animRetiro = useCountUp(kpis.enRetiro);
+  const animSinUso = useCountUp(kpis.sinUso);
+  const animModelos = useCountUp(kpis.modelosDistintos);
+
   return (
     <div className="select-text cursor-text px-4 py-8 sm:px-6 lg:px-10 anim-fade-in">
       {/* Header */}
@@ -228,18 +238,33 @@ export function EquiposView() {
             >
               {count}
             </span>
-            {tab === key && <span className="absolute inset-x-0 -bottom-px h-0.5 bg-foreground" />}
+            {tab === key && (
+              <motion.span
+                layoutId="tab-indicator-equipos"
+                className="absolute inset-x-0 -bottom-px h-0.5 bg-foreground"
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              />
+            )}
           </button>
         ))}
       </div>
 
+      <AnimatePresence mode="wait">
       {/* ─── TAB: EQUIPOS (KPIs + chips + lista con paginación) ─── */}
       {tab === "equipos" && (
-        <>
+        <motion.div
+          key="equipos"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+        >
           {/* KPIs superiores — entrada escalonada con stagger delay */}
-          <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="sticky-kpis mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {/* 1. Catálogo */}
-            <div
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
               className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
               style={{ animationDelay: "0ms" }}
             >
@@ -247,10 +272,12 @@ export function EquiposView() {
                 <Package className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Catálogo</p>
               </div>
-              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(equipos.length)}</p>
-            </div>
+              <p className="tabular mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(animCatalogo)}</p>
+            </motion.div>
             {/* 2. Disponibles */}
-            <div
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
               className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
               style={{ animationDelay: "60ms" }}
             >
@@ -258,10 +285,12 @@ export function EquiposView() {
                 <Check className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Disponibles</p>
               </div>
-              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.disponibles)}</p>
-            </div>
+              <p className="tabular mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(animDisponibles)}</p>
+            </motion.div>
             {/* 3. Averiados — pulse dot si hay alerta */}
-            <div
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
               className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
               style={{ animationDelay: "120ms" }}
             >
@@ -269,10 +298,12 @@ export function EquiposView() {
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Averiados</p>
                 {kpis.averiados > 0 && <span className="anim-pulse-dot h-2 w-2 rounded-full bg-destructive" />}
               </div>
-              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.averiados)}</p>
-            </div>
+              <p className="tabular mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(animAveriados)}</p>
+            </motion.div>
             {/* 4. En retiro */}
-            <div
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
               className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
               style={{ animationDelay: "180ms" }}
             >
@@ -280,10 +311,12 @@ export function EquiposView() {
                 <Undo className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">En retiro</p>
               </div>
-              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.enRetiro)}</p>
-            </div>
+              <p className="tabular mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(animRetiro)}</p>
+            </motion.div>
             {/* 5. Sin uso 60+d — pulse dot si hay alerta */}
-            <div
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
               className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
               style={{ animationDelay: "240ms" }}
             >
@@ -291,10 +324,12 @@ export function EquiposView() {
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Sin uso 60+d</p>
                 {kpis.sinUso > 0 && <span className="anim-pulse-dot h-2 w-2 rounded-full bg-amber-500" />}
               </div>
-              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.sinUso)}</p>
-            </div>
+              <p className="tabular mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(animSinUso)}</p>
+            </motion.div>
             {/* 6. Modelos */}
-            <div
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
               className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
               style={{ animationDelay: "300ms" }}
             >
@@ -302,9 +337,9 @@ export function EquiposView() {
                 <Boxes className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Modelos</p>
               </div>
-              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.modelosDistintos)}</p>
-            </div>
-          </section>
+              <p className="tabular mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(animModelos)}</p>
+            </motion.div>
+          </div>
 
           {/* Chips de filtro por estado */}
           <div className="anim-slide-up mb-6 flex flex-wrap items-center gap-1">
@@ -389,12 +424,14 @@ export function EquiposView() {
                         )}
                       </div>
                       <span className="text-[15px] font-semibold tabular-nums text-foreground">{items.length}</span>
-                      <button
+                      <motion.button
                         onClick={goSeries}
+                        whileTap={{ scale: 0.97 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
                         className="press flex items-center gap-1 text-[12px] font-medium text-muted-foreground hover:text-foreground"
                       >
                         Ver series <ArrowRight className="h-3 w-3" {...ICON_PROPS} />
-                      </button>
+                      </motion.button>
                     </div>
                   );
                 })}
@@ -409,14 +446,16 @@ export function EquiposView() {
                     <span className="font-semibold tabular-nums text-foreground">{models.length}</span> modelos
                   </p>
                   <div className="flex items-center gap-1">
-                    <button
+                    <motion.button
                       onClick={() => setPagina((p) => Math.max(1, p - 1))}
                       disabled={paginaActual === 1}
+                      whileTap={{ scale: 0.97 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
                       aria-label="Página anterior"
                       className="inline-flex h-8 items-center gap-1 rounded-lg border border-border bg-background px-3 text-[12px] font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <ChevronLeft className="h-3.5 w-3.5" {...ICON_PROPS} /> Anterior
-                    </button>
+                    </motion.button>
                     {Array.from({ length: totalPaginas }, (_, i) => i + 1)
                       .filter((p) => p === 1 || p === totalPaginas || (p >= paginaActual - 1 && p <= paginaActual + 1))
                       .map((p, i, arr) => (
@@ -424,8 +463,10 @@ export function EquiposView() {
                           {i > 0 && arr[i - 1] !== p - 1 && (
                             <span className="px-1 text-[12px] text-muted-foreground">…</span>
                           )}
-                          <button
+                          <motion.button
                             onClick={() => setPagina(p)}
+                            whileTap={{ scale: 0.97 }}
+                            transition={{ type: "spring", stiffness: 300, damping: 20 }}
                             aria-label={`Ir a página ${p}`}
                             className={cn(
                               "inline-flex h-8 min-w-[2rem] items-center justify-center rounded-lg border px-2 text-[12px] font-medium tabular-nums transition-colors",
@@ -435,28 +476,36 @@ export function EquiposView() {
                             )}
                           >
                             {p}
-                          </button>
+                          </motion.button>
                         </span>
                       ))}
-                    <button
+                    <motion.button
                       onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
                       disabled={paginaActual === totalPaginas}
+                      whileTap={{ scale: 0.97 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
                       aria-label="Página siguiente"
                       className="inline-flex h-8 items-center gap-1 rounded-lg border border-border bg-background px-3 text-[12px] font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       Siguiente <ChevronRight className="h-3.5 w-3.5" {...ICON_PROPS} />
-                    </button>
+                    </motion.button>
                   </div>
                 </div>
               )}
             </>
           )}
-        </>
+        </motion.div>
       )}
 
       {/* ─── TAB: RECOMENDACIONES (4 cards inteligentes) ─── */}
       {tab === "recomendaciones" && (
-        <>
+        <motion.div
+          key="recomendaciones"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+        >
           {recomendaciones.averiadosConDias.length > 0 ||
           recomendaciones.sinUsoConDias.length > 0 ||
           recomendaciones.tasaAverias.length > 0 ||
@@ -467,7 +516,9 @@ export function EquiposView() {
               </h2>
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 {/* Card 1: Averiados a reparar */}
-                <div
+                <motion.div
+                  whileHover={{ scale: 1.01 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
                   className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
                   style={{ animationDelay: "0ms" }}
                 >
@@ -511,10 +562,12 @@ export function EquiposView() {
                       </div>
                     </div>
                   )}
-                </div>
+                </motion.div>
 
                 {/* Card 2: Sin uso prolongado */}
-                <div
+                <motion.div
+                  whileHover={{ scale: 1.01 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
                   className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
                   style={{ animationDelay: "80ms" }}
                 >
@@ -551,10 +604,12 @@ export function EquiposView() {
                       </div>
                     </div>
                   )}
-                </div>
+                </motion.div>
 
                 {/* Card 3: Tasa de averías por modelo */}
-                <div
+                <motion.div
+                  whileHover={{ scale: 1.01 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
                   className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
                   style={{ animationDelay: "160ms" }}
                 >
@@ -584,10 +639,12 @@ export function EquiposView() {
                       })}
                     </div>
                   )}
-                </div>
+                </motion.div>
 
                 {/* Card 4: Top modelos más registrados */}
-                <div
+                <motion.div
+                  whileHover={{ scale: 1.01 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
                   className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
                   style={{ animationDelay: "240ms" }}
                 >
@@ -620,7 +677,7 @@ export function EquiposView() {
                       })}
                     </div>
                   )}
-                </div>
+                </motion.div>
               </div>
             </section>
           ) : (
@@ -628,12 +685,18 @@ export function EquiposView() {
               No hay recomendaciones activas. Todo está en orden.
             </div>
           )}
-        </>
+        </motion.div>
       )}
 
       {/* ─── TAB: MOVIMIENTOS (últimos despachos con serie asociada) ─── */}
       {tab === "movimientos" && (
-        <>
+        <motion.div
+          key="movimientos"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+        >
           {despachos.filter((d) => d.series && d.series.length > 0).length > 0 ? (
             <section className="anim-slide-up">
               <h2 className="mb-3 text-[13px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -650,7 +713,7 @@ export function EquiposView() {
                     return (
                       <div
                         key={d.id}
-                        className="group flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/40"
+                        className="group flex items-center gap-3 px-4 py-2.5 transition-colors duration-200 hover:bg-muted/40"
                       >
                         <span className="font-mono text-[12px] tabular-nums text-foreground">
                           {new Date(d.fecha).toLocaleDateString("es-PE")}
@@ -679,16 +742,19 @@ export function EquiposView() {
               No hay despachos con series asociadas.
             </div>
           )}
-        </>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }
 
 function FilterChip({ active, onClick, label, count }: { active: boolean; onClick: () => void; label: string; count: number }) {
   return (
-    <button
+    <motion.button
       onClick={onClick}
+      whileTap={{ scale: 0.97 }}
+      transition={{ type: "spring", stiffness: 300, damping: 20 }}
       className={cn(
         "press flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors",
         active
@@ -698,6 +764,6 @@ function FilterChip({ active, onClick, label, count }: { active: boolean; onClic
     >
       {label}
       <span className={cn("tabular-nums", active ? "text-background/70" : "text-muted-foreground")}>{count}</span>
-    </button>
+    </motion.button>
   );
 }

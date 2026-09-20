@@ -1,0 +1,704 @@
+     1→"use client";
+     2→
+     3→import { useMemo, useState, useEffect } from "react";
+     4→import { useRouter } from "next/navigation";
+     5→import {
+     6→  ArrowRight,
+     7→  AlertTriangle,
+     8→  Settings,
+     9→  ChevronLeft,
+    10→  ChevronRight,
+    11→  Clock,
+    12→  TrendingUp,
+    13→  TrendingDown,
+    14→  Package,
+    15→  Boxes,
+    16→  Check,
+    17→  Undo,
+    18→  Filter,
+    19→  MapPin,
+    20→} from "lucide-react";
+    21→import { useStore } from "@/lib/store";
+    22→import {
+    23→  ESTADO_META,
+    24→  ANTIGUEDAD_META,
+    25→  calcularAntiguedad,
+    26→  type EstadoEquipo,
+    27→} from "@/lib/types";
+    28→import { fmtNum } from "@/lib/num";
+    29→import { cn } from "@/lib/utils";
+    30→import { AuroraSearchInput } from "@/components/lem/aurora-search-input";
+    31→import { EstadoIcon } from "@/components/lem/estado-icon";
+    32→
+    33→const ICON_PROPS = { strokeWidth: 1.5 } as const;
+    34→const ESTADOS: EstadoEquipo[] = ["disponible", "averiado", "en_retiro"];
+    35→
+    36→export function EquiposView() {
+    37→  const equipos = useStore((s) => s.equipos);
+    38→  const despachos = useStore((s) => s.despachos);
+    39→  const router = useRouter();
+    40→
+    41→  const [query, setQuery] = useState("");
+    42→  const [estadoFilter, setEstadoFilter] = useState<"todos" | EstadoEquipo>("todos");
+    43→  const [tab, setTab] = useState<"equipos" | "recomendaciones" | "movimientos">("equipos");
+    44→  const [pagina, setPagina] = useState(1);
+    45→  const PRODUCTOS_POR_PAGINA = 10;
+    46→
+    47→  // Resetear página a 1 cuando cambian query/filtro/equipos
+    48→  useEffect(() => {
+    49→    setPagina(1);
+    50→  }, [query, estadoFilter, equipos]);
+    51→
+    52→  // Filtrado por estado + query
+    53→  const filtered = useMemo(
+    54→    () =>
+    55→      equipos.filter((e) => {
+    56→        if (estadoFilter !== "todos" && e.estado !== estadoFilter) return false;
+    57→        const q = query.toLowerCase().trim();
+    58→        if (!q) return true;
+    59→        return (
+    60→          e.serie.toLowerCase().includes(q) ||
+    61→          e.modelo.toLowerCase().includes(q) ||
+    62→          (e.ubicacion ?? "").toLowerCase().includes(q)
+    63→        );
+    64→      }),
+    65→    [equipos, estadoFilter, query],
+    66→  );
+    67→
+    68→  // Agrupar por modelo (ordenado por cantidad descendente)
+    69→  const models = useMemo(() => {
+    70→    const byModel: Record<string, typeof equipos> = {};
+    71→    for (const e of filtered) {
+    72→      const k = e.modelo || "Sin modelo";
+    73→      if (!byModel[k]) byModel[k] = [];
+    74→      byModel[k].push(e);
+    75→    }
+    76→    return Object.entries(byModel).sort((a, b) => b[1].length - a[1].length);
+    77→  }, [filtered]);
+    78→
+    79→  // Cálculo de paginación
+    80→  const totalPaginas = Math.max(1, Math.ceil(models.length / PRODUCTOS_POR_PAGINA));
+    81→  const paginaActual = Math.min(pagina, totalPaginas);
+    82→  const indiceInicio = (paginaActual - 1) * PRODUCTOS_POR_PAGINA;
+    83→  const paginaModels = models.slice(indiceInicio, indiceInicio + PRODUCTOS_POR_PAGINA);
+    84→
+    85→  // Cantidad de modelos únicos en el catálogo completo
+    86→  const modelosDistintos = useMemo(
+    87→    () => new Set(equipos.map((e) => e.modelo || "Sin modelo")).size,
+    88→    [equipos],
+    89→  );
+    90→
+    91→  // ─── KPIs superiores ───
+    92→  const kpis = useMemo(() => {
+    93→    const disponibles = equipos.filter((e) => e.estado === "disponible").length;
+    94→    const averiadosList = equipos.filter((e) => e.estado === "averiado");
+    95→    const enRetiro = equipos.filter((e) => e.estado === "en_retiro").length;
+    96→
+    97→    // Sin uso 60+d: equipos disponibles hace 60+ días sin despachar
+    98→    const ahora = Date.now();
+    99→    const dias60 = 60 * 86400_000;
+   100→    const sinUsoList = equipos.filter((e) => {
+   101→      if (e.estado !== "disponible") return false;
+   102→      const seriesEnDespachos = despachos.filter((d) => d.series?.includes(e.serie));
+   103→      const ultimoDespacho =
+   104→        seriesEnDespachos.length > 0 ? Math.max(...seriesEnDespachos.map((d) => d.fecha)) : 0;
+   105→      const referencia = ultimoDespacho || e.createdAt;
+   106→      return ahora - referencia >= dias60;
+   107→    });
+   108→
+   109→    return {
+   110→      catalogo: equipos.length,
+   111→      disponibles,
+   112→      averiados: averiadosList.length,
+   113→      enRetiro,
+   114→      sinUso: sinUsoList.length,
+   115→      modelosDistintos,
+   116→      averiadosList,
+   117→      sinUsoList,
+   118→    };
+   119→  }, [equipos, despachos, modelosDistintos]);
+   120→
+   121→  // ─── Recomendaciones Inteligentes ───
+   122→  const recomendaciones = useMemo(() => {
+   123→    const ahora = Date.now();
+   124→
+   125→    // 1. Averiados a reparar (con días en estado averiado, usando updatedAt)
+   126→    const averiadosConDias = kpis.averiadosList
+   127→      .map((e) => ({
+   128→        equipo: e,
+   129→        dias: Math.max(0, Math.floor((ahora - (e.updatedAt || e.createdAt)) / 86400_000)),
+   130→      }))
+   131→      .sort((a, b) => b.dias - a.dias);
+   132→
+   133→    // 2. Sin uso prolongado: disponibles con 60+ días sin despacho
+   134→    const sinUsoConDias = kpis.sinUsoList
+   135→      .map((e) => {
+   136→        const seriesEnDespachos = despachos.filter((d) => d.series?.includes(e.serie));
+   137→        const ultimoDespacho =
+   138→          seriesEnDespachos.length > 0 ? Math.max(...seriesEnDespachos.map((d) => d.fecha)) : 0;
+   139→        const referencia = ultimoDespacho || e.createdAt;
+   140→        return {
+   141→          equipo: e,
+   142→          ultimoDespacho: referencia,
+   143→          dias: Math.max(0, Math.floor((ahora - referencia) / 86400_000)),
+   144→        };
+   145→      })
+   146→      .sort((a, b) => b.dias - a.dias);
+   147→
+   148→    // 3. Tasa de averías por modelo (solo modelos con al menos 1 averiado)
+   149→    const porModelo = new Map<string, { modelo: string; total: number; averiados: number }>();
+   150→    for (const e of equipos) {
+   151→      const k = e.modelo || "Sin modelo";
+   152→      const cur = porModelo.get(k) ?? { modelo: k, total: 0, averiados: 0 };
+   153→      cur.total += 1;
+   154→      if (e.estado === "averiado") cur.averiados += 1;
+   155→      porModelo.set(k, cur);
+   156→    }
+   157→    const tasaAverias = Array.from(porModelo.values())
+   158→      .filter((m) => m.averiados > 0)
+   159→      .map((m) => ({ ...m, tasa: m.total > 0 ? (m.averiados / m.total) * 100 : 0 }))
+   160→      .sort((a, b) => b.tasa - a.tasa)
+   161→      .slice(0, 5);
+   162→
+   163→    // 4. Top modelos más registrados
+   164→    const topModelos = Array.from(porModelo.values())
+   165→      .sort((a, b) => b.total - a.total)
+   166→      .slice(0, 5);
+   167→    const maxTopModelos = topModelos.length > 0 ? topModelos[0].total : 1;
+   168→
+   169→    return { averiadosConDias, sinUsoConDias, tasaAverias, topModelos, maxTopModelos };
+   170→  }, [kpis, despachos, equipos]);
+   171→
+   172→  // Helper: tiempo relativo "hace X días/meses"
+   173→  const fmtRelativo = (ts?: number) => {
+   174→    if (!ts) return "—";
+   175→    const diff = Date.now() - ts;
+   176→    const dias = Math.floor(diff / 86400_000);
+   177→    if (dias < 1) return "hoy";
+   178→    if (dias === 1) return "ayer";
+   179→    if (dias < 7) return `hace ${dias} días`;
+   180→    if (dias < 30) return `hace ${Math.floor(dias / 7)} sem`;
+   181→    const meses = Math.floor(dias / 30);
+   182→    return meses === 1 ? "hace 1 mes" : `hace ${meses} meses`;
+   183→  };
+   184→
+   185→  const goSeries = () => router.push("/series");
+   186→
+   187→  return (
+   188→    <div className="select-text cursor-text px-4 py-8 sm:px-6 lg:px-10 anim-fade-in">
+   189→      {/* Header */}
+   190→      <header className="anim-slide-up mb-8 flex flex-wrap items-end justify-between gap-4">
+   191→        <div>
+   192→          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+   193→            {equipos.length} equipos · {models.length} modelos
+   194→          </p>
+   195→          <h1 className="mt-1 text-[28px] font-semibold tracking-tight text-foreground sm:text-[32px]">Equipos</h1>
+   196→        </div>
+   197→        <AuroraSearchInput
+   198→          value={query}
+   199→          onChange={setQuery}
+   200→          placeholder="Buscar serie…"
+   201→          placeholderFocused="Escribe para filtrar series…"
+   202→          className="w-48"
+   203→          iconSize="h-3.5 w-3.5"
+   204→        />
+   205→      </header>
+   206→
+   207→      {/* Pestañas: Equipos | Recomendaciones | Movimientos */}
+   208→      <div className="anim-slide-up mb-6 flex items-center gap-1 border-b border-border">
+   209→        {([
+   210→          ["equipos", "Equipos", equipos.length],
+   211→          ["recomendaciones", "Recomendaciones", kpis.averiados + kpis.sinUso + kpis.modelosDistintos],
+   212→          ["movimientos", "Movimientos", despachos.length],
+   213→        ] as const).map(([key, label, count]) => (
+   214→          <button
+   215→            key={key}
+   216→            onClick={() => setTab(key)}
+   217→            className={cn(
+   218→              "relative inline-flex h-10 items-center gap-2 px-4 text-[13px] font-medium transition-colors",
+   219→              tab === key ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+   220→            )}
+   221→          >
+   222→            {label}
+   223→            <span
+   224→              className={cn(
+   225→                "rounded-full px-1.5 py-0.5 text-[10px] tabular-nums",
+   226→                tab === key ? "bg-foreground text-background" : "bg-muted text-muted-foreground",
+   227→              )}
+   228→            >
+   229→              {count}
+   230→            </span>
+   231→            {tab === key && <span className="absolute inset-x-0 -bottom-px h-0.5 bg-foreground" />}
+   232→          </button>
+   233→        ))}
+   234→      </div>
+   235→
+   236→      {/* ─── TAB: EQUIPOS (KPIs + chips + lista con paginación) ─── */}
+   237→      {tab === "equipos" && (
+   238→        <>
+   239→          {/* KPIs superiores — entrada escalonada con stagger delay */}
+   240→          <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+   241→            {/* 1. Catálogo */}
+   242→            <div
+   243→              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+   244→              style={{ animationDelay: "0ms" }}
+   245→            >
+   246→              <div className="flex items-center gap-1.5">
+   247→                <Package className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+   248→                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Catálogo</p>
+   249→              </div>
+   250→              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(equipos.length)}</p>
+   251→            </div>
+   252→            {/* 2. Disponibles */}
+   253→            <div
+   254→              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+   255→              style={{ animationDelay: "60ms" }}
+   256→            >
+   257→              <div className="flex items-center gap-1.5">
+   258→                <Check className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+   259→                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Disponibles</p>
+   260→              </div>
+   261→              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.disponibles)}</p>
+   262→            </div>
+   263→            {/* 3. Averiados — pulse dot si hay alerta */}
+   264→            <div
+   265→              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+   266→              style={{ animationDelay: "120ms" }}
+   267→            >
+   268→              <div className="flex items-center gap-1.5">
+   269→                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Averiados</p>
+   270→                {kpis.averiados > 0 && <span className="anim-pulse-dot h-2 w-2 rounded-full bg-destructive" />}
+   271→              </div>
+   272→              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.averiados)}</p>
+   273→            </div>
+   274→            {/* 4. En retiro */}
+   275→            <div
+   276→              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+   277→              style={{ animationDelay: "180ms" }}
+   278→            >
+   279→              <div className="flex items-center gap-1.5">
+   280→                <Undo className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+   281→                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">En retiro</p>
+   282→              </div>
+   283→              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.enRetiro)}</p>
+   284→            </div>
+   285→            {/* 5. Sin uso 60+d — pulse dot si hay alerta */}
+   286→            <div
+   287→              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+   288→              style={{ animationDelay: "240ms" }}
+   289→            >
+   290→              <div className="flex items-center gap-1.5">
+   291→                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Sin uso 60+d</p>
+   292→                {kpis.sinUso > 0 && <span className="anim-pulse-dot h-2 w-2 rounded-full bg-amber-500" />}
+   293→              </div>
+   294→              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.sinUso)}</p>
+   295→            </div>
+   296→            {/* 6. Modelos */}
+   297→            <div
+   298→              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+   299→              style={{ animationDelay: "300ms" }}
+   300→            >
+   301→              <div className="flex items-center gap-1.5">
+   302→                <Boxes className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+   303→                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Modelos</p>
+   304→              </div>
+   305→              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.modelosDistintos)}</p>
+   306→            </div>
+   307→          </section>
+   308→
+   309→          {/* Chips de filtro por estado */}
+   310→          <div className="anim-slide-up mb-6 flex flex-wrap items-center gap-1">
+   311→            <Filter className="mr-1 h-3.5 w-3.5 text-muted-foreground" {...ICON_PROPS} />
+   312→            <FilterChip active={estadoFilter === "todos"} onClick={() => setEstadoFilter("todos")} label="Todos" count={equipos.length} />
+   313→            {ESTADOS.map((est) => {
+   314→              const n = equipos.filter((e) => e.estado === est).length;
+   315→              return <FilterChip key={est} active={estadoFilter === est} onClick={() => setEstadoFilter(est)} label={ESTADO_META[est].short} count={n} />;
+   316→            })}
+   317→          </div>
+   318→
+   319→          {/* Lista de modelos con paginación */}
+   320→          {models.length === 0 ? (
+   321→            <p className="py-12 text-center text-[13px] text-muted-foreground">
+   322→              {equipos.length === 0 ? "No hay equipos registrados. Los equipos se añaden automáticamente al recibir una guía de remisión SUNAT en la página de Recepciones." : "Sin coincidencias."}
+   323→            </p>
+   324→          ) : (
+   325→            <>
+   326→              <div className="divide-y divide-border border-y border-border">
+   327→                {paginaModels.map(([modelo, items], idx) => {
+   328→                  // ─── Antigüedad: contar equipos disponibles por nivel ───
+   329→                  const disp = items.filter((e) => e.estado === "disponible");
+   330→                  const ant = disp.map((e) => calcularAntiguedad(e.createdAt));
+   331→                  const antAdv = ant.filter((a) => a.nivel === "advertencia").length;
+   332→                  const antCrit = ant.filter((a) => a.nivel === "critico").length;
+   333→                  const antOld = ant.filter((a) => a.nivel === "antiguo").length;
+   334→                  const antTotal = antAdv + antCrit + antOld;
+   335→                  return (
+   336→                    <div
+   337→                      key={modelo}
+   338→                      className="anim-fade-in flex items-center gap-4 py-4"
+   339→                      style={{ animationDelay: `${idx * 25}ms` }}
+   340→                    >
+   341→                      <div className="min-w-0 flex-1">
+   342→                        <p className="text-[15px] font-medium text-foreground">{modelo}</p>
+   343→                        <p className="mt-0.5 text-[12px] text-muted-foreground">
+   344→                          {items.length} equipo(s) · {disp.length} disponibles
+   345→                          {items.some((e) => e.ubicacion) && (
+   346→                            <span className="ml-1.5 inline-flex items-center gap-1 text-[11px]">
+   347→                              <MapPin className="h-3 w-3" {...ICON_PROPS} />
+   348→                              {[...new Set(items.map((e) => e.ubicacion).filter(Boolean))].slice(0, 3).join(", ")}
+   349→                              {[...new Set(items.map((e) => e.ubicacion).filter(Boolean))].length > 3 && "…"}
+   350→                            </span>
+   351→                          )}
+   352→                          {antTotal > 0 && (
+   353→                            <span className="ml-1.5 inline-flex items-center gap-1 text-[11px]">
+   354→                              <Clock className="h-3 w-3" {...ICON_PROPS} />
+   355→                              {antTotal} con antigüedad
+   356→                            </span>
+   357→                          )}
+   358→                        </p>
+   359→                      </div>
+   360→                      <div className="hidden items-center gap-3 sm:flex">
+   361→                        {ESTADOS.map((est) => {
+   362→                          const n = items.filter((e) => e.estado === est).length;
+   363→                          if (n === 0) return null;
+   364→                          return (
+   365→                            <span key={est} className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+   366→                              <EstadoIcon name={ESTADO_META[est].icon} className="h-3 w-3" />
+   367→                              {n}
+   368→                            </span>
+   369→                          );
+   370→                        })}
+   371→                        {/* Indicadores de antigüedad (solo si hay equipos disponibles) */}
+   372→                        {antAdv > 0 && (
+   373→                          <span className={cn("inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium", ANTIGUEDAD_META.advertencia.bg, ANTIGUEDAD_META.advertencia.text)}>
+   374→                            <span className={cn("h-1.5 w-1.5 rounded-full", ANTIGUEDAD_META.advertencia.dot)} />
+   375→                            {antAdv} advert.
+   376→                          </span>
+   377→                        )}
+   378→                        {antCrit > 0 && (
+   379→                          <span className={cn("inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium", ANTIGUEDAD_META.critico.bg, ANTIGUEDAD_META.critico.text)}>
+   380→                            <span className={cn("h-1.5 w-1.5 rounded-full", ANTIGUEDAD_META.critico.dot)} />
+   381→                            {antCrit} crít.
+   382→                          </span>
+   383→                        )}
+   384→                        {antOld > 0 && (
+   385→                          <span className={cn("inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium", ANTIGUEDAD_META.antiguo.bg, ANTIGUEDAD_META.antiguo.text)}>
+   386→                            <span className={cn("h-1.5 w-1.5 rounded-full", ANTIGUEDAD_META.antiguo.dot)} />
+   387→                            {antOld} antiguos
+   388→                          </span>
+   389→                        )}
+   390→                      </div>
+   391→                      <span className="text-[15px] font-semibold tabular-nums text-foreground">{items.length}</span>
+   392→                      <button
+   393→                        onClick={goSeries}
+   394→                        className="press flex items-center gap-1 text-[12px] font-medium text-muted-foreground hover:text-foreground"
+   395→                      >
+   396→                        Ver series <ArrowRight className="h-3 w-3" {...ICON_PROPS} />
+   397→                      </button>
+   398→                    </div>
+   399→                  );
+   400→                })}
+   401→              </div>
+   402→
+   403→              {/* Controles de paginación */}
+   404→              {models.length > PRODUCTOS_POR_PAGINA && (
+   405→                <div className="anim-slide-up mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+   406→                  <p className="text-[12px] text-muted-foreground">
+   407→                    Mostrando <span className="font-semibold tabular-nums text-foreground">{indiceInicio + 1}</span>–
+   408→                    <span className="font-semibold tabular-nums text-foreground">{Math.min(indiceInicio + PRODUCTOS_POR_PAGINA, models.length)}</span> de{" "}
+   409→                    <span className="font-semibold tabular-nums text-foreground">{models.length}</span> modelos
+   410→                  </p>
+   411→                  <div className="flex items-center gap-1">
+   412→                    <button
+   413→                      onClick={() => setPagina((p) => Math.max(1, p - 1))}
+   414→                      disabled={paginaActual === 1}
+   415→                      aria-label="Página anterior"
+   416→                      className="inline-flex h-8 items-center gap-1 rounded-lg border border-border bg-background px-3 text-[12px] font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+   417→                    >
+   418→                      <ChevronLeft className="h-3.5 w-3.5" {...ICON_PROPS} /> Anterior
+   419→                    </button>
+   420→                    {Array.from({ length: totalPaginas }, (_, i) => i + 1)
+   421→                      .filter((p) => p === 1 || p === totalPaginas || (p >= paginaActual - 1 && p <= paginaActual + 1))
+   422→                      .map((p, i, arr) => (
+   423→                        <span key={p} className="flex items-center">
+   424→                          {i > 0 && arr[i - 1] !== p - 1 && (
+   425→                            <span className="px-1 text-[12px] text-muted-foreground">…</span>
+   426→                          )}
+   427→                          <button
+   428→                            onClick={() => setPagina(p)}
+   429→                            aria-label={`Ir a página ${p}`}
+   430→                            className={cn(
+   431→                              "inline-flex h-8 min-w-[2rem] items-center justify-center rounded-lg border px-2 text-[12px] font-medium tabular-nums transition-colors",
+   432→                              p === paginaActual
+   433→                                ? "border-foreground bg-foreground text-background"
+   434→                                : "border-border bg-background text-foreground hover:bg-muted",
+   435→                            )}
+   436→                          >
+   437→                            {p}
+   438→                          </button>
+   439→                        </span>
+   440→                      ))}
+   441→                    <button
+   442→                      onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+   443→                      disabled={paginaActual === totalPaginas}
+   444→                      aria-label="Página siguiente"
+   445→                      className="inline-flex h-8 items-center gap-1 rounded-lg border border-border bg-background px-3 text-[12px] font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+   446→                    >
+   447→                      Siguiente <ChevronRight className="h-3.5 w-3.5" {...ICON_PROPS} />
+   448→                    </button>
+   449→                  </div>
+   450→                </div>
+   451→              )}
+   452→            </>
+   453→          )}
+   454→        </>
+   455→      )}
+   456→
+   457→      {/* ─── TAB: RECOMENDACIONES (4 cards inteligentes) ─── */}
+   458→      {tab === "recomendaciones" && (
+   459→        <>
+   460→          {recomendaciones.averiadosConDias.length > 0 ||
+   461→          recomendaciones.sinUsoConDias.length > 0 ||
+   462→          recomendaciones.tasaAverias.length > 0 ||
+   463→          recomendaciones.topModelos.length > 0 ? (
+   464→            <section className="anim-slide-up">
+   465→              <h2 className="mb-3 text-[13px] font-medium uppercase tracking-wider text-muted-foreground">
+   466→                Recomendaciones Inteligentes
+   467→              </h2>
+   468→              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+   469→                {/* Card 1: Averiados a reparar */}
+   470→                <div
+   471→                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+   472→                  style={{ animationDelay: "0ms" }}
+   473→                >
+   474→                  <div className="mb-3 flex items-center justify-between">
+   475→                    <div className="flex items-center gap-2">
+   476→                      <AlertTriangle className="h-4 w-4 text-amber-600" {...ICON_PROPS} />
+   477→                      <h3 className="text-[13px] font-semibold text-foreground">Averiados a reparar</h3>
+   478→                    </div>
+   479→                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-amber-600">
+   480→                      {recomendaciones.averiadosConDias.length}
+   481→                    </span>
+   482→                  </div>
+   483→                  {recomendaciones.averiadosConDias.length === 0 ? (
+   484→                    <p className="text-[12px] text-muted-foreground">Todos los equipos están operativos</p>
+   485→                  ) : (
+   486→                    <div className="space-y-2.5">
+   487→                      {recomendaciones.averiadosConDias.slice(0, 6).map(({ equipo, dias }) => {
+   488→                        // 60 días = 100% (capped). El bar representa antigüedad en estado averiado.
+   489→                        const pct = Math.min(100, Math.max(2, (dias / 60) * 100));
+   490→                        return (
+   491→                          <div key={equipo.id} className="space-y-1">
+   492→                            <div className="flex items-baseline justify-between gap-2">
+   493→                              <span className="truncate text-[12px] font-medium text-foreground">{equipo.modelo || "Sin modelo"}</span>
+   494→                              <span className="shrink-0 font-mono text-[10px] text-muted-foreground">{equipo.serie}</span>
+   495→                            </div>
+   496→                            <div className="flex items-center justify-between gap-2 text-[11px]">
+   497→                              <span className="truncate text-muted-foreground">{equipo.ubicacion || "Sin ubicación"}</span>
+   498→                              <span className="shrink-0 font-semibold tabular-nums text-amber-600">{dias}d</span>
+   499→                            </div>
+   500→                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+   501→                              <div className="anim-draw-in h-full rounded-full bg-amber-500" style={{ width: `${pct}%` }} />
+   502→                            </div>
+   503→                          </div>
+   504→                        );
+   505→                      })}
+   506→                      {recomendaciones.averiadosConDias.length > 6 && (
+   507→                        <p className="text-[11px] text-muted-foreground">+{recomendaciones.averiadosConDias.length - 6} más</p>
+   508→                      )}
+   509→                      <div className="border-t border-border pt-2 text-[11px] text-muted-foreground">
+   510→                        Total: <span className="font-semibold text-foreground">{recomendaciones.averiadosConDias.length}</span> equipos averiados
+   511→                      </div>
+   512→                    </div>
+   513→                  )}
+   514→                </div>
+   515→
+   516→                {/* Card 2: Sin uso prolongado */}
+   517→                <div
+   518→                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+   519→                  style={{ animationDelay: "80ms" }}
+   520→                >
+   521→                  <div className="mb-3 flex items-center justify-between">
+   522→                    <div className="flex items-center gap-2">
+   523→                      <Clock className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+   524→                      <h3 className="text-[13px] font-semibold text-foreground">Sin uso prolongado</h3>
+   525→                    </div>
+   526→                    <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
+   527→                      {recomendaciones.sinUsoConDias.length}
+   528→                    </span>
+   529→                  </div>
+   530→                  {recomendaciones.sinUsoConDias.length === 0 ? (
+   531→                    <p className="text-[12px] text-muted-foreground">No hay equipos disponibles sin uso prolongado</p>
+   532→                  ) : (
+   533→                    <div className="space-y-2">
+   534→                      {recomendaciones.sinUsoConDias.slice(0, 6).map(({ equipo, ultimoDespacho }) => (
+   535→                        <div key={equipo.id} className="flex items-baseline justify-between gap-2">
+   536→                          <div className="min-w-0 flex-1">
+   537→                            <p className="truncate text-[12px] font-medium text-foreground">{equipo.modelo || "Sin modelo"}</p>
+   538→                            <p className="font-mono text-[10px] text-muted-foreground">{equipo.serie}</p>
+   539→                          </div>
+   540→                          <div className="shrink-0 text-right">
+   541→                            <p className="text-[11px] tabular-nums text-muted-foreground">{fmtRelativo(ultimoDespacho)}</p>
+   542→                            <p className="text-[10px] text-muted-foreground">sin movimiento</p>
+   543→                          </div>
+   544→                        </div>
+   545→                      ))}
+   546→                      {recomendaciones.sinUsoConDias.length > 6 && (
+   547→                        <p className="text-[11px] text-muted-foreground">+{recomendaciones.sinUsoConDias.length - 6} más</p>
+   548→                      )}
+   549→                      <div className="border-t border-border pt-2 text-[11px] text-muted-foreground">
+   550→                        Total: <span className="font-semibold text-foreground">{recomendaciones.sinUsoConDias.length}</span> equipos sin uso 60+ días
+   551→                      </div>
+   552→                    </div>
+   553→                  )}
+   554→                </div>
+   555→
+   556→                {/* Card 3: Tasa de averías por modelo */}
+   557→                <div
+   558→                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+   559→                  style={{ animationDelay: "160ms" }}
+   560→                >
+   561→                  <div className="mb-3 flex items-center gap-2">
+   562→                    <TrendingDown className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+   563→                    <h3 className="text-[13px] font-semibold text-foreground">Tasa de averías por modelo</h3>
+   564→                  </div>
+   565→                  {recomendaciones.tasaAverias.length === 0 ? (
+   566→                    <p className="text-[12px] text-muted-foreground">Sin averías registradas por modelo</p>
+   567→                  ) : (
+   568→                    <div className="space-y-2">
+   569→                      {recomendaciones.tasaAverias.map((m) => {
+   570→                        const pct = Math.max(4, m.tasa);
+   571→                        return (
+   572→                          <div key={m.modelo} className="space-y-1">
+   573→                            <div className="flex items-baseline justify-between gap-2 text-[12px]">
+   574→                              <span className="truncate font-medium text-foreground">{m.modelo}</span>
+   575→                              <span className="shrink-0 tabular-nums text-muted-foreground">
+   576→                                {m.averiados}/{m.total} ({Math.round(m.tasa)}%)
+   577→                              </span>
+   578→                            </div>
+   579→                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+   580→                              <div className="anim-draw-in h-full rounded-full bg-amber-500" style={{ width: `${pct}%` }} />
+   581→                            </div>
+   582→                          </div>
+   583→                        );
+   584→                      })}
+   585→                    </div>
+   586→                  )}
+   587→                </div>
+   588→
+   589→                {/* Card 4: Top modelos más registrados */}
+   590→                <div
+   591→                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+   592→                  style={{ animationDelay: "240ms" }}
+   593→                >
+   594→                  <div className="mb-3 flex items-center gap-2">
+   595→                    <TrendingUp className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+   596→                    <h3 className="text-[13px] font-semibold text-foreground">Top modelos más registrados</h3>
+   597→                  </div>
+   598→                  {recomendaciones.topModelos.length === 0 ? (
+   599→                    <p className="text-[12px] text-muted-foreground">No hay modelos registrados</p>
+   600→                  ) : (
+   601→                    <div className="space-y-2">
+   602→                      {recomendaciones.topModelos.map((m, i) => {
+   603→                        const pct = Math.max(4, (m.total / recomendaciones.maxTopModelos) * 100);
+   604→                        return (
+   605→                          <div key={m.modelo} className="space-y-1">
+   606→                            <div className="flex items-baseline justify-between gap-2 text-[12px]">
+   607→                              <span className="flex min-w-0 items-center gap-1.5">
+   608→                                <span className="font-mono text-[10px] tabular-nums text-muted-foreground">{i + 1}.</span>
+   609→                                <span className="truncate font-medium text-foreground">{m.modelo}</span>
+   610→                              </span>
+   611→                              <span className="shrink-0 tabular-nums text-muted-foreground">
+   612→                                {fmtNum(m.total)} {m.total === 1 ? "equipo" : "equipos"}
+   613→                              </span>
+   614→                            </div>
+   615→                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+   616→                              <div className="anim-draw-in h-full rounded-full bg-foreground/60" style={{ width: `${pct}%` }} />
+   617→                            </div>
+   618→                          </div>
+   619→                        );
+   620→                      })}
+   621→                    </div>
+   622→                  )}
+   623→                </div>
+   624→              </div>
+   625→            </section>
+   626→          ) : (
+   627→            <div className="anim-fade-in rounded-lg border border-dashed border-border bg-background px-4 py-16 text-center text-[13px] text-muted-foreground">
+   628→              No hay recomendaciones activas. Todo está en orden.
+   629→            </div>
+   630→          )}
+   631→        </>
+   632→      )}
+   633→
+   634→      {/* ─── TAB: MOVIMIENTOS (últimos despachos con serie asociada) ─── */}
+   635→      {tab === "movimientos" && (
+   636→        <>
+   637→          {despachos.filter((d) => d.series && d.series.length > 0).length > 0 ? (
+   638→            <section className="anim-slide-up">
+   639→              <h2 className="mb-3 text-[13px] font-medium uppercase tracking-wider text-muted-foreground">
+   640→                Últimos despachos con serie
+   641→              </h2>
+   642→              <div className="scroll-thin divide-y divide-border rounded-lg border border-border bg-background">
+   643→                {despachos
+   644→                  .filter((d) => d.series && d.series.length > 0)
+   645→                  .sort((a, b) => b.fecha - a.fecha)
+   646→                  .slice(0, 15)
+   647→                  .map((d) => {
+   648→                    const serie = d.series![0];
+   649→                    const equipo = equipos.find((e) => e.serie === serie);
+   650→                    return (
+   651→                      <div
+   652→                        key={d.id}
+   653→                        className="group flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/40"
+   654→                      >
+   655→                        <span className="font-mono text-[12px] tabular-nums text-foreground">
+   656→                          {new Date(d.fecha).toLocaleDateString("es-PE")}
+   657→                        </span>
+   658→                        <div className="min-w-0 flex-1">
+   659→                          <p className="truncate text-[13px] font-medium text-foreground">
+   660→                            {equipo?.modelo || d.producto || "—"}
+   661→                          </p>
+   662→                          <p className="font-mono text-[11px] text-muted-foreground">{serie}</p>
+   663→                        </div>
+   664→                        <div className="hidden text-right sm:block">
+   665→                          {d.destino && (
+   666→                            <p className="truncate text-[11px] text-muted-foreground">{d.destino}</p>
+   667→                          )}
+   668→                          {d.tecnico && (
+   669→                            <p className="text-[10px] text-muted-foreground">{d.tecnico}</p>
+   670→                          )}
+   671→                        </div>
+   672→                      </div>
+   673→                    );
+   674→                  })}
+   675→              </div>
+   676→            </section>
+   677→          ) : (
+   678→            <div className="anim-fade-in rounded-lg border border-dashed border-border bg-background px-4 py-16 text-center text-[13px] text-muted-foreground">
+   679→              No hay despachos con series asociadas.
+   680→            </div>
+   681→          )}
+   682→        </>
+   683→      )}
+   684→    </div>
+   685→  );
+   686→}
+   687→
+   688→function FilterChip({ active, onClick, label, count }: { active: boolean; onClick: () => void; label: string; count: number }) {
+   689→  return (
+   690→    <button
+   691→      onClick={onClick}
+   692→      className={cn(
+   693→        "press flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors",
+   694→        active
+   695→          ? "border-foreground bg-foreground text-background"
+   696→          : "border-border bg-background text-muted-foreground hover:text-foreground hover:bg-muted"
+   697→      )}
+   698→    >
+   699→      {label}
+   700→      <span className={cn("tabular-nums", active ? "text-background/70" : "text-muted-foreground")}>{count}</span>
+   701→    </button>
+   702→  );
+   703→}
+   704→

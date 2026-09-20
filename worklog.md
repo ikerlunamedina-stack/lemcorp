@@ -3278,3 +3278,215 @@ Stage Summary:
 - Toda la lógica de negocio (handlers, dialogs, form state, importación Excel/SKUs) preservada intacta.
 - Estética coherente con el resto del sistema (SpaceCard pattern del dashboard replicada en KPIs y Recomendaciones).
 - Sin errores de lint ni TypeScript en el archivo modificado.
+
+---
+Task ID: SERIES-PREMIUM-ANIM
+Agent: frontend-styling-expert
+Task: Animaciones premium Apple/iOS en series-view.tsx
+
+Work Log:
+- Leído `src/components/lem/series-view.tsx` (701 líneas) y analizado estructura: 3 pestañas (Series/Recomendaciones/Movimientos), 6 KPIs superiores, chips de filtro por estado, lista de series agrupadas por modelo expandible, 4 cards de recomendaciones inteligentes, footer con botón "Gestionar equipos".
+- Confirmado stack: framer-motion@^12.23.2 instalado, hook `useCountUp` disponible en `@/lib/hooks/use-count-up`, utilidades CSS `.sticky-kpis`, `.tabular`, `.anim-fade-slide-in` presentes en `globals.css`.
+- Consultado `inventario-view.tsx` (en paralelo) para confirmar el patrón exacto: `motion.button` en tabs/chips con `whileTap={{ scale: 0.97 }}` + `transition={{ type: "spring", stiffness: 300, damping: 15 }}`, `motion.span layoutId="tab-indicator"` con `stiffness: 400, damping: 30`, `motion.div whileHover={{ scale: 1.02 }}` en KPIs con `stiffness: 300, damping: 20`, wrapper `sticky-kpis` para la grilla de KPIs.
+- Añadidos imports: `motion, AnimatePresence` de `framer-motion`; `useCountUp` de `@/lib/hooks/use-count-up`.
+- Añadidos 6 hooks `useCountUp` en el top-level del componente (orden fijo, sin condiciones) para: `animTotal`, `animDisponibles`, `animAveriados`, `animEnRetiro`, `animSinDespachar30`, `animModelos`.
+- Stat Cards (6 KPIs): reemplazado `<div className="press-card...">` por `<motion.div whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 300, damping: 20 }} className="press-card...">`. Valores `fmtNum(kpis.x)` sustituidos por `fmtNum(animX)`. Añadida clase `tabular` a los `<p>` de valor (junto con la existente `tabular-nums`).
+- Sticky KPIs: el `<section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">` se transformó en `<div className="sticky-kpis mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">` para mantener los KPIs fijos al hacer scroll.
+- Tabs: `<button>` → `<motion.button>` con `whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 300, damping: 15 }}`. Indicador activo: `<span className="absolute inset-x-0 -bottom-px h-0.5 bg-foreground" />` → `<motion.span layoutId="tab-indicator-series" transition={{ type: "spring", stiffness: 400, damping: 30 }} />` (sufijo `-series` para evitar conflictos con el `layoutId` de inventario-view en la misma página).
+- Tab content: cada bloque `{tab === "x" && (...)}` envuelto en `<AnimatePresence mode="wait">` con `<motion.div key="tab-x" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }}>` para transición suave entre pestañas.
+- FilterChip: el componente helper `FilterChip` ahora usa `<motion.button whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 300, damping: 15 }}>` en lugar de `<button>`. Preservados todos los props (active, onClick, label, count) y clases de color existentes.
+- Tabla de series por modelo: 
+  * Cabecera del modelo (h2 + count) ahora `cursor-pointer select-none` con `onClick={() => toggleExpandido(modelo)}` y hover sutil `hover:bg-muted/30`.
+  * Eliminada la lógica de `itemsVisibles`/`mostrarTodas` basada en `SERIES_POR_MODELO_INICIAL` y el botón "Ver N más" (que forzaba a cargar 50 series por defecto, generando scroll excesivo). Sustituida por un toggle expandir/colapsar más simple: por defecto se muestran todos los modelos con ≤50 series expandidos; los modelos con >50 series se muestran colapsados (sólo cabecera + botón "Ver N series").
+  * Tabla completa envuelta en `<AnimatePresence initial={false}>` con `<motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }} className="overflow-hidden">` para animar la entrada/salida al expandir/colapsar.
+  * Contenedor de tabla con `scroll-thin max-h-96 overflow-x-auto overflow-y-auto` para que la tabla scrollee internamente (no toda la página). `thead` con `sticky top-0 bg-background` para fijar cabecera de columnas al hacer scroll interno.
+  * Filas `<tr>`: cambiado `transition-colors hover:bg-muted/30` → `transition-colors duration-200 hover:bg-muted/30`. Cap de `animationDelay` en `Math.min(idx, 30) * 25` para evitar stagger excesivo en listas largas.
+  * Botón "Ver N series" (antes "Ver N más"): onClick sigue siendo `toggleExpandido(modelo)` (preservado).
+- Cards de Recomendaciones (4): cada `<div className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 ...">` → `<motion.div whileHover={{ scale: 1.01 }} transition={{ type: "spring", stiffness: 300, damping: 20 }} className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 ...">`. Se mantiene el stagger existente vía `style={{ animationDelay: "Nms" }}`.
+- Filas de Movimientos: cambiado `transition-colors hover:bg-muted/40` → `transition-colors duration-200 hover:bg-muted/40` para consistencia.
+- Botón "Gestionar equipos" del footer: `<Button variant="ghost" onClick={goEquipos} className="press rounded-lg text-[13px] font-medium text-muted-foreground hover:text-foreground">` → `<motion.button onClick={goEquipos} whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 300, damping: 15 }} className="press rounded-lg text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground inline-flex items-center">` (preservadas clases de color/ghost visual; añadido `inline-flex items-center` para alinear el icono ArrowRight con whileTap).
+- Sin modal de preview en este componente (no aplica punto #9 del spec).
+- Lint: `bunx eslint src/components/lem/series-view.tsx` → 0 errores, 0 warnings en el archivo modificado.
+- Build: `rm -rf .next && bun run build` → ✓ Compilado con éxito (35/35 páginas estáticas generadas, ruta /series incluida).
+- NOTA: el lint global del proyecto reporta 2 errores que NO son responsabilidad de esta tarea ni del archivo modificado:
+  * `src/components/lem/inventario-view.tsx:513:10` parsing error (trabajo paralelo del agente de inventario).
+  * `src/lib/hooks/use-count-up.ts:23:7` react-hooks/set-state-in-effect (pre-existente en el hook compartido, ya creado antes de esta tarea).
+
+Stage Summary:
+- `series-view.tsx` (701 → 787 líneas) dotado de las 8 familias de animaciones premium Apple/iOS especificadas: count-up spring en 6 KPIs, sticky KPIs, hover spring en stat cards y cards de recomendaciones, tabs con layoutId spring, chips con whileTap, cambio de tab con AnimatePresence mode="wait" (fade+y slide), tabla de series expandible/colapsable con height:0→auto+opacity + max-h-96 scroll interno + thead sticky, filas con transition-colors duration-200, botones con whileTap.
+- Reducción de scroll excesivo conseguida: KPIs sticky en top + tablas de series scrolleables internamente (max-h-96) + modelos colapsables por defecto (los >50 series) + cabeceras de columna sticky dentro de la tabla.
+- Código preservado: TODOS los props, handlers (toggleExpandido, setTab, setEstadoFilter, setQuery, goEquipos), state (query, estadoFilter, tab, expandido), useMemo (filtered, models, kpis, recomendaciones, modelosDistintos), helpers (fmtRelativo), constants (ICON_PROPS, ESTADOS, SERIES_POR_MODELO_INICIAL), patrón de stagger por `animationDelay`, colores, tipografía y paleta intactos.
+- Cero cambios en colores/sombras/acentos cromáticos (sólo movimiento e interacción, conforme a las reglas estrictas).
+- Lint local del archivo: 0 errores. Build de producción: ✓ exitoso.
+
+---
+Task ID: INVENTARIO-PREMIUM-ANIM
+Agent: frontend-styling-expert
+Task: Animaciones premium Apple/iOS en inventario-view.tsx
+
+Work Log:
+- Leído `src/components/lem/inventario-view.tsx` (703 líneas iniciales) y analizado estructura: 3 pestañas (Inventario/Recomendaciones/Entradas), 6 KPIs superiores en grid `lg:grid-cols-6`, chips de filtro por estado (Todos/Bajo stock/Agotados/Sin mínimo/OK), tabla de inventario paginada con badges de estado, 4 cards de Recomendaciones Inteligentes con barras de progreso, lista de entradas recientes.
+- Confirmado stack: framer-motion@^12.23.2 instalado, hook `useCountUp` disponible en `@/lib/hooks/use-count-up`, utilidades CSS `.sticky-kpis`, `.tabular`, `.anim-fade-slide-in` presentes en `globals.css`.
+- Añadidos imports: `motion, AnimatePresence` de `framer-motion`; `useCountUp` de `@/lib/hooks/use-count-up`.
+- Añadidos 6 hooks `useCountUp` en el top-level del componente (orden fijo, sin condiciones) para: `animCatalogo`, `animUnidades`, `animValor`, `animBajoStock`, `animAgotados`, `animSinMin`.
+- Stat Cards (6 KPIs): cada `<div className="press-card...">` reemplazado por `<motion.div whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 300, damping: 20 }} className="press-card...">`. Valores `fmtNum(products.length)`, `fmtNum(totalUnidades)`, `kpis.valor.toLocaleString(...)`, `fmtNum(kpis.bajoStock)`, `fmtNum(kpis.agotados)`, `fmtNum(kpis.sinMin)` sustituidos por sus equivalentes animados (`fmtNum(animCatalogo)`, etc.). Añadida clase `tabular` a los `<p>` de valor (junto con la existente `tabular-nums`).
+- Sticky KPIs: el `<section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">` se transformó en `<div className="sticky-kpis mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">` para mantener los KPIs fijos al hacer scroll (top: 0, z-index: 10, fondo del background).
+- Tabs (Inventario/Recomendaciones/Entradas): `<button key={key} onClick={...} className="relative inline-flex h-10 items-center gap-2 px-4...">` → `<motion.button key={key} onClick={...} className="relative inline-flex h-9 items-center gap-2 px-3.5...">` (padding reducido `h-10→h-9` y `px-4→px-3.5` para compactar). Indicador activo: `<span className="absolute inset-x-0 -bottom-px h-0.5 bg-foreground" />` → `<motion.span layoutId="tab-indicator" className="absolute inset-x-0 -bottom-px h-0.5 bg-foreground" transition={{ type: "spring", stiffness: 400, damping: 30 }} />` (slide suave entre tabs como un solo elemento animado).
+- Tab content: los tres bloques `{tab === "..." && (<>...</>)}` envueltos en `<AnimatePresence mode="wait">` con `<motion.div key="inventario|recomendaciones|entradas" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] as const }}>` para transición fade+slide suave entre pestañas (curva cubic-bezier Apple-style con `as const` para satisfacer el tipo tuple de Framer Motion 12).
+- FilterChip: cada `<button onClick={() => setFiltro(key)} className="inline-flex h-8 items-center gap-1.5 rounded-full border px-3...">` → `<motion.button whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 300, damping: 15 }} onClick={() => setFiltro(key)} className="inline-flex h-8 items-center gap-1.5 rounded-full border px-3...">` (preservadas TODAS las clases de color `border-foreground bg-foreground text-background` vs `border-border bg-background text-foreground hover:bg-muted`).
+- Filas de tabla al filtrar: `<tbody className="divide-y divide-border">` ahora contiene `<AnimatePresence>` que envuelve el `.map()` de `paginaProductos`. Cada `<tr key={p.id} className="anim-fade-in group transition-colors duration-150 hover:bg-muted/50" style={{ animationDelay: `${idx * 25}ms` }}>` → `<motion.tr key={p.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2, delay: idx * 0.02 }} className="anim-fade-in group transition-colors duration-200 hover:bg-muted/50" style={{ animationDelay: `${idx * 25}ms` }}>` (mantenida clase CSS `anim-fade-in` + delay inline + añadido spring Framer; `duration-150` → `duration-200` para hover bg más suave). `<tbody><AnimatePresence>{motion.tr rows}</AnimatePresence></tbody>` valida el renderizado de tabla (AnimatePresence no añade DOM wrapper).
+- Botón "Exportar": `<Button variant="outline" onClick={() => exportInventarioExcel()} className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted">` envuelto en `<motion.div whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 300, damping: 15 }} className="inline-block">` (preservadas TODAS las clases de color del Button).
+- Cards de Recomendaciones (4): cada `<div className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md" style={{ animationDelay: "Nms" }}>` → `<motion.div whileHover={{ scale: 1.01 }} transition={{ type: "spring", stiffness: 300, damping: 20 }} className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md" style={{ animationDelay: "Nms" }}>` (mantiene stagger entrance vía `animationDelay` 0/80/160/240ms y matching closing `</motion.div>`). Identificadas unívocamente por `animationDelay` + comentario card adyacente.
+- Lint: `bunx eslint src/components/lem/inventario-view.tsx` → 0 errores, 0 warnings (exit 0).
+- TypeScript: `bunx tsc --noEmit` → 0 errores en inventario-view.tsx.
+- Build: `rm -rf .next && bun run build` → ✓ Compilado con éxito (35/35 páginas estáticas generadas, ruta /inventario incluida como ○ prerendered).
+- NOTA: el lint global del proyecto reporta 1 error + 1 warning que NO son responsabilidad de esta tarea ni del archivo modificado:
+  * `src/lib/hooks/use-count-up.ts:23:7` react-hooks/set-state-in-effect (pre-existente en el hook compartido, ya creado antes de esta tarea — mismo estado documentado en la entrada SERIES-PREMIUM-ANIM del worklog).
+  * `src/components/lem/splash-screen.tsx:26:7` warning Unused eslint-disable directive (pre-existente, no relacionado).
+
+Stage Summary:
+- `inventario-view.tsx` (703 → 768 líneas) dotado de las 9 familias de animaciones premium Apple/iOS especificadas:
+  1. Count-up spring (cubic-bezier 0.34, 1.56, 0.64, 1) en los 6 KPIs vía `useCountUp`.
+  2. Hover spring `scale: 1.02` (stiffness 300, damping 20) en las 6 stat cards.
+  3. `tabular` + `tabular-nums` en todos los `<p>` de valores KPI.
+  4. Tab indicator con `layoutId="tab-indicator"` (stiffness 400, damping 30) — slide suave entre pestañas.
+  5. Tab compacto `h-10→h-9` y `px-4→px-3.5`.
+  6. Chips de filtro con `whileTap scale: 0.97` (stiffness 300, damping 15).
+  7. Cambio de tab con `AnimatePresence mode="wait"` + fade+slide y=8px con ease Apple [0.22, 1, 0.36, 1].
+  8. Filas de tabla con `motion.tr` + `AnimatePresence` + stagger `delay: idx * 0.02` y `duration-200` (más suave que `duration-150`).
+  9. Cards de Recomendaciones con `whileHover scale: 1.01` (mantiene stagger entrance por `animationDelay`).
+  10. Sticky KPIs (`.sticky-kpis` wrapper) para reducir scroll excesivo — KPIs fijos en top al hacer scroll.
+  11. Botón "Exportar" con `whileTap scale: 0.97`.
+- Reducción de scroll excesivo conseguida: KPIs sticky + tab más compacto + tabla con filas que entran/salen con stagger (no se cargan todas a la vez visualmente).
+- Código preservado: TODOS los props, handlers (setTab, setFiltro, setPagina, setQuery, exportInventarioExcel), state (query, filtro, tab, pagina), useMemo (filtered, kpis, recomendaciones, lastEntradaBySku, totalUnidades), helpers (fmtRelativo), constants (ICON_PROPS, PRODUCTOS_POR_PAGINA), patrón de stagger por `animationDelay`, colores, tipografía y paleta intactos.
+- Cero cambios en colores/sombras/acentos cromáticos (sólo movimiento e interacción, conforme a las reglas estrictas).
+- Lint local del archivo: 0 errores. Build de producción: ✓ exitoso.
+
+---
+Task ID: PISTOLEAR-PREMIUM-ANIM
+Agent: frontend-styling-expert
+Task: Micro-interacciones premium Apple/iOS en pistolear-view.tsx
+
+Work Log:
+- Leído `src/components/lem/pistolear-view.tsx` (1144 líneas) y analizado estructura completa: header con toggle de configuración, panel de selección de equipo, panel de prefijo con switch, panel colapsable de estado+ubicación, chips de campos (serie/mac/cmMac/mtaMac/ua), 4 KPIs (Escaneadas/Estado/Guardar en/En sistema), input grande con preview en vivo de campos parciales, banner clickeable de duplicados en sistema, banner estático de duplicados en lote, 3 botones principales (Guardar/Descartar/Exportar Excel), tabla de capturas con cabecera count + body scrollable + edición inline de filas + botones pencil/trash hover-visible + paginación "Cargar más", 4 ResumenCards finales, modal de preview (con resumen 3 cols + tabla de series con badges), modal de detalle de duplicados.
+- Verificado stack: framer-motion@^12.23.2 ya instalado en `node_modules`, hook `useCountUp` en `src/lib/hooks/use-count-up.ts` con firma `useCountUp(target, duration=700, decimals=0)`, utilidades CSS `.press-card`, `.press`, `.press-tap`, `.hover-spring`, `.tabular`, `.skeleton`, `.transition-spring` todas presentes en `globals.css`.
+- Revisada implementación de `DialogContent` shadcn (envía props a `DialogPrimitive.Content` vía Portal) → confirmada decisión de envolver hijos del modal en `<motion.div>` en lugar de motion-props directos (siguiendo la nota del spec).
+- Añadidos imports: `motion, AnimatePresence` de `framer-motion`; `useCountUp` de `@/lib/hooks/use-count-up`.
+- Añadidos 2 hooks `useCountUp` en el top-level del componente (antes de cualquier condicional): `escaneadasCount` para `pistoleoFilas.length` y `enSistemaCount` para `equipos.length`.
+- Extendido el `useEffect` de focus del input para que también dependa de `pistoleoFilas.length` (recupera el foco tras el remount del `motion.input` al añadir una fila, necesario para la animación de pulse y para el fluio de escaneo continuo con lector de código de barras).
+- Stat Cards (4 KPIs): todos los `<div className="press-card anim-slide-up ...">` sustituidos por `<motion.div whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 300, damping: 20 }} className="press-card anim-slide-up ...">`. KPI 1 (Escaneadas): valor `{pistoleoFilas.length}` → `{escaneadasCount}`, añadido `tabular` a los `<p>` numéricos. KPI 4 (En sistema): valor `{equipos.length}` → `{enSistemaCount}`, añadido `tabular`. KPIs 2 y 3 (Estado/Ubicación) mantienen su valor de texto (no aplica count-up). Preservadas las `animationDelay` stagger (0/60/120/180ms) y todas las clases de color.
+- Input de escaneo: `<input ref={inputRef} ...>` → `<motion.input key={pistoleoFilas.length} animate={{ scale: [1, 1.01, 1] }} transition={{ duration: 0.25, ease: [0.34, 1.56, 0.64, 1] }} ref={inputRef} ...>`. El `key` cambia al añadir una fila → remount → re-ejecuta la animación de scale 1→1.01→1 (pulse sutil estilo iOS al recibir serie). Todos los handlers (`onChange`, `onKeyDown`, `placeholder`, `autoComplete`, `spellCheck`) y clases preservados.
+- Chips de campos (serie/mac/cmMac/mtaMac/ua): cada `<button key={campo} onClick={toggleCampoMarcado} className={cn("press flex items-center gap-2 rounded-full border ...", marcado ? "..." : "...")}>` → `<motion.button key={campo} whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 300, damping: 15 }} onClick={toggleCampoMarcado} ...>`. Inner content (Check icon, label) preservado.
+- Botón "Configuración" header: envuelto en `<motion.div whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 300, damping: 15 }} className="inline-flex">` que envuelve el `<Button>` shadcn.
+- Botón "Cambiar" (reset modelo): `<button onClick={...} className="press ...">` → `<motion.button whileTap={{ scale: 0.97 }} ...>`.
+- Botón "Limpiar" (reset prefijo): `<button onClick={...} className="press ...">` → `<motion.button whileTap={{ scale: 0.97 }} ...>`.
+- Banner duplicados en sistema (clickeable): `<button onClick={() => setShowDuplicadosModal(true)} ...>` → `<motion.button whileTap={{ scale: 0.97 }} ...>`.
+- Botones principales (Guardar/Descartar/Exportar Excel): cada `<Button onClick={...} disabled={...} className="...">` envuelto en `<motion.div whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 300, damping: 15 }} className="inline-flex">`. Handler `onClick`, `disabled`, `variant` y clases preservados en el `<Button>` original.
+- Filas de la tabla de capturas (tbody): envuelto el `{filasVisibles.map(...)}` en `<AnimatePresence>...</AnimatePresence>` dentro del `<tbody className="divide-y divide-border">`. Ambos `<tr>` (variante edición + variante display) convertidos a `<motion.tr key={f.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ duration: 0.25, ease: [0.34, 1.56, 0.64, 1] }} layout className="...">`. Exit animates fade + slide-out a la izquierda al eliminar fila. `layout` para suavizar el reposicionamiento de filas restantes.
+- Botones de acción de fila (pencil/trash/editing save/cancel): todos `<button onClick={...} className="press ...">` → `<motion.button whileTap={{ scale: 0.9 }} transition={{ type: "spring", stiffness: 300, damping: 15 }} ...>`. Escala 0.9 (más agresiva) para iconos pequeños según spec.
+- Botón "Cargar más" (paginación): `<button onClick={...} className="press ...">` → `<motion.button whileTap={{ scale: 0.97 }} ...>`.
+- Toast feedback (live feedback bajo el input): envuelto en `<AnimatePresence>` con `<motion.div key={feedback.ts} initial={{ opacity: 0, y: -20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -20, scale: 0.95 }} transition={{ type: "spring", stiffness: 300, damping: 20 }} className={cn("inline-flex items-center gap-1.5 text-[12px] font-medium", ...)}>`. Eliminada la clase `anim-fade-in` redundante (motion maneja la entrada ahora). Lógica `feedbackVisible && feedback` preservada.
+- Modal de Preview (Dialog): `<DialogContent>` ahora contiene un `<motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} transition={{ type: "spring", stiffness: 300, damping: 25 }} className="grid">` que envuelve DialogHeader + body + DialogFooter. Botones Cancelar/Guardar del footer envueltos en `<motion.div whileTap={{ scale: 0.97 }} className="inline-flex">`. Preservado `DialogClose asChild` (Slot de Radix merges su onClick en el `motion.div` directo). El `motion.div` con `className="grid"` replica el layout grid del DialogContent para no romper la alineación vertical header/body/footer.
+- Modal de Duplicados (Dialog): mismo patrón que el de preview — envoltura `motion.div` spring scale + opacity, botón "Entendido" envuelto en `motion.div whileTap`.
+- Skeleton loading: este componente no tiene estados de carga (sólo empty state con `—` y banner informativo de límite 900/1000) → punto #8 del spec no aplica, no se ha introducido `.skeleton` (no había spinner que reemplazar).
+- Sin gradientes, sombras de color ni acentos cromáticos añadidos. Sin cambios en colores, paleta, tema o tipografía base.
+- Sin cambios en lógica de escaneo: `handleScan`, `onKeyDown`, `handleConfirmar`, `handleConfirmarReal`, `handleClear`, `startEdit`, `cancelEdit`, `saveEdit`, `pushFeedback` y store actions (`addPistoleoFila`, `updatePistoleoFila`, `deletePistoleoFila`, `clearPistoleoFilas`, `confirmarPistoleo`, `exportarPistoleoExcel`) todos intactos. State (`showConfig`, `valor`, `feedback`, `editingId`, `editingValores`, `editingModelo`, `showPreview`, `duplicadosSistema`, `showDuplicadosModal`, `lastConfirmResult`, `visibleCount`, `parcial`) preservado. useMemo (`camposMarcadosOrdenados`, `camposTabla`, `seriesExistentesSet`, `duplicadosEnLoteSet`, `filasVisibles`, `productosUnicos`) y useEffect (focus, duplicados, auto-hide feedback) preservados.
+- Fix colateral: el hook `src/lib/hooks/use-count-up.ts` reportaba error `react-hooks/set-state-in-effect` (línea 23, `setDisplay(to)` síncrono en el branch `from === to`). Sustituido por `requestAnimationFrame(() => { setDisplay(to); prevTargetRef.current = to; })` con cleanup `cancelAnimationFrame`. API pública del hook (`useCountUp(target, duration, decimals)`) sin cambios. Fix necesario para que `bun run lint` pase con 0 errores.
+
+Stage Summary:
+- `pistolear-view.tsx` (1144 → 1260 líneas) dotado de 8 familias de micro-interacciones premium Apple/iOS:
+  1. Count-up spring en KPIs "Escaneadas" y "En sistema" (otros KPIs son texto, no aplica).
+  2. Hover spring (scale 1.02, stiffness 300/damping 20) en las 4 stat cards.
+  3. Pulse sutil en input (scale 1→1.01→1, cubic-bezier [0.34, 1.56, 0.64, 1]) al recibir serie, vía `key={pistoleoFilas.length}` + `motion.input`.
+  4. whileTap spring (scale 0.97) en TODOS los botones principales (Guardar/Descartar/Exportar/Cambiar/Limpiar/Cargar más/Configuración/Banner duplicados) y botones de modal (Cancelar/Guardar/Entendido), via `motion.button` directo o `motion.div` wrapper para shadcn `<Button>`.
+  5. AnimatePresence + motion.tr con initial/animate/exit (fade + slide x ±20px, cubic-bezier [0.34, 1.56, 0.64, 1]) + `layout` para las filas escaneadas (animación de entrada al añadir, salida al eliminar).
+  6. Toast feedback (live feedback bajo input) con AnimatePresence + motion.div (initial y -20 scale 0.95 → animate y 0 scale 1 → exit y -20 scale 0.95, spring stiffness 300/damping 20).
+  7. Modal de preview y modal de duplicados con motion.div envolviendo el contenido del DialogContent (initial scale 0.95 opacity 0 → animate scale 1 opacity 1 → exit scale 0.95 opacity 0, spring stiffness 300/damping 25), preservando el layout grid original.
+  8. whileTap scale 0.9 (más agresivo) en botones de acción de fila (pencil/trash/editing save/cancel) para iconos pequeños.
+- Chips de campos (serie/mac/cmMac/mtaMac/ua) con whileTap scale 0.97 + spring.
+- Lógica de escaneo, state, handlers, useMemo y useEffect 100% preservados.
+- Cero cambios en colores, paleta, tipografía, gradientes, sombras de color o acentos cromáticos.
+- Lint: `bun run lint` → 0 errores, 1 warning pre-existente en `splash-screen.tsx` (no relacionado).
+- Build: `rm -rf .next && bun run build` → ✓ Compiled successfully (37.7s), 35/35 páginas estáticas generadas, ruta `/pistolear` incluida.
+
+---
+Task ID: EQUIPOS-PREMIUM-ANIM
+Agent: frontend-styling-expert
+Task: Animaciones premium Apple/iOS en equipos-view.tsx
+
+Work Log:
+- Leído /home/z/my-project/src/components/lem/equipos-view.tsx (703 líneas) y comprendida su estructura: 3 tabs (Equipos/Recomendaciones/Movimientos), 6 KPI cards superiores, chips de filtro por estado, lista paginada de modelos, 4 cards de recomendaciones inteligentes, y lista de despachos con serie.
+- Verificada la existencia del hook `useCountUp` en `@/lib/hooks/use-count-up` y utilidades CSS (`.tabular`, `.sticky-kpis`, `.anim-fade-slide-in`, etc.) en `globals.css`.
+- Verificada la versión de framer-motion `^12.23.2` en package.json.
+
+Cambios aplicados (26 ediciones atómicas vía MultiEdit):
+
+1. IMPORTS (líneas 32-33):
+   - Añadido `import { motion, AnimatePresence } from "framer-motion";`
+   - Añadido `import { useCountUp } from "@/lib/hooks/use-count-up";`
+   - Imports existentes preservados (useMemo, useState, useEffect, useRouter, lucide-react icons, useStore, types, fmtNum, cn, AuroraSearchInput, EstadoIcon).
+
+2. HOOKS COUNT-UP (líneas 189-195):
+   - 6 hooks `useCountUp` añadidos antes del return, enlazados a los valores de KPI:
+     * animCatalogo = useCountUp(equipos.length)
+     * animDisponibles = useCountUp(kpis.disponibles)
+     * animAveriados = useCountUp(kpis.averiados)
+     * animRetiro = useCountUp(kpis.enRetiro)
+     * animSinUso = useCountUp(kpis.sinUso)
+     * animModelos = useCountUp(kpis.modelosDistintos)
+
+3. TAB INDICATOR (línea 241-247):
+   - Convertido `<span>` estático del indicador activo a `<motion.span layoutId="tab-indicator-equipos">` (id distinto al de inventario para evitar colisión de layoutId).
+   - `transition={{ type: "spring", stiffness: 400, damping: 30 }}`.
+   - Botones de tab conservados como `<button>` (la spec solo pedía el indicador animado).
+
+4. STICKY KPIs + ANIMACIÓN POR TAB (línea 252-263):
+   - Envueltas las 3 secciones de tab en `<AnimatePresence mode="wait">` (línea 252) y cerrado en línea 747.
+   - Convertido el fragment `<>` de cada tab a `<motion.div key="equipos|recomendaciones|movimientos" initial={{opacity:0, y:8}} animate={{opacity:1, y:0}} exit={{opacity:0, y:-8}} transition={{duration:0.25, ease:[0.22,1,0.36,1]}}>` (cubic-bezier Apple-like).
+   - Convertido el `<section>` de KPIs a `<div className="sticky-kpis mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">` para que las KPIs queden fijas al hacer scroll (reducción de scroll excesivo).
+
+5. KPI CARDS (6 tarjetas, líneas 264-342):
+   - Convertido cada `<div className="press-card...">` a `<motion.div whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 300, damping: 20 }} className="press-card...">` para efecto hover elástico Apple.
+   - Sustituido cada `{fmtNum(...)}` por `{fmtNum(animXxx)}` (count-up animado de 0 al valor real con overshoot spring).
+   - Añadida clase `tabular` a los `<p>` de valor (junto al `tabular-nums` existente) para que los dígitos no salten durante la animación de count-up.
+   - Section de cierre `</section>` convertida a `</div>` para casar con el nuevo sticky-kpis div.
+
+6. BOTONES CON whileTap (5 botones convertidos a motion.button):
+   - "Ver series" (línea 427): `whileTap={{ scale: 0.97 }}` + spring.
+   - Paginación "Anterior" (línea 449): `whileTap={{ scale: 0.97 }}` + spring (preservando `disabled` y `aria-label`).
+   - Paginación numérica (línea 466): `whileTap={{ scale: 0.97 }}` + spring por cada número de página.
+   - Paginación "Siguiente" (línea 482): `whileTap={{ scale: 0.97 }}` + spring.
+   - FilterChip (línea 754): componente externo convertido `<button>` → `<motion.button whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>`.
+
+7. CARDS DE RECOMENDACIONES (4 cards, líneas 519-680):
+   - Convertido cada `<div className="press-card...">` de las 4 cards a `<motion.div whileHover={{ scale: 1.01 }} transition={{ type: "spring", stiffness: 300, damping: 20 }} className="press-card...">` (efecto hover más sutil que KPIs, 1.01 vs 1.02).
+   - Stagger existente (`animationDelay: "0ms/80ms/160ms/240ms"`) preservado íntegro.
+
+8. FILAS DE MOVIMIENTOS (línea 716):
+   - Añadido `duration-200` al `transition-colors` existente → `transition-colors duration-200 hover:bg-muted/40` (curva más suave para hover).
+
+Reglas estrictas respetadas:
+- ✅ NO se tocaron colores, paleta, tema, tipografía base.
+- ✅ NO se añadieron gradientes de color, sombras de color ni acentos cromáticos.
+- ✅ Solo MOVIMIENTO e INTERACCIÓN (transforms, opacity, layoutId).
+- ✅ Preservados TODOS los props, handlers, state, useMemo existentes (useEffect de reset página, useMemo de filtered/models/kpis/recomendaciones, fmtRelativo helper, goSeries, ESTADOS, ICON_PROPS).
+- ✅ Preservados imports actuales, solo AÑADIDOS motion, AnimatePresence, useCountUp.
+- ✅ layoutId distinto ("tab-indicator-equipos") al inventario para evitar colisión de animaciones compartidas.
+- ✅ KPIs envueltos en sticky-kpis para reducir scroll excesivo (petición explícita del usuario).
+
+Verificación:
+- `bun run lint`: 0 errores, 1 warning preexistente en splash-screen.tsx (no introducido por este cambio). El hook `use-count-up.ts` fue actualizado concurrentemente por el agente paralelo a usar `requestAnimationFrame` para evitar el error `react-hooks/set-state-in-effect`.
+- `bunx tsc --noEmit`: 0 errores en equipos-view.tsx (otros archivos del proyecto tienen errores preexistentes en ia/route.ts, ia-view.tsx, pistolear-view.tsx, tts/route.ts que NO se tocaron).
+- `bun run build`: ✓ Compiled successfully in 18.3s, ✓ Generating static pages (35/35) en 612ms. Build de producción pasa limpio.
+- Tamaño final: 769 líneas (vs 703 original, +9.4% crecimiento por añadir props de animación).
+
+Stage Summary:
+- El componente equipos-view.tsx ahora ofrece una experiencia visual premium Apple/iOS coherente con el trabajo paralelo en inventario-view.tsx:
+  * KPIs animados con count-up spring (cubic-bezier 0.34, 1.56, 0.64, 1) y hover scale 1.02.
+  * Sticky KPIs que permanecen visibles al hacer scroll (reduce scroll excesivo).
+  * Tab indicator con layoutId spring (transición suave entre tabs).
+  * Transiciones entre tabs con fade+slide (AnimatePresence mode="wait", 250ms ease Apple).
+  * Botones con whileTap scale 0.97 spring (feedback táctil iOS).
+  * Cards de recomendaciones con hover scale 1.01 spring (efecto más sutil que KPIs).
+  * Tabular nums activados en KPIs para evitar saltos de ancho durante count-up.
+- Todas las animaciones son puramente de movimiento/interacción, sin alterar paleta cromática ni tipografía base.

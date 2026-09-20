@@ -1,0 +1,1145 @@
+     1→"use client";
+     2→
+     3→import { useEffect, useMemo, useRef, useState } from "react";
+     4→import {
+     5→  ScanLine,
+     6→  Trash2,
+     7→  Save,
+     8→  Check,
+     9→  X,
+    10→  AlertCircle,
+    11→  ChevronDown,
+    12→  ChevronRight,
+    13→  Cpu,
+    14→  Settings2,
+    15→  CircleDot,
+    16→  Pencil,
+    17→  Eye,
+    18→  Search,
+    19→  PackageSearch,
+    20→  Download,
+    21→  MapPin,
+    22→  Boxes,
+    23→} from "lucide-react";
+    24→import { useStore } from "@/lib/store";
+    25→import {
+    26→  ESTADO_META,
+    27→  REGLAS_PREFIJO,
+    28→  CAMPOS_PISTOLEO_META,
+    29→  ORDEN_CAMPOS,
+    30→  type EstadoEquipo,
+    31→  type CampoPistoleo,
+    32→} from "@/lib/types";
+    33→import { cn } from "@/lib/utils";
+    34→import { Button } from "@/components/ui/button";
+    35→import { Input } from "@/components/ui/input";
+    36→import { Label } from "@/components/ui/label";
+    37→import { Switch } from "@/components/ui/switch";
+    38→import {
+    39→  Select,
+    40→  SelectContent,
+    41→  SelectItem,
+    42→  SelectTrigger,
+    43→  SelectValue,
+    44→} from "@/components/ui/select";
+    45→import {
+    46→  Dialog,
+    47→  DialogContent,
+    48→  DialogHeader,
+    49→  DialogTitle,
+    50→  DialogDescription,
+    51→  DialogFooter,
+    52→  DialogClose,
+    53→} from "@/components/ui/dialog";
+    54→import { useToast } from "@/hooks/use-toast";
+    55→import { speak } from "@/lib/tts";
+    56→
+    57→const ICON_PROPS = { strokeWidth: 1.5 } as const;
+    58→
+    59→const ESTADOS: EstadoEquipo[] = ["disponible", "averiado", "en_retiro"];
+    60→
+    61→interface FeedbackMsg {
+    62→  ok: boolean;
+    63→  text: string;
+    64→  ts: number;
+    65→}
+    66→
+    67→function detectarModelo(serie: string): string | null {
+    68→  const s = serie.trim().toUpperCase();
+    69→  for (const r of REGLAS_PREFIJO) {
+    70→    if (s.startsWith(r.prefijo.toUpperCase())) return r.modelo;
+    71→  }
+    72→  return null;
+    73→}
+    74→
+    75→function validarPrefijo(serie: string, prefijo: string): boolean {
+    76→  if (!prefijo.trim()) return true;  // sin prefijo = no validar
+    77→  return serie.trim().toUpperCase().startsWith(prefijo.trim().toUpperCase());
+    78→}
+    79→
+    80→/** Series ya registradas en el sistema (en equipos) que coinciden con las del lote actual */
+    81→function detectarDuplicadosEnSistema(
+    82→  pistoleoFilas: { valores: string[] }[],
+    83→  equipos: { serie: string }[]
+    84→): string[] {
+    85→  const existentes = new Set(equipos.map((e) => e.serie.trim().toLowerCase()));
+    86→  const dups: string[] = [];
+    87→  for (const f of pistoleoFilas) {
+    88→    const s = (f.valores[0] ?? "").trim();
+    89→    if (s && existentes.has(s.toLowerCase())) dups.push(s);
+    90→  }
+    91→  return dups;
+    92→}
+    93→
+    94→/** Series duplicadas dentro del mismo lote actual */
+    95→function detectarDuplicadosEnLote(pistoleoFilas: { valores: string[] }[]): string[] {
+    96→  const seen = new Set<string>();
+    97→  const dups: string[] = [];
+    98→  for (const f of pistoleoFilas) {
+    99→    const s = (f.valores[0] ?? "").trim().toLowerCase();
+   100→    if (!s) continue;
+   101→    if (seen.has(s)) dups.push(f.valores[0].trim());
+   102→    else seen.add(s);
+   103→  }
+   104→  return dups;
+   105→}
+   106→
+   107→export function PistolearView() {
+   108→  const settings = useStore((s) => s.settings);
+   109→  const setSetting = useStore((s) => s.setSetting);
+   110→  const pistoleoModelo = useStore((s) => s.pistoleoModelo);
+   111→  const pistoleoEstado = useStore((s) => s.pistoleoEstado);
+   112→  const pistoleoUbicacion = useStore((s) => s.pistoleoUbicacion);
+   113→  const pistoleoFilas = useStore((s) => s.pistoleoFilas);
+   114→  const pistoleoModeloSeleccionado = useStore((s) => s.pistoleoModeloSeleccionado);
+   115→  const pistoleoCamposMarcados = useStore((s) => s.pistoleoCamposMarcados);
+   116→  const equipos = useStore((s) => s.equipos);
+   117→  const products = useStore((s) => s.products);
+   118→  const findEquipmentBySerie = useStore((s) => s.findEquipmentBySerie);
+   119→  const setPistoleoConfig = useStore((s) => s.setPistoleoConfig);
+   120→  const addPistoleoFila = useStore((s) => s.addPistoleoFila);
+   121→  const updatePistoleoFila = useStore((s) => s.updatePistoleoFila);
+   122→  const deletePistoleoFila = useStore((s) => s.deletePistoleoFila);
+   123→  const clearPistoleoFilas = useStore((s) => s.clearPistoleoFilas);
+   124→  const confirmarPistoleo = useStore((s) => s.confirmarPistoleo);
+   125→  const exportarPistoleoExcel = useStore((s) => s.exportarPistoleoExcel);
+   126→  const { toast } = useToast();
+   127→
+   128→  const [showConfig, setShowConfig] = useState(false);
+   129→  const [valor, setValor] = useState("");
+   130→  const [feedback, setFeedback] = useState<FeedbackMsg | null>(null);
+   131→  const [editingId, setEditingId] = useState<string | null>(null);
+   132→  const [editingValores, setEditingValores] = useState<string[]>([]);
+   133→  const [editingModelo, setEditingModelo] = useState<string>("");
+   134→  const [showPreview, setShowPreview] = useState(false);
+   135→  /** Series ya registradas detectadas (para mostrar mensaje clickeable) */
+   136→  const [duplicadosSistema, setDuplicadosSistema] = useState<string[]>([]);
+   137→  /** Mostrar modal de detalle de duplicados */
+   138→  const [showDuplicadosModal, setShowDuplicadosModal] = useState(false);
+   139→  /** Resultado de la última confirmación */
+   140→  const [lastConfirmResult, setLastConfirmResult] = useState<{ ok: boolean; msg: string; duplicados?: string[] } | null>(null);
+   141→  /** Cuántas filas renderizar (paginación para listas grandes) */
+   142→  const [visibleCount, setVisibleCount] = useState(100);
+   143→
+   144→  // Setter que actualiza el store (persiste al refrescar)
+   145→  const setModeloSeleccionado = (v: string) => setPistoleoConfig({ pistoleoModeloSeleccionado: v });
+   146→  const modeloSeleccionado = pistoleoModeloSeleccionado;
+   147→
+   148→  // Campos marcados ordenados según ORDEN_CAMPOS (serie, mac, cmMac, mtaMac, ua)
+   149→  const camposMarcadosOrdenados = useMemo(() => {
+   150→    return ORDEN_CAMPOS.filter((c) => pistoleoCamposMarcados.includes(c));
+   151→  }, [pistoleoCamposMarcados]);
+   152→
+   153→  // Toggle de un campo marcado
+   154→  const toggleCampoMarcado = (campo: CampoPistoleo) => {
+   155→    const actuales = pistoleoCamposMarcados.includes(campo)
+   156→      ? pistoleoCamposMarcados.filter((c) => c !== campo)
+   157→      : [...pistoleoCamposMarcados, campo];
+   158→    // No permitir quitar todos — al menos uno
+   159→    if (actuales.length === 0) return;
+   160→    setPistoleoConfig({ pistoleoCamposMarcados: actuales });
+   161→    setParcial([]);
+   162→  };
+   163→
+   164→  const inputRef = useRef<HTMLInputElement>(null);
+   165→
+   166→  // Derivar el campoMeta de los campos marcados
+   167→  const camposEsperados = camposMarcadosOrdenados.length;
+   168→  const [parcial, setParcial] = useState<string[]>([]);
+   169→
+   170→  // Foco automático al input
+   171→  useEffect(() => {
+   172→    inputRef.current?.focus();
+   173→  }, [pistoleoCamposMarcados]);
+   174→
+   175→  // Detectar duplicados en sistema cada vez que cambian las filas
+   176→  useEffect(() => {
+   177→    const dups = detectarDuplicadosEnSistema(pistoleoFilas, equipos);
+   178→    setDuplicadosSistema(dups);
+   179→  }, [pistoleoFilas, equipos]);
+   180→
+   181→  // Duplicados dentro del lote
+   182→  const duplicadosEnLote = useMemo(() => detectarDuplicadosEnLote(pistoleoFilas), [pistoleoFilas]);
+   183→
+   184→  const pushFeedback = (ok: boolean, text: string) => {
+   185→    setFeedback({ ok, text, ts: Date.now() });
+   186→  };
+   187→
+   188→  const handleScan = (raw: string) => {
+   189→    const v = raw.trim();
+   190→    if (!v) return;
+   191→
+   192→    // OBLIGATORIO: debe haber un equipo del inventario seleccionado
+   193→    if (!modeloSeleccionado) {
+   194→      const msg = "Falta seleccionar el equipo del inventario antes de pistolear.";
+   195→      pushFeedback(false, msg);
+   196→      // Voz de Alana (mujer) diciendo el error
+   197→      if (false) speak(msg);
+   198→      setValor("");
+   199→      return;
+   200→    }
+   201→
+   202→    // Límite de 1000 series por lote
+   203→    if (pistoleoFilas.length >= 1000) {
+   204→      pushFeedback(false, "Límite alcanzado: 1000 series por lote. Guarda primero.");
+   205→      setValor("");
+   206→      return;
+   207→    }
+   208→
+   209→    const idxEnFila = parcial.length;
+   210→    const esSerie = idxEnFila === 0;
+   211→    const campoActual = camposMarcadosOrdenados[idxEnFila];
+   212→
+   213→    // === DETECTAR DUPLICADO EN LA MISMA LECTURA ===
+   214→    // Si el valor actual ya fue escaneado en esta misma lectura (misma serie en MAC, CM MAC, etc.)
+   215→    // lo rechazamos para evitar errores de doble pistoleo
+   216→    if (parcial.some((valor) => valor.toUpperCase() === v.toUpperCase())) {
+   217→      const msg = `Rechazada: "${v}" repetida en esta lectura (¿doble escaneo?)`;
+   218→      pushFeedback(false, msg);
+   219→      if (false) speak("Serie repetida, revisa");
+   220→      setValor("");
+   221→      return;
+   222→    }
+   223→
+   224→    // Validar prefijo solo si está activado y el primer campo marcado es "serie"
+   225→    const primerCampoEsSerie = camposMarcadosOrdenados[0] === "serie";
+   226→    if (esSerie && primerCampoEsSerie && settings.pistoleoPrefijoEnabled && settings.pistoleoPrefijo && !validarPrefijo(v, settings.pistoleoPrefijo)) {
+   227→      const msg = `Rechazada: no empieza con ${settings.pistoleoPrefijo}`;
+   228→      pushFeedback(false, msg);
+   229→      if (false) speak(`Rechazada, no empieza con ${settings.pistoleoPrefijo}`);
+   230→      setValor("");
+   231→      return;
+   232→    }
+   233→
+   234→    if (esSerie && primerCampoEsSerie && findEquipmentBySerie(v)) {
+   235→      // Ya existe en el sistema → la añadimos igual pero marcamos como duplicada
+   236→      pushFeedback(false, `Esta serie YA está registrada en el sistema`);
+   237→    }
+   238→
+   239→    if (esSerie && primerCampoEsSerie) {
+   240→      const yaEnFilas = pistoleoFilas.some((f) => f.valores[0]?.toUpperCase() === v.toUpperCase());
+   241→      if (yaEnFilas) {
+   242→        pushFeedback(false, `Rechazada: ya capturada en esta sesión`);
+   243→        setValor("");
+   244→        return;
+   245→      }
+   246→    }
+   247→
+   248→    const nuevosParcial = [...parcial, v];
+   249→    setParcial(nuevosParcial);
+   250→    setValor("");
+   251→
+   252→    if (nuevosParcial.length >= camposEsperados) {
+   253→      addPistoleoFila(nuevosParcial, modeloSeleccionado || undefined, camposMarcadosOrdenados);
+   254→      setParcial([]);
+   255→      const modeloDetectado = modeloSeleccionado
+   256→        || pistoleoModelo.trim()
+   257→        || detectarModelo(v)
+   258→        || "SIN MODELO";
+   259→      pushFeedback(true, `Aceptada · ${v} → ${modeloDetectado}`);
+   260→    } else {
+   261→      // Mostrar qué campo se acaba de escanear + su valor
+   262→      const campoRecienEscaneado = CAMPOS_PISTOLEO_META[campoActual].label;
+   263→      const siguienteCampo = CAMPOS_PISTOLEO_META[camposMarcadosOrdenados[nuevosParcial.length]].label;
+   264→      pushFeedback(true, `${campoRecienEscaneado}: ${v} — ahora escanea ${siguienteCampo}…`);
+   265→    }
+   266→  };
+   267→
+   268→  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+   269→    if (e.key === "Enter") {
+   270→      e.preventDefault();
+   271→      handleScan(valor);
+   272→    } else if (e.key === "Escape" && parcial.length > 0) {
+   273→      setParcial([]);
+   274→      setValor("");
+   275→      pushFeedback(false, "Lectura parcial cancelada");
+   276→    }
+   277→  };
+   278→
+   279→  const handleConfirmar = () => {
+   280→    if (pistoleoFilas.length === 0) return;
+   281→    // Mostrar preview primero
+   282→    setShowPreview(true);
+   283→  };
+   284→
+   285→  const handleConfirmarReal = () => {
+   286→    const r = confirmarPistoleo();
+   287→    setLastConfirmResult({ ok: r.ok, msg: r.msg, duplicados: r.duplicados });
+   288→    if (r.ok) {
+   289→      toast({ title: "Series guardadas", description: r.msg });
+   290→      pushFeedback(true, r.msg);
+   291→      setShowPreview(false);
+   292→      if (r.duplicados && r.duplicados.length > 0) {
+   293→        // Mostrar toast de advertencia con acción de ver detalle
+   294→        toast({
+   295→          title: `${r.duplicados.length} serie(s) ya estaban registradas`,
+   296→          description: "Toca el mensaje de abajo para ver el detalle.",
+   297→        });
+   298→      }
+   299→    } else {
+   300→      toast({ title: "Sin guardar", description: r.msg, variant: "destructive" });
+   301→      pushFeedback(false, r.msg);
+   302→      setShowPreview(false);
+   303→      if (r.duplicados && r.duplicados.length > 0) {
+   304→        setShowDuplicadosModal(true);
+   305→      }
+   306→    }
+   307→  };
+   308→
+   309→  const handleClear = () => {
+   310→    if (pistoleoFilas.length === 0) return;
+   311→    clearPistoleoFilas();
+   312→    toast({ title: "Captura descartada" });
+   313→  };
+   314→
+   315→  const startEdit = (id: string, valores: string[], modeloSel?: string) => {
+   316→    setEditingId(id);
+   317→    setEditingValores([...valores, ...Array(Math.max(0, camposEsperados - valores.length)).fill("")]);
+   318→    setEditingModelo(modeloSel ?? "");
+   319→  };
+   320→
+   321→  const cancelEdit = () => {
+   322→    setEditingId(null);
+   323→    setEditingValores([]);
+   324→    setEditingModelo("");
+   325→  };
+   326→
+   327→  const saveEdit = () => {
+   328→    if (!editingId) return;
+   329→    const trimmed = editingValores.map((v) => v.trim());
+   330→    if (!trimmed[0]) {
+   331→      toast({ title: "La serie no puede estar vacía", variant: "destructive" });
+   332→      return;
+   333→    }
+   334→    updatePistoleoFila(editingId, trimmed, editingModelo || undefined);
+   335→    setEditingId(null);
+   336→    setEditingValores([]);
+   337→    setEditingModelo("");
+   338→    toast({ title: "Fila actualizada" });
+   339→  };
+   340→
+   341→  const hayParcial = parcial.length > 0;
+   342→  const feedbackVisible = feedback && Date.now() - feedback.ts < 4000;
+   343→
+   344→  // Todos los campos usados en todas las filas (unión) — para headers de tabla
+   345→  const camposTabla = useMemo(() => {
+   346→    const todos = new Set<string>(camposMarcadosOrdenados);
+   347→    for (const f of pistoleoFilas) {
+   348→      if (f.camposMarcados && f.camposMarcados.length > 0) {
+   349→        for (const c of f.camposMarcados) todos.add(c);
+   350→      }
+   351→    }
+   352→    return ORDEN_CAMPOS.filter((c) => todos.has(c));
+   353→  }, [pistoleoFilas, camposMarcadosOrdenados]);
+   354→
+   355→  // Auto-ocultar feedback después de 4 segundos
+   356→  useEffect(() => {
+   357→    if (!feedback) return;
+   358→    const id = setTimeout(() => setFeedback(null), 4000);
+   359→    return () => clearTimeout(id);
+   360→  }, [feedback]);
+   361→
+   362→  // Set de series existentes para lookup O(1) (evita O(n²) en render de tabla)
+   363→  const seriesExistentesSet = useMemo(() => {
+   364→    const set = new Set<string>();
+   365→    for (const e of equipos) {
+   366→      const s = e.serie.trim().toLowerCase();
+   367→      if (s) set.add(s);
+   368→    }
+   369→    return set;
+   370→  }, [equipos]);
+   371→
+   372→  // Set de duplicados en lote para lookup O(1)
+   373→  const duplicadosEnLoteSet = useMemo(() => {
+   374→    const set = new Set<string>();
+   375→    for (const d of duplicadosEnLote) set.add(d.toUpperCase());
+   376→    return set;
+   377→  }, [duplicadosEnLote]);
+   378→
+   379→  // Filas visibles (paginación para listas grandes)
+   380→  const filasVisibles = useMemo(
+   381→    () => pistoleoFilas.slice(0, visibleCount),
+   382→    [pistoleoFilas, visibleCount]
+   383→  );
+   384→  const hayMasFilas = pistoleoFilas.length > visibleCount;
+   385→
+   386→  // Catálogo de productos para seleccionar el equipo/modelo
+   387→  const productosUnicos = useMemo(() => {
+   388→    const set = new Set<string>();
+   389→    return products.filter((p) => {
+   390→      const key = p.name.trim().toLowerCase();
+   391→      if (set.has(key)) return false;
+   392→      set.add(key);
+   393→      return true;
+   394→    });
+   395→  }, [products]);
+   396→
+   397→  return (
+   398→    <div className="anim-fade-in px-6 py-6 lg:px-8 relative">
+   399→      {/* Fondo elegante: patrón de puntos sutil */}
+   400→      <div
+   401→        className="pointer-events-none fixed inset-0 z-0 opacity-[0.025]"
+   402→        style={{
+   403→          backgroundImage: "radial-gradient(circle, var(--foreground) 1px, transparent 1px)",
+   404→          backgroundSize: "24px 24px",
+   405→        }}
+   406→      />
+   407→      <div className="relative z-10">
+   408→      {/* Header */}
+   409→      <header className="anim-slide-up mb-6 flex flex-wrap items-center justify-end gap-4">
+   410→        <Button
+   411→          variant="outline"
+   412→          onClick={() => setShowConfig((v) => !v)}
+   413→          className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted"
+   414→        >
+   415→          <Settings2 className="mr-1.5 h-4 w-4" {...ICON_PROPS} />
+   416→          {showConfig ? "Ocultar" : "Configuración"}
+   417→          {showConfig
+   418→            ? <ChevronDown className="ml-1 h-3.5 w-3.5" {...ICON_PROPS} />
+   419→            : <ChevronRight className="ml-1 h-3.5 w-3.5" {...ICON_PROPS} />}
+   420→        </Button>
+   421→      </header>
+   422→
+   423→      {/* Panel: seleccionar equipo del inventario */}
+   424→      <div className="anim-slide-up mb-4 rounded-lg bg-muted/30 p-4">
+   425→        <div className="relative">
+   426→          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" {...ICON_PROPS} />
+   427→          <select
+   428→            value={modeloSeleccionado}
+   429→            onChange={(e) => setModeloSeleccionado(e.target.value)}
+   430→            className={cn(
+   431→              "h-10 w-full appearance-none rounded-lg border bg-background pl-8 pr-8 text-[13px] font-medium text-foreground outline-none transition-colors",
+   432→              modeloSeleccionado ? "border-foreground" : "border-border focus:border-foreground"
+   433→            )}
+   434→          >
+   435→            <option value="">Seleccionar equipo</option>
+   436→            {productosUnicos.map((p) => (
+   437→              <option key={p.id} value={p.name}>
+   438→                {p.name} {p.sku ? `· ${p.sku}` : ""}
+   439→              </option>
+   440→            ))}
+   441→          </select>
+   442→          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" {...ICON_PROPS} />
+   443→        </div>
+   444→        {modeloSeleccionado && (
+   445→          <button
+   446→            onClick={() => setModeloSeleccionado("")}
+   447→            className="press mt-2 inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+   448→          >
+   449→            <X className="h-3 w-3" {...ICON_PROPS} /> Cambiar
+   450→          </button>
+   451→        )}
+   452→      </div>
+   453→
+   454→      {/* Panel: prefijo de validación (con toggle on/off) */}
+   455→      <div className="anim-slide-up mb-4 rounded-lg bg-muted/30 p-4">
+   456→        <div className="flex flex-wrap items-center gap-3">
+   457→          <Switch
+   458→            checked={settings.pistoleoPrefijoEnabled}
+   459→            onCheckedChange={(v) => setSetting("pistoleoPrefijoEnabled", v)}
+   460→          />
+   461→          <Input
+   462→            value={settings.pistoleoPrefijo}
+   463→            onChange={(e) => setSetting("pistoleoPrefijo", e.target.value.toUpperCase())}
+   464→            placeholder="Prefijo (ej: ZTE)"
+   465→            className="h-9 flex-1 rounded-lg border-border bg-background font-mono uppercase text-[13px]"
+   466→            disabled={!settings.pistoleoPrefijoEnabled}
+   467→          />
+   468→          {settings.pistoleoPrefijo && settings.pistoleoPrefijoEnabled && (
+   469→            <button
+   470→              onClick={() => setSetting("pistoleoPrefijo", "")}
+   471→              className="press inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+   472→            >
+   473→              <X className="h-3 w-3" {...ICON_PROPS} /> Limpiar
+   474→            </button>
+   475→          )}
+   476→        </div>
+   477→      </div>
+   478→
+   479→      {/* Config panel avanzado (colapsable) — estado de destino + ubicación de guardado */}
+   480→      {showConfig && (
+   481→        <div className="anim-slide-up mb-4 rounded-lg bg-muted/30 p-4">
+   482→          <div className="flex flex-wrap items-center gap-3">
+   483→            <div className="flex items-center gap-2">
+   484→              <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Estado</Label>
+   485→              <Select
+   486→                value={pistoleoEstado}
+   487→                onValueChange={(v) => setPistoleoConfig({ pistoleoEstado: v as EstadoEquipo })}
+   488→              >
+   489→                <SelectTrigger className="h-9 rounded-lg border-border bg-background text-[13px] w-auto min-w-[140px]">
+   490→                  <SelectValue />
+   491→                </SelectTrigger>
+   492→                <SelectContent className="rounded-lg">
+   493→                  {ESTADOS.map((est) => (
+   494→                    <SelectItem key={est} value={est}>
+   495→                      {ESTADO_META[est].label}
+   496→                    </SelectItem>
+   497→                  ))}
+   498→                </SelectContent>
+   499→              </Select>
+   500→            </div>
+   501→            <div className="flex items-center gap-2">
+   502→              <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Guardar en</Label>
+   503→              <Select
+   504→                value={pistoleoUbicacion || "Almacén"}
+   505→                onValueChange={(v) => setPistoleoConfig({ pistoleoUbicacion: v })}
+   506→              >
+   507→                <SelectTrigger className="h-9 rounded-lg border-border bg-background text-[13px] w-auto min-w-[160px]">
+   508→                  <SelectValue />
+   509→                </SelectTrigger>
+   510→                <SelectContent className="rounded-lg">
+   511→                  <SelectItem value="Almacén">Almacén</SelectItem>
+   512→                  <SelectItem value="Taller">Taller</SelectItem>
+   513→                  <SelectItem value="Cuarto Técnico">Cuarto Técnico</SelectItem>
+   514→                  <SelectItem value="Bodega de Averías">Bodega de Averías</SelectItem>
+   515→                  <SelectItem value="Bodega de Retiro">Bodega de Retiro</SelectItem>
+   516→                  <SelectItem value="Devolver a Proveedor">Devolver a Proveedor</SelectItem>
+   517→                  <SelectItem value="Estantería">Estantería</SelectItem>
+   518→                </SelectContent>
+   519→              </Select>
+   520→            </div>
+   521→          </div>
+   522→        </div>
+   523→      )}
+   524→
+   525→      {/* Checkboxes: marcar qué campos se van a pistolear */}
+   526→      <div className="anim-slide-up mb-4">
+   527→        <div className="flex flex-wrap items-center gap-2">
+   528→          {ORDEN_CAMPOS.map((campo) => {
+   529→            const marcado = pistoleoCamposMarcados.includes(campo);
+   530→            return (
+   531→              <button
+   532→                key={campo}
+   533→                onClick={() => toggleCampoMarcado(campo)}
+   534→                className={cn(
+   535→                  "press flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12px] font-medium transition-colors",
+   536→                  marcado
+   537→                    ? "border-foreground bg-foreground text-background"
+   538→                    : "border-border bg-background text-muted-foreground hover:text-foreground hover:bg-muted"
+   539→                )}
+   540→              >
+   541→                <span
+   542→                  className={cn(
+   543→                    "flex h-4 w-4 items-center justify-center rounded-full border",
+   544→                    marcado ? "border-background bg-background" : "border-muted-foreground"
+   545→                  )}
+   546→                >
+   547→                  {marcado && <Check className="h-2.5 w-2.5 text-foreground" {...ICON_PROPS} />}
+   548→                </span>
+   549→                {CAMPOS_PISTOLEO_META[campo].label}
+   550→              </button>
+   551→            );
+   552→          })}
+   553→          <div className="ml-auto flex items-center gap-2 text-[11px] text-muted-foreground">
+   554→            {hayParcial && (
+   555→              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] text-muted-foreground">
+   556→                <span className="h-1.5 w-1.5 rounded-full bg-foreground" />
+   557→                {parcial.length}/{camposEsperados}
+   558→              </span>
+   559→            )}
+   560→          </div>
+   561→        </div>
+   562→      </div>
+   563→
+   564→      {/* KPIs compactos del pistoleo actual */}
+   565→      <div className="anim-slide-up mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+   566→        {/* KPI 1: Series escaneadas (este lote) */}
+   567→        <div
+   568→          className="press-card anim-slide-up rounded-lg border border-border bg-card p-3 text-card-foreground shadow transition-shadow hover:shadow-md"
+   569→          style={{ animationDelay: "0ms" }}
+   570→        >
+   571→          <div className="flex items-center gap-1.5">
+   572→            <ScanLine className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+   573→            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+   574→              Escaneadas
+   575→            </p>
+   576→          </div>
+   577→          <p className="mt-0.5 text-xl font-bold tabular-nums text-foreground">
+   578→            {pistoleoFilas.length}
+   579→          </p>
+   580→        </div>
+   581→
+   582→        {/* KPI 2: Estado de destino seleccionado */}
+   583→        <div
+   584→          className="press-card anim-slide-up rounded-lg border border-border bg-card p-3 text-card-foreground shadow transition-shadow hover:shadow-md"
+   585→          style={{ animationDelay: "60ms" }}
+   586→        >
+   587→          <div className="flex items-center gap-1.5">
+   588→            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+   589→              Estado
+   590→            </p>
+   591→            {pistoleoEstado === "averiado" && (
+   592→              <span className="anim-pulse-dot h-2 w-2 rounded-full bg-destructive" />
+   593→            )}
+   594→          </div>
+   595→          <p className="mt-0.5 text-[13px] font-semibold text-foreground">
+   596→            {ESTADO_META[pistoleoEstado].label}
+   597→          </p>
+   598→        </div>
+   599→
+   600→        {/* KPI 3: Ubicación de guardado */}
+   601→        <div
+   602→          className="press-card anim-slide-up rounded-lg border border-border bg-card p-3 text-card-foreground shadow transition-shadow hover:shadow-md"
+   603→          style={{ animationDelay: "120ms" }}
+   604→        >
+   605→          <div className="flex items-center gap-1.5">
+   606→            <MapPin className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+   607→            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+   608→              Guardar en
+   609→            </p>
+   610→          </div>
+   611→          <p className="mt-0.5 truncate text-[13px] font-semibold text-foreground">
+   612→            {pistoleoUbicacion || "Almacén"}
+   613→          </p>
+   614→        </div>
+   615→
+   616→        {/* KPI 4: Total equipos en el sistema */}
+   617→        <div
+   618→          className="press-card anim-slide-up rounded-lg border border-border bg-card p-3 text-card-foreground shadow transition-shadow hover:shadow-md"
+   619→          style={{ animationDelay: "180ms" }}
+   620→        >
+   621→          <div className="flex items-center gap-1.5">
+   622→            <Boxes className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+   623→            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+   624→              En sistema
+   625→            </p>
+   626→          </div>
+   627→          <p className="mt-0.5 text-xl font-bold tabular-nums text-foreground">
+   628→            {equipos.length}
+   629→          </p>
+   630→        </div>
+   631→      </div>
+   632→
+   633→      {/* Input grande */}
+   634→      <div className="anim-slide-up mb-3">
+   635→        <div className="relative">
+   636→          <ScanLine className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" {...ICON_PROPS} />
+   637→          <input
+   638→            ref={inputRef}
+   639→            value={valor}
+   640→            onChange={(e) => setValor(e.target.value)}
+   641→            onKeyDown={onKeyDown}
+   642→            placeholder={
+   643→              hayParcial
+   644→                ? CAMPOS_PISTOLEO_META[camposMarcadosOrdenados[parcial.length]].label
+   645→                : CAMPOS_PISTOLEO_META[camposMarcadosOrdenados[0]]?.label ?? "Serie"
+   646→            }
+   647→            className="h-12 w-full rounded-lg border border-border bg-background pl-11 pr-3 font-mono text-[15px] font-medium tracking-wide text-foreground outline-none transition-colors focus:border-foreground"
+   648→            autoComplete="off"
+   649→            spellCheck={false}
+   650→          />
+   651→        </div>
+   652→        {/* Preview en vivo: qué llevo escaneado hasta ahora */}
+   653→        {hayParcial && (
+   654→          <div className="mt-3 rounded-lg border border-border bg-muted/40 p-3">
+   655→            <div className="flex flex-wrap gap-2">
+   656→              {camposMarcadosOrdenados.map((c, idx) => {
+   657→                const val = parcial[idx];
+   658→                const escaneado = val !== undefined && val !== "";
+   659→                const esActual = idx === parcial.length;
+   660→                return (
+   661→                  <div
+   662→                    key={c}
+   663→                    className={cn(
+   664→                      "flex items-center gap-2 rounded-full border px-3 py-1.5 text-[12px]",
+   665→                      escaneado
+   666→                        ? "border-foreground bg-foreground text-background"
+   667→                        : esActual
+   668→                          ? "border-foreground/40 bg-background text-foreground"
+   669→                          : "border-border bg-background text-muted-foreground"
+   670→                    )}
+   671→                  >
+   672→                    <span className="text-[10px] font-medium uppercase tracking-wide opacity-70">
+   673→                      {CAMPOS_PISTOLEO_META[c].short}
+   674→                    </span>
+   675→                    {escaneado ? (
+   676→                      <span className="font-mono font-medium">{val}</span>
+   677→                    ) : esActual ? (
+   678→                      <span className="opacity-60">···</span>
+   679→                    ) : (
+   680→                      <span className="opacity-40">—</span>
+   681→                    )}
+   682→                  </div>
+   683→                );
+   684→              })}
+   685→            </div>
+   686→          </div>
+   687→        )}
+   688→        {/* Live feedback */}
+   689→        <div className="mt-2 h-5">
+   690→          {feedbackVisible && feedback && (
+   691→            <div
+   692→              className={cn(
+   693→                "anim-fade-in inline-flex items-center gap-1.5 text-[12px] font-medium",
+   694→                feedback.ok ? "text-foreground" : "text-destructive"
+   695→              )}
+   696→            >
+   697→              {feedback.ok
+   698→                ? <Check className="h-3.5 w-3.5" {...ICON_PROPS} />
+   699→                : <AlertCircle className="h-3.5 w-3.5" {...ICON_PROPS} />}
+   700→              {feedback.text}
+   701→            </div>
+   702→          )}
+   703→        </div>
+   704→      </div>
+   705→
+   706→      {/* Banner: series ya registradas en el sistema (clickeable) */}
+   707→      {duplicadosSistema.length > 0 && (
+   708→        <button
+   709→          onClick={() => setShowDuplicadosModal(true)}
+   710→          className="press anim-fade-in mb-3 flex w-full items-center gap-2.5 rounded-lg bg-muted/30 px-3 py-2.5 text-left transition-colors hover:bg-muted"
+   711→        >
+   712→          <AlertCircle className="h-4 w-4 shrink-0 text-muted-foreground" {...ICON_PROPS} />
+   713→          <div className="min-w-0 flex-1">
+   714→            <p className="text-[12px] font-medium text-foreground">
+   715→              {duplicadosSistema.length} ya registradas
+   716→            </p>
+   717→          </div>
+   718→          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" {...ICON_PROPS} />
+   719→        </button>
+   720→      )}
+   721→
+   722→      {/* Banner: duplicados dentro del lote actual */}
+   723→      {duplicadosEnLote.length > 0 && (
+   724→        <div className="anim-fade-in mb-3 flex items-center gap-2.5 rounded-lg bg-muted/30 px-3 py-2.5">
+   725→          <AlertCircle className="h-4 w-4 shrink-0 text-muted-foreground" {...ICON_PROPS} />
+   726→          <div className="min-w-0 flex-1">
+   727→            <p className="text-[12px] font-medium text-foreground">
+   728→              {duplicadosEnLote.length} repetida(s)
+   729→            </p>
+   730→          </div>
+   731→        </div>
+   732→      )}
+   733→
+   734→      {/* Acciones */}
+   735→      <div className="anim-slide-up mb-4 flex flex-wrap items-center gap-2">
+   736→        <Button
+   737→          onClick={handleConfirmar}
+   738→          disabled={pistoleoFilas.length === 0}
+   739→          className="h-9 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90 disabled:opacity-40"
+   740→        >
+   741→          <Save className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Guardar ({pistoleoFilas.length})
+   742→        </Button>
+   743→        <Button
+   744→          variant="outline"
+   745→          onClick={handleClear}
+   746→          disabled={pistoleoFilas.length === 0}
+   747→          className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted disabled:opacity-40"
+   748→        >
+   749→          <Trash2 className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Descartar
+   750→        </Button>
+   751→        <Button
+   752→          variant="outline"
+   753→          onClick={() => {
+   754→            if (pistoleoFilas.length === 0) {
+   755→              toast({ title: "No hay series para exportar", variant: "destructive" });
+   756→              return;
+   757→            }
+   758→            exportarPistoleoExcel();
+   759→            toast({ title: "Excel generado", description: `${pistoleoFilas.length} serie(s) exportadas` });
+   760→          }}
+   761→          disabled={pistoleoFilas.length === 0}
+   762→          className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted disabled:opacity-40"
+   763→        >
+   764→          <Download className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Exportar Excel
+   765→        </Button>
+   766→      </div>
+   767→
+   768→      {/* Aviso de límite */}
+   769→      {pistoleoFilas.length >= 900 && (
+   770→        <div className="mb-4 flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-2.5 text-[12px] text-muted-foreground">
+   771→          <AlertCircle className="h-3.5 w-3.5 shrink-0" {...ICON_PROPS} />
+   772→          <span>{pistoleoFilas.length}/1000</span>
+   773→        </div>
+   774→      )}
+   775→
+   776→      {/* Tabla de capturas */}
+   777→      <div className="anim-slide-up overflow-hidden rounded-lg bg-card shadow-sm">
+   778→        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+   779→          <span className="text-[11px] tabular-nums text-muted-foreground">
+   780→            {pistoleoFilas.length}
+   781→          </span>
+   782→        </div>
+   783→        {pistoleoFilas.length === 0 ? (
+   784→          <div className="px-4 py-16 text-center text-[13px] text-muted-foreground">
+   785→            —
+   786→          </div>
+   787→        ) : (
+   788→          <div className="max-h-96 overflow-y-auto scroll-thin">
+   789→            <table className="w-full text-[13px]">
+   790→              <thead className="sticky top-0 bg-background">
+   791→                <tr className="border-b border-border text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+   792→                  <th className="px-3 py-2.5 font-medium">#</th>
+   793→                  {camposTabla.map((c) => (
+   794→                    <th key={c} className="px-3 py-2.5 font-medium">{CAMPOS_PISTOLEO_META[c].label}</th>
+   795→                  ))}
+   796→                  <th className="px-3 py-2.5 font-medium">Modelo</th>
+   797→                  <th className="px-3 py-2.5 font-medium">Hora</th>
+   798→                  <th className="px-3 py-2.5"></th>
+   799→                </tr>
+   800→              </thead>
+   801→              <tbody className="divide-y divide-border">
+   802→                {filasVisibles.map((f, i) => {
+   803→                  // Campos de ESTA fila (no los globales)
+   804→                  const camposFila = (f.camposMarcados && f.camposMarcados.length > 0)
+   805→                    ? f.camposMarcados
+   806→                    : camposMarcadosOrdenados;
+   807→                  const camposOrdenFila = ORDEN_CAMPOS.filter((c) => camposFila.includes(c as any));
+   808→                  const idxFila = (campo: string) => camposOrdenFila.indexOf(campo);
+   809→                  // Mapear valores por campo de esta fila
+   810→                  const valoresPorCampo: Record<string, string> = {};
+   811→                  camposTabla.forEach((c) => {
+   812→                    const idx = idxFila(c);
+   813→                    valoresPorCampo[c] = idx >= 0 ? (f.valores[idx] ?? "") : "";
+   814→                  });
+   815→                  const serie = valoresPorCampo.serie ?? "";
+   816→                  const modeloDetectado =
+   817→                    f.modeloSeleccionado?.trim()
+   818→                    || pistoleoModelo.trim()
+   819→                    || detectarModelo(serie)
+   820→                    || "SIN MODELO";
+   821→                  const yaEnSistema = seriesExistentesSet.has(serie.trim().toLowerCase());
+   822→                  const dupEnLote = duplicadosEnLoteSet.has(serie.toUpperCase());
+   823→
+   824→                  if (editingId === f.id) {
+   825→                    return (
+   826→                      <tr key={f.id} className="bg-muted/40">
+   827→                        <td className="px-3 py-2.5 text-[11px] tabular-nums text-muted-foreground">{i + 1}</td>
+   828→                        {camposTabla.map((c, idx) => {
+   829→                          const idxF = idxFila(c);
+   830→                          return (
+   831→                            <td key={c} className="px-3 py-2.5">
+   832→                              <Input
+   833→                                value={editingValores[idxF >= 0 ? idxF : idx] ?? ""}
+   834→                                onChange={(e) => {
+   835→                                  const next = [...editingValores];
+   836→                                  next[idxF >= 0 ? idxF : idx] = e.target.value;
+   837→                                  setEditingValores(next);
+   838→                                }}
+   839→                                className="h-8 rounded-lg border-border bg-background font-mono text-[12px]"
+   840→                                autoFocus={idx === 0}
+   841→                              />
+   842→                            </td>
+   843→                          );
+   844→                        })}
+   845→                        <td className="px-3 py-2.5">
+   846→                          <select
+   847→                            value={editingModelo}
+   848→                            onChange={(e) => setEditingModelo(e.target.value)}
+   849→                            className="h-8 w-full rounded-lg border border-border bg-background px-2 text-[11px] font-medium text-foreground outline-none focus:border-foreground"
+   850→                          >
+   851→                            <option value="">Autodetectar</option>
+   852→                            {productosUnicos.map((p) => (
+   853→                              <option key={p.id} value={p.name}>{p.name}</option>
+   854→                            ))}
+   855→                          </select>
+   856→                        </td>
+   857→                        <td className="px-3 py-2.5 text-[11px] tabular-nums text-muted-foreground">
+   858→                          {new Date(f.timestamp).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+   859→                        </td>
+   860→                        <td className="px-3 py-2.5">
+   861→                          <div className="flex items-center gap-1">
+   862→                            <button
+   863→                              onClick={saveEdit}
+   864→                              className="press rounded-lg p-1.5 text-foreground hover:bg-muted"
+   865→                              title="Guardar"
+   866→                            >
+   867→                              <Check className="h-3.5 w-3.5" {...ICON_PROPS} />
+   868→                            </button>
+   869→                            <button
+   870→                              onClick={cancelEdit}
+   871→                              className="press rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+   872→                              title="Cancelar"
+   873→                            >
+   874→                              <X className="h-3.5 w-3.5" {...ICON_PROPS} />
+   875→                            </button>
+   876→                          </div>
+   877→                        </td>
+   878→                      </tr>
+   879→                    );
+   880→                  }
+   881→
+   882→                  return (
+   883→                    <tr
+   884→                      key={f.id}
+   885→                      className="group transition-colors hover:bg-muted/40"
+   886→                    >
+   887→                      <td className="px-3 py-2.5 text-[11px] tabular-nums text-muted-foreground">{i + 1}</td>
+   888→                      {camposTabla.map((c) => {
+   889→                        const valor = valoresPorCampo[c] ?? "";
+   890→                        const esSerie = c === "serie";
+   891→                        const showBadge = esSerie && (yaEnSistema || (dupEnLote && !yaEnSistema));
+   892→                        return (
+   893→                          <td key={c} className="px-3 py-2.5">
+   894→                            <div className="flex items-center gap-2">
+   895→                              <span className="font-mono text-[12px] font-medium text-foreground">
+   896→                                {valor || <span className="text-muted-foreground/40">—</span>}
+   897→                              </span>
+   898→                              {showBadge && yaEnSistema && (
+   899→                                <span
+   900→                                  className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide text-muted-foreground"
+   901→                                  title="Ya registrada en el sistema"
+   902→                                >
+   903→                                  <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
+   904→                                  registrada
+   905→                                </span>
+   906→                              )}
+   907→                              {showBadge && dupEnLote && !yaEnSistema && (
+   908→                                <span
+   909→                                  className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide text-muted-foreground"
+   910→                                  title="Repetida en este lote"
+   911→                                >
+   912→                                  <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />
+   913→                                  repetida
+   914→                                </span>
+   915→                              )}
+   916→                            </div>
+   917→                          </td>
+   918→                        );
+   919→                      })}
+   920→                      <td className="px-3 py-2.5">
+   921→                        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-foreground">
+   922→                          <Cpu className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+   923→                          {modeloDetectado}
+   924→                        </span>
+   925→                      </td>
+   926→                      <td className="px-3 py-2.5 text-[11px] tabular-nums text-muted-foreground">
+   927→                        {new Date(f.timestamp).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+   928→                      </td>
+   929→                      <td className="px-3 py-2.5">
+   930→                        <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+   931→                          <button
+   932→                            onClick={() => startEdit(f.id, f.valores, f.modeloSeleccionado)}
+   933→                            className="press rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+   934→                            title="Editar"
+   935→                          >
+   936→                            <Pencil className="h-3.5 w-3.5" {...ICON_PROPS} />
+   937→                          </button>
+   938→                          <button
+   939→                            onClick={() => deletePistoleoFila(f.id)}
+   940→                            className="press rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+   941→                            title="Eliminar"
+   942→                          >
+   943→                            <Trash2 className="h-3.5 w-3.5" {...ICON_PROPS} />
+   944→                          </button>
+   945→                        </div>
+   946→                      </td>
+   947→                    </tr>
+   948→                  );
+   949→                })}
+   950→              </tbody>
+   951→            </table>
+   952→            {hayMasFilas && (
+   953→              <div className="border-t border-border px-4 py-3 text-center">
+   954→                <button
+   955→                  onClick={() => setVisibleCount((c) => c + 100)}
+   956→                  className="press rounded-lg border border-border bg-background px-4 py-2 text-[12px] font-medium text-foreground hover:bg-muted"
+   957→                >
+   958→                  Cargar más
+   959→                </button>
+   960→              </div>
+   961→            )}
+   962→          </div>
+   963→        )}
+   964→      </div>
+   965→
+   966→      {/* Resumen */}
+   967→      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+   968→        <ResumenCard label="Capturadas" value={String(pistoleoFilas.length)} tone="neutral" />
+   969→        <ResumenCard
+   970→          label="Última serie"
+   971→          value={pistoleoFilas[0]?.valores[0] ?? "—"}
+   972→          mono
+   973→          tone="info"
+   974→        />
+   975→        <ResumenCard label="Campos" value={camposMarcadosOrdenados.map((c) => CAMPOS_PISTOLEO_META[c].short).join(" · ")} tone="warn" />
+   976→        <ResumenCard label="Estado destino" value={ESTADO_META[pistoleoEstado].short} tone="ok" />
+   977→      </div>
+   978→
+   979→      {/* Modal: Preview antes de guardar */}
+   980→      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+   981→        <DialogContent className="max-h-[85vh] gap-0 overflow-hidden rounded-lg p-0 sm:max-w-2xl">
+   982→          <DialogHeader className="border-b border-border px-5 py-4">
+   983→            <DialogTitle className="flex items-center gap-2 text-[15px] font-semibold text-foreground">
+   984→              <Eye className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+   985→              {pistoleoFilas.length} serie(s)
+   986→            </DialogTitle>
+   987→          </DialogHeader>
+   988→          <div className="flex flex-col gap-3 px-5 py-4">
+   989→            {/* Resumen */}
+   990→            <div className="grid grid-cols-3 overflow-hidden rounded-lg bg-card shadow-sm">
+   991→              <div className="border-r border-border p-3 text-center">
+   992→                <p className="text-[20px] font-semibold tabular-nums text-foreground">{pistoleoFilas.length}</p>
+   993→              </div>
+   994→              <div className="border-r border-border p-3 text-center">
+   995→                <p className="text-[20px] font-semibold tabular-nums text-foreground">{pistoleoFilas.length - duplicadosSistema.length}</p>
+   996→              </div>
+   997→              <div className="p-3 text-center">
+   998→                <p className="text-[20px] font-semibold tabular-nums text-foreground">{duplicadosSistema.length}</p>
+   999→              </div>
+  1000→            </div>
+  1001→            {/* Lista scroll */}
+  1002→            <div className="max-h-64 overflow-y-auto scroll-thin rounded-lg border border-border bg-background">
+  1003→              <table className="w-full text-[13px]">
+  1004→                <thead className="sticky top-0 bg-background">
+  1005→                  <tr className="border-b border-border text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+  1006→                    <th className="px-3 py-2 font-medium">#</th>
+  1007→                    {camposTabla.map((c) => (
+  1008→                      <th key={c} className="px-3 py-2 font-medium">{CAMPOS_PISTOLEO_META[c].label}</th>
+  1009→                    ))}
+  1010→                    <th className="px-3 py-2 font-medium">Estado</th>
+  1011→                  </tr>
+  1012→                </thead>
+  1013→                <tbody className="divide-y divide-border">
+  1014→                  {pistoleoFilas.map((f, i) => {
+  1015→                    // Campos de ESTA fila
+  1016→                    const camposFila = (f.camposMarcados && f.camposMarcados.length > 0)
+  1017→                      ? f.camposMarcados
+  1018→                      : camposMarcadosOrdenados;
+  1019→                    const camposOrdenFila = ORDEN_CAMPOS.filter((c) => camposFila.includes(c as any));
+  1020→                    const idxFila = (campo: string) => camposOrdenFila.indexOf(campo);
+  1021→                    const valoresPorCampo: Record<string, string> = {};
+  1022→                    camposTabla.forEach((c) => {
+  1023→                      const idx = idxFila(c);
+  1024→                      valoresPorCampo[c] = idx >= 0 ? (f.valores[idx] ?? "") : "";
+  1025→                    });
+  1026→                    const serie = valoresPorCampo.serie ?? "";
+  1027→                    const yaEnSistema = seriesExistentesSet.has(serie.trim().toLowerCase());
+  1028→                    return (
+  1029→                      <tr key={f.id} className="transition-colors hover:bg-muted/40">
+  1030→                        <td className="px-3 py-2 text-[11px] tabular-nums text-muted-foreground">{i + 1}</td>
+  1031→                        {camposTabla.map((c) => (
+  1032→                          <td key={c} className="px-3 py-2 font-mono text-[12px] text-muted-foreground">
+  1033→                            {valoresPorCampo[c] || "—"}
+  1034→                          </td>
+  1035→                        ))}
+  1036→                        <td className="px-3 py-2">
+  1037→                          {yaEnSistema ? (
+  1038→                            <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+  1039→                              <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
+  1040→                            </span>
+  1041→                          ) : (
+  1042→                            <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+  1043→                              <span className="h-1.5 w-1.5 rounded-full bg-foreground" />
+  1044→                            </span>
+  1045→                          )}
+  1046→                        </td>
+  1047→                      </tr>
+  1048→                    );
+  1049→                  })}
+  1050→                </tbody>
+  1051→              </table>
+  1052→            </div>
+  1053→          </div>
+  1054→          <DialogFooter className="border-t border-border px-5 py-4 sm:justify-end">
+  1055→            <DialogClose asChild>
+  1056→              <Button variant="outline" className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted">
+  1057→                Cancelar
+  1058→              </Button>
+  1059→            </DialogClose>
+  1060→            <Button
+  1061→              onClick={handleConfirmarReal}
+  1062→              className="h-9 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+  1063→            >
+  1064→              <Save className="mr-1.5 h-4 w-4" {...ICON_PROPS} />
+  1065→              Guardar {pistoleoFilas.length}
+  1066→            </Button>
+  1067→          </DialogFooter>
+  1068→        </DialogContent>
+  1069→      </Dialog>
+  1070→
+  1071→      {/* Modal: Detalle de duplicados */}
+  1072→      <Dialog open={showDuplicadosModal} onOpenChange={setShowDuplicadosModal}>
+  1073→        <DialogContent className="max-h-[85vh] gap-0 overflow-hidden rounded-lg p-0 sm:max-w-lg">
+  1074→          <DialogHeader className="border-b border-border px-5 py-4">
+  1075→            <DialogTitle className="flex items-center gap-2 text-[15px] font-semibold text-foreground">
+  1076→              <AlertCircle className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+  1077→              {lastConfirmResult?.duplicados?.length ?? duplicadosSistema.length} ya registradas
+  1078→            </DialogTitle>
+  1079→          </DialogHeader>
+  1080→          <div className="max-h-96 overflow-y-auto scroll-thin px-5 py-4">
+  1081→            <ul className="flex flex-col gap-1.5">
+  1082→              {(lastConfirmResult?.duplicados ?? duplicadosSistema).map((s, i) => {
+  1083→                const eq = findEquipmentBySerie(s);
+  1084→                return (
+  1085→                  <li
+  1086→                    key={`${s}-${i}`}
+  1087→                    className="flex items-center gap-3 rounded-lg bg-muted/30 px-3 py-2.5"
+  1088→                  >
+  1089→                    <AlertCircle className="h-4 w-4 shrink-0 text-muted-foreground" {...ICON_PROPS} />
+  1090→                    <div className="min-w-0 flex-1">
+  1091→                      <p className="font-mono text-[12px] font-medium text-foreground">{s}</p>
+  1092→                      {eq && (
+  1093→                        <p className="truncate text-[11px] text-muted-foreground">
+  1094→                          {eq.modelo} · {ESTADO_META[eq.estado].label} · {new Date(eq.createdAt).toLocaleDateString("es-PE", { timeZone: "America/Lima", day: "2-digit", month: "2-digit", year: "numeric" })}
+  1095→                        </p>
+  1096→                      )}
+  1097→                    </div>
+  1098→                    {eq && (
+  1099→                      <span className="shrink-0 text-[10px] uppercase tracking-wider text-muted-foreground">
+  1100→                        {ESTADO_META[eq.estado].short}
+  1101→                      </span>
+  1102→                    )}
+  1103→                  </li>
+  1104→                );
+  1105→              })}
+  1106→            </ul>
+  1107→          </div>
+  1108→          <DialogFooter className="border-t border-border px-5 py-4 sm:justify-end">
+  1109→            <DialogClose asChild>
+  1110→              <Button variant="outline" className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted">
+  1111→                Entendido
+  1112→              </Button>
+  1113→            </DialogClose>
+  1114→          </DialogFooter>
+  1115→        </DialogContent>
+  1116→      </Dialog>
+  1117→      </div>
+  1118→    </div>
+  1119→  );
+  1120→}
+  1121→
+  1122→function ResumenCard({
+  1123→  label,
+  1124→  value,
+  1125→  tone,
+  1126→  mono,
+  1127→}: {
+  1128→  label: string;
+  1129→  value: string;
+  1130→  tone: "neutral" | "info" | "warn" | "ok";
+  1131→  mono?: boolean;
+  1132→}) {
+  1133→  // tone is intentionally accepted but visual styling is intentionally neutral
+  1134→  // per minimalist design (all cards use the same border + background).
+  1135→  void tone;
+  1136→  return (
+  1137→    <div className="rounded-lg bg-muted/30 px-3 py-2.5">
+  1138→      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
+  1139→      <p className={cn("mt-1 truncate text-[14px] font-medium text-foreground", mono && "font-mono")}>
+  1140→        {value}
+  1141→      </p>
+  1142→    </div>
+  1143→  );
+  1144→}
+  1145→

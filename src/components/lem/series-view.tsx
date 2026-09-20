@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight,
   AlertTriangle,
@@ -30,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { AuroraSearchInput } from "@/components/lem/aurora-search-input";
 import { EstadoIcon } from "@/components/lem/estado-icon";
+import { useCountUp } from "@/lib/hooks/use-count-up";
 
 const ICON_PROPS = { strokeWidth: 1.5 } as const;
 const ESTADOS: EstadoEquipo[] = ["disponible", "averiado", "en_retiro"];
@@ -204,6 +206,14 @@ export function SeriesView() {
 
   const goEquipos = () => router.push("/equipos");
 
+  // ─── Count-up animado (Apple/iOS) para los 6 KPIs superiores ───
+  const animTotal = useCountUp(kpis.total);
+  const animDisponibles = useCountUp(kpis.disponibles);
+  const animAveriados = useCountUp(kpis.averiados);
+  const animEnRetiro = useCountUp(kpis.enRetiro);
+  const animSinDespachar30 = useCountUp(kpis.sinDespachar30);
+  const animModelos = useCountUp(kpis.modelosDistintos);
+
   return (
     <div className="select-text cursor-text px-4 py-8 sm:px-6 lg:px-10 anim-fade-in">
       {/* Header */}
@@ -231,9 +241,11 @@ export function SeriesView() {
           ["recomendaciones", "Recomendaciones", recomendacionesCount],
           ["movimientos", "Movimientos", despachos.length],
         ] as const).map(([key, label, count]) => (
-          <button
+          <motion.button
             key={key}
             onClick={() => setTab(key)}
+            whileTap={{ scale: 0.97 }}
+            transition={{ type: "spring", stiffness: 300, damping: 15 }}
             className={cn(
               "relative inline-flex h-10 items-center gap-2 px-4 text-[13px] font-medium transition-colors",
               tab === key ? "text-foreground" : "text-muted-foreground hover:text-foreground",
@@ -248,436 +260,508 @@ export function SeriesView() {
             >
               {count}
             </span>
-            {tab === key && <span className="absolute inset-x-0 -bottom-px h-0.5 bg-foreground" />}
-          </button>
+            {tab === key && (
+              <motion.span
+                layoutId="tab-indicator-series"
+                className="absolute inset-x-0 -bottom-px h-0.5 bg-foreground"
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              />
+            )}
+          </motion.button>
         ))}
       </div>
 
       {/* ─── TAB: SERIES (KPIs + chips + tabla expandible por modelo) ─── */}
-      {tab === "series" && (
-        <>
-          {/* KPIs superiores — entrada escalonada con stagger delay */}
-          <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {/* 1. Total series */}
-            <div
-              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
-              style={{ animationDelay: "0ms" }}
-            >
-              <div className="flex items-center gap-1.5">
-                <Package className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Total series</p>
-              </div>
-              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.total)}</p>
+      <AnimatePresence mode="wait">
+        {tab === "series" && (
+          <motion.div
+            key="tab-series"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+          >
+            {/* KPIs superiores — entrada escalonada con stagger delay + sticky */}
+            <div className="sticky-kpis mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              {/* 1. Total series */}
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+                style={{ animationDelay: "0ms" }}
+              >
+                <div className="flex items-center gap-1.5">
+                  <Package className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Total series</p>
+                </div>
+                <p className="tabular mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(animTotal)}</p>
+              </motion.div>
+              {/* 2. Disponibles */}
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+                style={{ animationDelay: "60ms" }}
+              >
+                <div className="flex items-center gap-1.5">
+                  <Check className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Disponibles</p>
+                </div>
+                <p className="tabular mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(animDisponibles)}</p>
+              </motion.div>
+              {/* 3. Averiadas — pulse dot si hay alerta */}
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+                style={{ animationDelay: "120ms" }}
+              >
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Averiadas</p>
+                  {kpis.averiados > 0 && <span className="anim-pulse-dot h-2 w-2 rounded-full bg-destructive" />}
+                </div>
+                <p className="tabular mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(animAveriados)}</p>
+              </motion.div>
+              {/* 4. En retiro */}
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+                style={{ animationDelay: "180ms" }}
+              >
+                <div className="flex items-center gap-1.5">
+                  <Undo className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">En retiro</p>
+                </div>
+                <p className="tabular mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(animEnRetiro)}</p>
+              </motion.div>
+              {/* 5. Sin despachar 30+d — pulse dot si hay alerta */}
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+                style={{ animationDelay: "240ms" }}
+              >
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Sin despachar 30+d</p>
+                  {kpis.sinDespachar30 > 0 && <span className="anim-pulse-dot h-2 w-2 rounded-full bg-amber-500" />}
+                </div>
+                <p className="tabular mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(animSinDespachar30)}</p>
+              </motion.div>
+              {/* 6. Modelos */}
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+                style={{ animationDelay: "300ms" }}
+              >
+                <div className="flex items-center gap-1.5">
+                  <Boxes className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Modelos</p>
+                </div>
+                <p className="tabular mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(animModelos)}</p>
+              </motion.div>
             </div>
-            {/* 2. Disponibles */}
-            <div
-              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
-              style={{ animationDelay: "60ms" }}
-            >
-              <div className="flex items-center gap-1.5">
-                <Check className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Disponibles</p>
-              </div>
-              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.disponibles)}</p>
-            </div>
-            {/* 3. Averiadas — pulse dot si hay alerta */}
-            <div
-              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
-              style={{ animationDelay: "120ms" }}
-            >
-              <div className="flex items-center gap-1.5">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Averiadas</p>
-                {kpis.averiados > 0 && <span className="anim-pulse-dot h-2 w-2 rounded-full bg-destructive" />}
-              </div>
-              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.averiados)}</p>
-            </div>
-            {/* 4. En retiro */}
-            <div
-              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
-              style={{ animationDelay: "180ms" }}
-            >
-              <div className="flex items-center gap-1.5">
-                <Undo className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">En retiro</p>
-              </div>
-              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.enRetiro)}</p>
-            </div>
-            {/* 5. Sin despachar 30+d — pulse dot si hay alerta */}
-            <div
-              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
-              style={{ animationDelay: "240ms" }}
-            >
-              <div className="flex items-center gap-1.5">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Sin despachar 30+d</p>
-                {kpis.sinDespachar30 > 0 && <span className="anim-pulse-dot h-2 w-2 rounded-full bg-amber-500" />}
-              </div>
-              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.sinDespachar30)}</p>
-            </div>
-            {/* 6. Modelos */}
-            <div
-              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
-              style={{ animationDelay: "300ms" }}
-            >
-              <div className="flex items-center gap-1.5">
-                <Boxes className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Modelos</p>
-              </div>
-              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.modelosDistintos)}</p>
-            </div>
-          </section>
 
-          {/* Chips de filtro por estado */}
-          <div className="anim-slide-up mb-6 flex flex-wrap items-center gap-1">
-            <Filter className="mr-1 h-3.5 w-3.5 text-muted-foreground" {...ICON_PROPS} />
-            <FilterChip active={estadoFilter === "todos"} onClick={() => setEstadoFilter("todos")} label="Todos" count={equipos.length} />
-            {ESTADOS.map((est) => {
-              const n = equipos.filter((e) => e.estado === est).length;
-              return <FilterChip key={est} active={estadoFilter === est} onClick={() => setEstadoFilter(est)} label={ESTADO_META[est].short} count={n} />;
-            })}
-          </div>
-
-          {/* Lista de series agrupadas por modelo (expandible) */}
-          {models.length === 0 ? (
-            <p className="py-12 text-center text-[13px] text-muted-foreground">
-              {equipos.length === 0 ? "No hay series registradas. Las series se añaden automáticamente al recibir equipos en la página de Recepciones." : "Sin coincidencias."}
-            </p>
-          ) : (
-            <div className="space-y-10">
-              {models.map(([modelo, items]) => {
-                const mostrarTodas = expandido[modelo] || items.length <= SERIES_POR_MODELO_INICIAL;
-                const itemsVisibles = mostrarTodas ? items : items.slice(0, SERIES_POR_MODELO_INICIAL);
-                return (
-                  <section key={modelo}>
-                    <div className="mb-3 flex items-baseline justify-between">
-                      <h2 className="text-[15px] font-medium text-foreground">{modelo}</h2>
-                      <span className="text-[12px] tabular-nums text-muted-foreground">{items.length}</span>
-                    </div>
-                    <div className="overflow-x-auto scroll-thin">
-                      <table className="w-full text-[13px]">
-                        <thead>
-                          <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-                            <th className="py-2 pr-3 font-medium">#</th>
-                            <th className="py-2 pr-3 font-medium">Serie</th>
-                            <th className="py-2 pr-3 font-medium">MAC</th>
-                            <th className="py-2 pr-3 font-medium">CM MAC</th>
-                            <th className="py-2 pr-3 font-medium">Estado</th>
-                            <th className="py-2 pr-3 font-medium">Antig.</th>
-                            <th className="py-2 pr-3 font-medium">Ubicación</th>
-                            <th className="py-2 font-medium">Observación</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                          {itemsVisibles.map((e, idx) => {
-                            const ant = e.estado === "disponible" ? calcularAntiguedad(e.createdAt) : null;
-                            return (
-                              <tr key={e.id} className="anim-fade-in transition-colors hover:bg-muted/30" style={{ animationDelay: `${idx * 25}ms` }}>
-                                <td className="py-2.5 pr-3 tabular-nums text-muted-foreground">{idx + 1}</td>
-                                <td className="py-2.5 pr-3 font-mono text-[12px] font-medium text-foreground">{e.serie}</td>
-                                <td className="py-2.5 pr-3 font-mono text-[11px] text-muted-foreground">{e.mac ?? "—"}</td>
-                                <td className="py-2.5 pr-3 font-mono text-[11px] text-muted-foreground">{e.cmMac ?? "—"}</td>
-                                <td className="py-2.5 pr-3">
-                                  <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
-                                    <EstadoIcon name={ESTADO_META[e.estado].icon} className="h-3 w-3" />
-                                    {ESTADO_META[e.estado].short}
-                                  </span>
-                                </td>
-                                <td className="py-2.5 pr-3">
-                                  {ant ? (
-                                    <span className={cn("inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium", ant.bg, ant.text)} title={ant.label}>
-                                      <span className={cn("h-1.5 w-1.5 rounded-full", ant.dot)} />
-                                      {ant.dias}d
-                                    </span>
-                                  ) : (
-                                    <span className="text-[10px] text-muted-foreground">—</span>
-                                  )}
-                                </td>
-                                <td className="py-2.5 pr-3 text-[12px] text-muted-foreground">{e.ubicacion ?? "—"}</td>
-                                <td className="py-2.5 text-[12px] text-muted-foreground">{e.observacion ?? "—"}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                    {!mostrarTodas && (
-                      <div className="mt-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => toggleExpandido(modelo)}
-                          className="press h-8 rounded-lg border-border bg-background text-[12px] font-medium hover:bg-muted"
-                        >
-                          Ver {items.length - SERIES_POR_MODELO_INICIAL} más
-                        </Button>
-                      </div>
-                    )}
-                  </section>
-                );
+            {/* Chips de filtro por estado */}
+            <div className="anim-slide-up mb-6 flex flex-wrap items-center gap-1">
+              <Filter className="mr-1 h-3.5 w-3.5 text-muted-foreground" {...ICON_PROPS} />
+              <FilterChip active={estadoFilter === "todos"} onClick={() => setEstadoFilter("todos")} label="Todos" count={equipos.length} />
+              {ESTADOS.map((est) => {
+                const n = equipos.filter((e) => e.estado === est).length;
+                return <FilterChip key={est} active={estadoFilter === est} onClick={() => setEstadoFilter(est)} label={ESTADO_META[est].short} count={n} />;
               })}
             </div>
-          )}
-        </>
-      )}
+
+            {/* Lista de series agrupadas por modelo (expandible/colapsable) */}
+            {models.length === 0 ? (
+              <p className="py-12 text-center text-[13px] text-muted-foreground">
+                {equipos.length === 0 ? "No hay series registradas. Las series se añaden automáticamente al recibir equipos en la página de Recepciones." : "Sin coincidencias."}
+              </p>
+            ) : (
+              <div className="space-y-6">
+                {models.map(([modelo, items]) => {
+                  // Por defecto, los modelos con ≤50 series están "expandidos"; los más grandes
+                  // requieren click en la cabecera o en el botón "Ver X más" para expandir.
+                  const mostrarTabla =
+                    expandido[modelo] || items.length <= SERIES_POR_MODELO_INICIAL;
+                  return (
+                    <section key={modelo}>
+                      <div
+                        className="mb-3 flex cursor-pointer select-none items-baseline justify-between transition-colors hover:bg-muted/30 -mx-2 px-2 py-1 rounded"
+                        onClick={() => toggleExpandido(modelo)}
+                      >
+                        <h2 className="text-[15px] font-medium text-foreground">{modelo}</h2>
+                        <span className="text-[12px] tabular-nums text-muted-foreground">{items.length}</span>
+                      </div>
+                      <AnimatePresence initial={false}>
+                        {mostrarTabla && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                            className="overflow-hidden"
+                          >
+                            <div className="scroll-thin max-h-96 overflow-x-auto overflow-y-auto">
+                              <table className="w-full text-[13px]">
+                                <thead className="sticky top-0 bg-background">
+                                  <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                                    <th className="py-2 pr-3 font-medium">#</th>
+                                    <th className="py-2 pr-3 font-medium">Serie</th>
+                                    <th className="py-2 pr-3 font-medium">MAC</th>
+                                    <th className="py-2 pr-3 font-medium">CM MAC</th>
+                                    <th className="py-2 pr-3 font-medium">Estado</th>
+                                    <th className="py-2 pr-3 font-medium">Antig.</th>
+                                    <th className="py-2 pr-3 font-medium">Ubicación</th>
+                                    <th className="py-2 font-medium">Observación</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-border">
+                                  {items.map((e, idx) => {
+                                    const ant = e.estado === "disponible" ? calcularAntiguedad(e.createdAt) : null;
+                                    return (
+                                      <tr key={e.id} className="anim-fade-in transition-colors duration-200 hover:bg-muted/30" style={{ animationDelay: `${Math.min(idx, 30) * 25}ms` }}>
+                                        <td className="py-2.5 pr-3 tabular-nums text-muted-foreground">{idx + 1}</td>
+                                        <td className="py-2.5 pr-3 font-mono text-[12px] font-medium text-foreground">{e.serie}</td>
+                                        <td className="py-2.5 pr-3 font-mono text-[11px] text-muted-foreground">{e.mac ?? "—"}</td>
+                                        <td className="py-2.5 pr-3 font-mono text-[11px] text-muted-foreground">{e.cmMac ?? "—"}</td>
+                                        <td className="py-2.5 pr-3">
+                                          <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                                            <EstadoIcon name={ESTADO_META[e.estado].icon} className="h-3 w-3" />
+                                            {ESTADO_META[e.estado].short}
+                                          </span>
+                                        </td>
+                                        <td className="py-2.5 pr-3">
+                                          {ant ? (
+                                            <span className={cn("inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium", ant.bg, ant.text)} title={ant.label}>
+                                              <span className={cn("h-1.5 w-1.5 rounded-full", ant.dot)} />
+                                              {ant.dias}d
+                                            </span>
+                                          ) : (
+                                            <span className="text-[10px] text-muted-foreground">—</span>
+                                          )}
+                                        </td>
+                                        <td className="py-2.5 pr-3 text-[12px] text-muted-foreground">{e.ubicacion ?? "—"}</td>
+                                        <td className="py-2.5 text-[12px] text-muted-foreground">{e.observacion ?? "—"}</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                      {!mostrarTabla && (
+                        <div className="mt-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => toggleExpandido(modelo)}
+                            className="press h-8 rounded-lg border-border bg-background text-[12px] font-medium hover:bg-muted"
+                          >
+                            Ver {items.length} series
+                          </Button>
+                        </div>
+                      )}
+                    </section>
+                  );
+                })}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ─── TAB: RECOMENDACIONES (4 cards inteligentes) ─── */}
-      {tab === "recomendaciones" && (
-        <>
-          {recomendaciones.sinDespachar30ConDias.length > 0 ||
-          recomendaciones.averiadosConDias.length > 0 ||
-          recomendaciones.antSinMov > 0 ||
-          recomendaciones.topDespachados.length > 0 ? (
-            <section className="anim-slide-up">
-              <h2 className="mb-3 text-[13px] font-medium uppercase tracking-wider text-muted-foreground">
-                Recomendaciones Inteligentes
-              </h2>
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                {/* Card 1: Sin despachar hace 30+ días */}
-                <div
-                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
-                  style={{ animationDelay: "0ms" }}
-                >
-                  <div className="mb-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
-                      <h3 className="text-[13px] font-semibold text-foreground">Sin despachar hace 30+ días</h3>
-                    </div>
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
-                      {recomendaciones.sinDespachar30ConDias.length}
-                    </span>
-                  </div>
-                  {recomendaciones.sinDespachar30ConDias.length === 0 ? (
-                    <p className="text-[12px] text-muted-foreground">No hay series disponibles sin despachar hace 30+ días</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {recomendaciones.sinDespachar30ConDias.slice(0, 6).map(({ equipo, ultimoDespacho }) => (
-                        <div key={equipo.id} className="flex items-baseline justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-[12px] font-medium text-foreground">{equipo.modelo || "Sin modelo"}</p>
-                            <p className="font-mono text-[10px] text-muted-foreground">{equipo.serie}</p>
-                          </div>
-                          <div className="shrink-0 text-right">
-                            <p className="text-[11px] tabular-nums text-muted-foreground">{fmtRelativo(ultimoDespacho)}</p>
-                            <p className="text-[10px] text-muted-foreground">sin movimiento</p>
-                          </div>
-                        </div>
-                      ))}
-                      {recomendaciones.sinDespachar30ConDias.length > 6 && (
-                        <p className="text-[11px] text-muted-foreground">+{recomendaciones.sinDespachar30ConDias.length - 6} más</p>
-                      )}
-                      <div className="border-t border-border pt-2 text-[11px] text-muted-foreground">
-                        Total: <span className="font-semibold text-foreground">{recomendaciones.sinDespachar30ConDias.length}</span> series sin despachar 30+ días
+      <AnimatePresence mode="wait">
+        {tab === "recomendaciones" && (
+          <motion.div
+            key="tab-recomendaciones"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+          >
+            {recomendaciones.sinDespachar30ConDias.length > 0 ||
+            recomendaciones.averiadosConDias.length > 0 ||
+            recomendaciones.antSinMov > 0 ||
+            recomendaciones.topDespachados.length > 0 ? (
+              <section className="anim-slide-up">
+                <h2 className="mb-3 text-[13px] font-medium uppercase tracking-wider text-muted-foreground">
+                  Recomendaciones Inteligentes
+                </h2>
+                <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                  {/* Card 1: Sin despachar hace 30+ días */}
+                  <motion.div
+                    whileHover={{ scale: 1.01 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+                    style={{ animationDelay: "0ms" }}
+                  >
+                    <div className="mb-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+                        <h3 className="text-[13px] font-semibold text-foreground">Sin despachar hace 30+ días</h3>
                       </div>
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
+                        {recomendaciones.sinDespachar30ConDias.length}
+                      </span>
                     </div>
-                  )}
-                </div>
-
-                {/* Card 2: Series averiadas */}
-                <div
-                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
-                  style={{ animationDelay: "80ms" }}
-                >
-                  <div className="mb-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 text-amber-600" {...ICON_PROPS} />
-                      <h3 className="text-[13px] font-semibold text-foreground">Series averiadas</h3>
-                    </div>
-                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-amber-600">
-                      {recomendaciones.averiadosConDias.length}
-                    </span>
-                  </div>
-                  {recomendaciones.averiadosConDias.length === 0 ? (
-                    <p className="text-[12px] text-muted-foreground">No hay series averiadas</p>
-                  ) : (
-                    <div className="space-y-2.5">
-                      {recomendaciones.averiadosConDias.slice(0, 6).map(({ equipo, dias }) => {
-                        // 90 días = 100% (capped). El bar representa antigüedad en estado averiado.
-                        const pct = Math.min(100, Math.max(2, (dias / 90) * 100));
-                        return (
-                          <div key={equipo.id} className="space-y-1">
-                            <div className="flex items-baseline justify-between gap-2">
-                              <span className="truncate text-[12px] font-medium text-foreground">{equipo.modelo || "Sin modelo"}</span>
-                              <span className="shrink-0 font-mono text-[10px] text-muted-foreground">{equipo.serie}</span>
+                    {recomendaciones.sinDespachar30ConDias.length === 0 ? (
+                      <p className="text-[12px] text-muted-foreground">No hay series disponibles sin despachar hace 30+ días</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {recomendaciones.sinDespachar30ConDias.slice(0, 6).map(({ equipo, ultimoDespacho }) => (
+                          <div key={equipo.id} className="flex items-baseline justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-[12px] font-medium text-foreground">{equipo.modelo || "Sin modelo"}</p>
+                              <p className="font-mono text-[10px] text-muted-foreground">{equipo.serie}</p>
                             </div>
-                            <div className="flex items-center justify-between gap-2 text-[11px]">
-                              <span className="truncate text-muted-foreground">
-                                <MapPin className="mr-1 inline h-3 w-3 align-text-bottom" {...ICON_PROPS} />
-                                {equipo.ubicacion || "Sin ubicación"}
-                              </span>
-                              <span className="shrink-0 font-semibold tabular-nums text-amber-600">{dias}d</span>
-                            </div>
-                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                              <div className="anim-draw-in h-full rounded-full bg-amber-500" style={{ width: `${pct}%` }} />
+                            <div className="shrink-0 text-right">
+                              <p className="text-[11px] tabular-nums text-muted-foreground">{fmtRelativo(ultimoDespacho)}</p>
+                              <p className="text-[10px] text-muted-foreground">sin movimiento</p>
                             </div>
                           </div>
-                        );
-                      })}
-                      {recomendaciones.averiadosConDias.length > 6 && (
-                        <p className="text-[11px] text-muted-foreground">+{recomendaciones.averiadosConDias.length - 6} más</p>
-                      )}
-                      <div className="border-t border-border pt-2 text-[11px] text-muted-foreground">
-                        Total: <span className="font-semibold text-foreground">{recomendaciones.averiadosConDias.length}</span> series averiadas
+                        ))}
+                        {recomendaciones.sinDespachar30ConDias.length > 6 && (
+                          <p className="text-[11px] text-muted-foreground">+{recomendaciones.sinDespachar30ConDias.length - 6} más</p>
+                        )}
+                        <div className="border-t border-border pt-2 text-[11px] text-muted-foreground">
+                          Total: <span className="font-semibold text-foreground">{recomendaciones.sinDespachar30ConDias.length}</span> series sin despachar 30+ días
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </motion.div>
 
-                {/* Card 3: Antigüedad de stock */}
-                <div
-                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
-                  style={{ animationDelay: "160ms" }}
-                >
-                  <div className="mb-3 flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
-                    <h3 className="text-[13px] font-semibold text-foreground">Antigüedad de stock</h3>
-                  </div>
-                  {kpis.disponibles === 0 ? (
-                    <p className="text-[12px] text-muted-foreground">No hay series disponibles para analizar antigüedad</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {recomendaciones.antNuevo > 0 && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-[12px] text-muted-foreground">Nuevo (0-30 días)</span>
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium tabular-nums text-emerald-600">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                            {recomendaciones.antNuevo}
-                          </span>
-                        </div>
-                      )}
-                      {recomendaciones.antAdv > 0 && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-[12px] text-muted-foreground">Advertencia (31-60)</span>
-                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium tabular-nums text-amber-600">
-                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                            {recomendaciones.antAdv}
-                          </span>
-                        </div>
-                      )}
-                      {recomendaciones.antCrit > 0 && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-[12px] text-muted-foreground">Crítico (61-120)</span>
-                          <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/15 px-2 py-0.5 text-[11px] font-medium tabular-nums text-rose-600">
-                            <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-                            {recomendaciones.antCrit}
-                          </span>
-                        </div>
-                      )}
-                      {recomendaciones.antOld > 0 && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-[12px] text-muted-foreground">Antiguo (120+)</span>
-                          <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-[11px] font-medium tabular-nums text-red-700">
-                            <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                            {recomendaciones.antOld}
-                          </span>
-                        </div>
-                      )}
-                      <div className="border-t border-border pt-2 text-[11px] text-muted-foreground">
-                        Total disponibles: <span className="font-semibold text-foreground">{kpis.disponibles}</span> series
+                  {/* Card 2: Series averiadas */}
+                  <motion.div
+                    whileHover={{ scale: 1.01 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+                    style={{ animationDelay: "80ms" }}
+                  >
+                    <div className="mb-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-amber-600" {...ICON_PROPS} />
+                        <h3 className="text-[13px] font-semibold text-foreground">Series averiadas</h3>
                       </div>
+                      <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-amber-600">
+                        {recomendaciones.averiadosConDias.length}
+                      </span>
                     </div>
-                  )}
-                </div>
+                    {recomendaciones.averiadosConDias.length === 0 ? (
+                      <p className="text-[12px] text-muted-foreground">No hay series averiadas</p>
+                    ) : (
+                      <div className="space-y-2.5">
+                        {recomendaciones.averiadosConDias.slice(0, 6).map(({ equipo, dias }) => {
+                          // 90 días = 100% (capped). El bar representa antigüedad en estado averiado.
+                          const pct = Math.min(100, Math.max(2, (dias / 90) * 100));
+                          return (
+                            <div key={equipo.id} className="space-y-1">
+                              <div className="flex items-baseline justify-between gap-2">
+                                <span className="truncate text-[12px] font-medium text-foreground">{equipo.modelo || "Sin modelo"}</span>
+                                <span className="shrink-0 font-mono text-[10px] text-muted-foreground">{equipo.serie}</span>
+                              </div>
+                              <div className="flex items-center justify-between gap-2 text-[11px]">
+                                <span className="truncate text-muted-foreground">
+                                  <MapPin className="mr-1 inline h-3 w-3 align-text-bottom" {...ICON_PROPS} />
+                                  {equipo.ubicacion || "Sin ubicación"}
+                                </span>
+                                <span className="shrink-0 font-semibold tabular-nums text-amber-600">{dias}d</span>
+                              </div>
+                              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                                <div className="anim-draw-in h-full rounded-full bg-amber-500" style={{ width: `${pct}%` }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {recomendaciones.averiadosConDias.length > 6 && (
+                          <p className="text-[11px] text-muted-foreground">+{recomendaciones.averiadosConDias.length - 6} más</p>
+                        )}
+                        <div className="border-t border-border pt-2 text-[11px] text-muted-foreground">
+                          Total: <span className="font-semibold text-foreground">{recomendaciones.averiadosConDias.length}</span> series averiadas
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
 
-                {/* Card 4: Top modelos más despachados 30d */}
-                <div
-                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
-                  style={{ animationDelay: "240ms" }}
-                >
-                  <div className="mb-3 flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
-                    <h3 className="text-[13px] font-semibold text-foreground">Top modelos más despachados 30d</h3>
-                  </div>
-                  {recomendaciones.topDespachados.length === 0 ? (
-                    <p className="text-[12px] text-muted-foreground">No hay despachos con series en los últimos 30 días</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {recomendaciones.topDespachados.map((m, i) => {
-                        const pct = Math.max(4, (m.count / recomendaciones.maxTopDespachados) * 100);
-                        return (
-                          <div key={m.modelo} className="space-y-1">
-                            <div className="flex items-baseline justify-between gap-2 text-[12px]">
-                              <span className="flex min-w-0 items-center gap-1.5">
-                                <span className="font-mono text-[10px] tabular-nums text-muted-foreground">{i + 1}.</span>
-                                <span className="truncate font-medium text-foreground">{m.modelo}</span>
-                              </span>
-                              <span className="shrink-0 tabular-nums text-muted-foreground">
-                                {fmtNum(m.count)} {m.count === 1 ? "serie" : "series"}
-                              </span>
-                            </div>
-                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                              <div className="anim-draw-in h-full rounded-full bg-foreground/60" style={{ width: `${pct}%` }} />
-                            </div>
+                  {/* Card 3: Antigüedad de stock */}
+                  <motion.div
+                    whileHover={{ scale: 1.01 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+                    style={{ animationDelay: "160ms" }}
+                  >
+                    <div className="mb-3 flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+                      <h3 className="text-[13px] font-semibold text-foreground">Antigüedad de stock</h3>
+                    </div>
+                    {kpis.disponibles === 0 ? (
+                      <p className="text-[12px] text-muted-foreground">No hay series disponibles para analizar antigüedad</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {recomendaciones.antNuevo > 0 && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-[12px] text-muted-foreground">Nuevo (0-30 días)</span>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium tabular-nums text-emerald-600">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                              {recomendaciones.antNuevo}
+                            </span>
                           </div>
-                        );
-                      })}
+                        )}
+                        {recomendaciones.antAdv > 0 && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-[12px] text-muted-foreground">Advertencia (31-60)</span>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium tabular-nums text-amber-600">
+                              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                              {recomendaciones.antAdv}
+                            </span>
+                          </div>
+                        )}
+                        {recomendaciones.antCrit > 0 && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-[12px] text-muted-foreground">Crítico (61-120)</span>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/15 px-2 py-0.5 text-[11px] font-medium tabular-nums text-rose-600">
+                              <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                              {recomendaciones.antCrit}
+                            </span>
+                          </div>
+                        )}
+                        {recomendaciones.antOld > 0 && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-[12px] text-muted-foreground">Antiguo (120+)</span>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-[11px] font-medium tabular-nums text-red-700">
+                              <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                              {recomendaciones.antOld}
+                            </span>
+                          </div>
+                        )}
+                        <div className="border-t border-border pt-2 text-[11px] text-muted-foreground">
+                          Total disponibles: <span className="font-semibold text-foreground">{kpis.disponibles}</span> series
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+
+                  {/* Card 4: Top modelos más despachados 30d */}
+                  <motion.div
+                    whileHover={{ scale: 1.01 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                    className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+                    style={{ animationDelay: "240ms" }}
+                  >
+                    <div className="mb-3 flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+                      <h3 className="text-[13px] font-semibold text-foreground">Top modelos más despachados 30d</h3>
                     </div>
-                  )}
+                    {recomendaciones.topDespachados.length === 0 ? (
+                      <p className="text-[12px] text-muted-foreground">No hay despachos con series en los últimos 30 días</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {recomendaciones.topDespachados.map((m, i) => {
+                          const pct = Math.max(4, (m.count / recomendaciones.maxTopDespachados) * 100);
+                          return (
+                            <div key={m.modelo} className="space-y-1">
+                              <div className="flex items-baseline justify-between gap-2 text-[12px]">
+                                <span className="flex min-w-0 items-center gap-1.5">
+                                  <span className="font-mono text-[10px] tabular-nums text-muted-foreground">{i + 1}.</span>
+                                  <span className="truncate font-medium text-foreground">{m.modelo}</span>
+                                </span>
+                                <span className="shrink-0 tabular-nums text-muted-foreground">
+                                  {fmtNum(m.count)} {m.count === 1 ? "serie" : "series"}
+                                </span>
+                              </div>
+                              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                                <div className="anim-draw-in h-full rounded-full bg-foreground/60" style={{ width: `${pct}%` }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </motion.div>
                 </div>
+              </section>
+            ) : (
+              <div className="anim-fade-in rounded-lg border border-dashed border-border bg-background px-4 py-16 text-center text-[13px] text-muted-foreground">
+                No hay recomendaciones activas. Todo está en orden.
               </div>
-            </section>
-          ) : (
-            <div className="anim-fade-in rounded-lg border border-dashed border-border bg-background px-4 py-16 text-center text-[13px] text-muted-foreground">
-              No hay recomendaciones activas. Todo está en orden.
-            </div>
-          )}
-        </>
-      )}
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ─── TAB: MOVIMIENTOS (últimos despachos con serie asociada) ─── */}
-      {tab === "movimientos" && (
-        <>
-          {despachos.filter((d) => d.series && d.series.length > 0).length > 0 ? (
-            <section className="anim-slide-up">
-              <h2 className="mb-3 text-[13px] font-medium uppercase tracking-wider text-muted-foreground">
-                Últimos despachos con serie
-              </h2>
-              <div className="scroll-thin divide-y divide-border rounded-lg border border-border bg-background">
-                {despachos
-                  .filter((d) => d.series && d.series.length > 0)
-                  .sort((a, b) => b.fecha - a.fecha)
-                  .slice(0, 15)
-                  .map((d) => {
-                    const serie = d.series![0];
-                    const equipo = equipos.find((e) => e.serie === serie);
-                    return (
-                      <div
-                        key={d.id}
-                        className="group flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/40"
-                      >
-                        <span className="font-mono text-[12px] tabular-nums text-foreground">
-                          {new Date(d.fecha).toLocaleDateString("es-PE")}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-[13px] font-medium text-foreground">
-                            {equipo?.modelo || d.producto || "—"}
-                          </p>
-                          <p className="font-mono text-[11px] text-muted-foreground">{serie}</p>
+      <AnimatePresence mode="wait">
+        {tab === "movimientos" && (
+          <motion.div
+            key="tab-movimientos"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+          >
+            {despachos.filter((d) => d.series && d.series.length > 0).length > 0 ? (
+              <section className="anim-slide-up">
+                <h2 className="mb-3 text-[13px] font-medium uppercase tracking-wider text-muted-foreground">
+                  Últimos despachos con serie
+                </h2>
+                <div className="scroll-thin divide-y divide-border rounded-lg border border-border bg-background">
+                  {despachos
+                    .filter((d) => d.series && d.series.length > 0)
+                    .sort((a, b) => b.fecha - a.fecha)
+                    .slice(0, 15)
+                    .map((d) => {
+                      const serie = d.series![0];
+                      const equipo = equipos.find((e) => e.serie === serie);
+                      return (
+                        <div
+                          key={d.id}
+                          className="group flex items-center gap-3 px-4 py-2.5 transition-colors duration-200 hover:bg-muted/40"
+                        >
+                          <span className="font-mono text-[12px] tabular-nums text-foreground">
+                            {new Date(d.fecha).toLocaleDateString("es-PE")}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[13px] font-medium text-foreground">
+                              {equipo?.modelo || d.producto || "—"}
+                            </p>
+                            <p className="font-mono text-[11px] text-muted-foreground">{serie}</p>
+                          </div>
+                          <div className="hidden text-right sm:block">
+                            {d.destino && (
+                              <p className="truncate text-[11px] text-muted-foreground">{d.destino}</p>
+                            )}
+                            {d.tecnico && (
+                              <p className="text-[10px] text-muted-foreground">{d.tecnico}</p>
+                            )}
+                          </div>
                         </div>
-                        <div className="hidden text-right sm:block">
-                          {d.destino && (
-                            <p className="truncate text-[11px] text-muted-foreground">{d.destino}</p>
-                          )}
-                          {d.tecnico && (
-                            <p className="text-[10px] text-muted-foreground">{d.tecnico}</p>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                </div>
+              </section>
+            ) : (
+              <div className="anim-fade-in rounded-lg border border-dashed border-border bg-background px-4 py-16 text-center text-[13px] text-muted-foreground">
+                No hay despachos con series asociadas.
               </div>
-            </section>
-          ) : (
-            <div className="anim-fade-in rounded-lg border border-dashed border-border bg-background px-4 py-16 text-center text-[13px] text-muted-foreground">
-              No hay despachos con series asociadas.
-            </div>
-          )}
-        </>
-      )}
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Footer */}
       <div className="mt-8 border-t border-border pt-6">
-        <Button variant="ghost" onClick={goEquipos} className="press rounded-lg text-[13px] font-medium text-muted-foreground hover:text-foreground">
+        <motion.button
+          onClick={goEquipos}
+          whileTap={{ scale: 0.97 }}
+          transition={{ type: "spring", stiffness: 300, damping: 15 }}
+          className="press rounded-lg text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground inline-flex items-center"
+        >
           Gestionar equipos <ArrowRight className="ml-1.5 h-3.5 w-3.5" strokeWidth={1.5} />
-        </Button>
+        </motion.button>
       </div>
     </div>
   );
@@ -685,8 +769,10 @@ export function SeriesView() {
 
 function FilterChip({ active, onClick, label, count }: { active: boolean; onClick: () => void; label: string; count: number }) {
   return (
-    <button
+    <motion.button
       onClick={onClick}
+      whileTap={{ scale: 0.97 }}
+      transition={{ type: "spring", stiffness: 300, damping: 15 }}
       className={cn(
         "press flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors",
         active
@@ -696,6 +782,6 @@ function FilterChip({ active, onClick, label, count }: { active: boolean; onClic
     >
       {label}
       <span className={cn("tabular-nums", active ? "text-background/70" : "text-muted-foreground")}>{count}</span>
-    </button>
+    </motion.button>
   );
 }

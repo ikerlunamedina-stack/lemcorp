@@ -1,0 +1,704 @@
+     1→"use client";
+     2→
+     3→import { useMemo, useState, useEffect } from "react";
+     4→import {
+     5→  Download,
+     6→  AlertTriangle,
+     7→  Settings,
+     8→  ChevronLeft,
+     9→  ChevronRight,
+    10→  Clock,
+    11→  TrendingUp,
+    12→  Package,
+    13→  Boxes,
+    14→  DollarSign,
+    15→  Filter,
+    16→} from "lucide-react";
+    17→import { useStore } from "@/lib/store";
+    18→import { parseNum, fmtNum } from "@/lib/num";
+    19→import { cn } from "@/lib/utils";
+    20→import { Button } from "@/components/ui/button";
+    21→import { Input } from "@/components/ui/input";
+    22→import { AuroraSearchInput } from "@/components/lem/aurora-search-input";
+    23→
+    24→const ICON_PROPS = { strokeWidth: 1.5 } as const;
+    25→
+    26→export function InventarioView() {
+    27→  const products = useStore((s) => s.products);
+    28→  const findProductBySku = useStore((s) => s.findProductBySku);
+    29→  const entradas = useStore((s) => s.entradas);
+    30→  const despachos = useStore((s) => s.despachos);
+    31→  const exportInventarioExcel = useStore((s) => s.exportInventarioExcel);
+    32→
+    33→  const [query, setQuery] = useState("");
+    34→  const [filtro, setFiltro] = useState<"todos" | "bajo" | "agotados" | "sinMin" | "ok">("todos");
+    35→  const [tab, setTab] = useState<"inventario" | "recomendaciones" | "entradas">("inventario");
+    36→  const [pagina, setPagina] = useState(1);
+    37→  const PRODUCTOS_POR_PAGINA = 15;
+    38→
+    39→
+    40→  const filtered = useMemo(() => {
+    41→    const q = query.toLowerCase().trim();
+    42→    return [...products]
+    43→      .sort((a, b) => a.sku.localeCompare(b.sku, undefined, { numeric: true }))
+    44→      .filter((p) => {
+    45→        if (q && !(p.sku.toLowerCase().includes(q) || p.name.toLowerCase().includes(q))) return false;
+    46→        if (filtro === "agotados") return p.quantity === 0;
+    47→        if (filtro === "bajo") return !!p.minStock && p.minStock > 0 && p.quantity > 0 && p.quantity <= p.minStock;
+    48→        if (filtro === "sinMin") return !p.minStock || p.minStock === 0;
+    49→        if (filtro === "ok") return !!p.minStock && p.minStock > 0 && p.quantity > p.minStock;
+    50→        return true; // "todos"
+    51→      });
+    52→  }, [products, query, filtro]);
+    53→
+    54→  // Resetear página a 1 cuando cambian los filtros o el query
+    55→  useEffect(() => {
+    56→    setPagina(1);
+    57→  }, [query, filtro, products]);
+    58→
+    59→  // Cálculo de paginación: productos a mostrar en la página actual
+    60→  const totalPaginas = Math.max(1, Math.ceil(filtered.length / PRODUCTOS_POR_PAGINA));
+    61→  const paginaActual = Math.min(pagina, totalPaginas);
+    62→  const indiceInicio = (paginaActual - 1) * PRODUCTOS_POR_PAGINA;
+    63→  const paginaProductos = filtered.slice(indiceInicio, indiceInicio + PRODUCTOS_POR_PAGINA);
+    64→
+    65→  const totalUnidades = useMemo(() => products.reduce((s, p) => s + p.quantity, 0), [products]);
+    66→
+    67→  // ─── KPIs superiores ───
+    68→  const kpis = useMemo(() => {
+    69→    const valor = products.reduce((s, p) => s + (p.precio || 0) * p.quantity, 0);
+    70→    const bajoStock = products.filter((p) => !!p.minStock && p.minStock > 0 && p.quantity > 0 && p.quantity <= p.minStock).length;
+    71→    const agotados = products.filter((p) => p.quantity === 0).length;
+    72→    const sinMin = products.filter((p) => !p.minStock || p.minStock === 0).length;
+    73→    const ok = products.filter((p) => !!p.minStock && p.minStock > 0 && p.quantity > p.minStock).length;
+    74→    return { valor, bajoStock, agotados, sinMin, ok };
+    75→  }, [products]);
+    76→
+    77→  // ─── Última entrada por SKU (para columna "Últ. entrada") ───
+    78→  const lastEntradaBySku = useMemo(() => {
+    79→    const map = new Map<string, number>();
+    80→    for (const e of entradas) {
+    81→      const cur = map.get(e.sku);
+    82→      if (cur === undefined || e.fecha > cur) map.set(e.sku, e.fecha);
+    83→    }
+    84→    return map;
+    85→  }, [entradas]);
+    86→
+    87→  // ─── Recomendaciones Inteligentes ───
+    88→  const recomendaciones = useMemo(() => {
+    89→    const ahora = Date.now();
+    90→    const dias30 = ahora - 30 * 86400_000;
+    91→
+    92→    // 1. Reponer urgentemente (agotados o bajo stock, con cálculo sugerido)
+    93→    const reponer = products
+    94→      .filter((p) => !!p.minStock && p.minStock > 0 && p.quantity <= p.minStock)
+    95→      .map((p) => {
+    96→        const consumo30 = despachos
+    97→          .filter((d) => d.sku === p.sku && d.fecha >= dias30)
+    98→          .reduce((s, d) => s + d.cantidad, 0);
+    99→        const consumoDiario = consumo30 / 30;
+   100→        const sugerido = Math.max(0, Math.ceil(p.minStock! * 2 + consumoDiario * 14 - p.quantity));
+   101→        return { ...p, consumo30, consumoDiario, sugerido };
+   102→      })
+   103→      .sort((a, b) => a.quantity / Math.max(a.minStock!, 1) - b.quantity / Math.max(b.minStock!, 1));
+   104→
+   105→    // 2. Sin mínimo definido
+   106→    const sinMinimo = products.filter((p) => !p.minStock || p.minStock === 0);
+   107→
+   108→    // 3. Stock sin movimiento (> 30 días sin despachos y con stock)
+   109→    const sinMovimiento = products
+   110→      .filter((p) => {
+   111→        if (p.quantity <= 0) return false;
+   112→        const ultimoDespacho = despachos
+   113→          .filter((d) => d.sku === p.sku)
+   114→          .sort((a, b) => b.fecha - a.fecha)[0];
+   115→        if (!ultimoDespacho) return true;
+   116→        return ultimoDespacho.fecha < dias30;
+   117→      })
+   118→      .slice(0, 5);
+   119→
+   120→    // 4. Top 5 productos más consumidos últimos 30 días
+   121→    const consumoPorSku = new Map<string, { sku: string; nombre: string; unidades: number; eventos: number }>();
+   122→    for (const d of despachos) {
+   123→      if (d.fecha < dias30) continue;
+   124→      const cur = consumoPorSku.get(d.sku) ?? { sku: d.sku, nombre: d.producto || d.sku, unidades: 0, eventos: 0 };
+   125→      cur.unidades += d.cantidad;
+   126→      cur.eventos += 1;
+   127→      consumoPorSku.set(d.sku, cur);
+   128→    }
+   129→    const topConsumo = Array.from(consumoPorSku.values()).sort((a, b) => b.unidades - a.unidades).slice(0, 5);
+   130→
+   131→    return { reponer, sinMinimo, sinMovimiento, topConsumo, ahora };
+   132→  }, [products, despachos]);
+   133→
+   134→  // Helper: "hace X días" para fechas relativas
+   135→  const fmtRelativo = (ts: number | undefined) => {
+   136→    if (!ts) return "—";
+   137→    const dias = Math.floor((Date.now() - ts) / 86400_000);
+   138→    if (dias <= 0) return "hoy";
+   139→    if (dias === 1) return "hace 1 día";
+   140→    if (dias < 30) return `hace ${dias} días`;
+   141→    const meses = Math.floor(dias / 30);
+   142→    return meses === 1 ? "hace 1 mes" : `hace ${meses} meses`;
+   143→  };
+   144→
+   145→
+   146→  return (
+   147→    <div className="select-text cursor-text px-6 py-6 anim-fade-in">
+   148→      {/* Header */}
+   149→      <header className="anim-slide-up mb-8 flex flex-wrap items-end justify-between gap-4">
+   150→        <div>
+   151→          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Inventario</h1>
+   152→          <p className="mt-1 text-[13px] text-muted-foreground">
+   153→            {products.length} producto(s) · {fmtNum(totalUnidades)} unidades
+   154→          </p>
+   155→        </div>
+   156→        <div className="flex flex-wrap items-center gap-2">
+   157→          {/* Buscador con efecto Aurora Boreal */}
+   158→          <AuroraSearchInput
+   159→            value={query}
+   160→            onChange={setQuery}
+   161→            placeholder="Buscar SKU o producto…"
+   162→            placeholderFocused="Escribe para filtrar…"
+   163→            className="w-56"
+   164→          />
+   165→          <Button
+   166→            variant="outline"
+   167→            onClick={() => exportInventarioExcel()}
+   168→            className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted"
+   169→          >
+   170→            <Download className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Exportar
+   171→          </Button>
+   172→          {/* Botón "Añadir" eliminado — los materiales solo se pueden ingresar
+   173→              desde la página /recepciones con una guía de remisión PDF o manualmente.
+   174→              Esto evita inconsistencias de inventario por altas manuales sueltas. */}
+   175→        </div>
+   176→      </header>
+   177→
+   178→      {/* Pestañas: Inventario | Recomendaciones | Entradas */}
+   179→      <div className="anim-slide-up mb-6 flex items-center gap-1 border-b border-border">
+   180→        {([
+   181→          ["inventario", "Inventario", products.length],
+   182→          ["recomendaciones", "Recomendaciones", (recomendaciones.reponer.length + recomendaciones.sinMinimo.length + recomendaciones.sinMovimiento.length)],
+   183→          ["entradas", "Entradas", entradas.length],
+   184→        ] as const).map(([key, label, count]) => (
+   185→          <button
+   186→            key={key}
+   187→            onClick={() => setTab(key)}
+   188→            className={cn(
+   189→              "relative inline-flex h-10 items-center gap-2 px-4 text-[13px] font-medium transition-colors",
+   190→              tab === key ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+   191→            )}
+   192→          >
+   193→            {label}
+   194→            <span
+   195→              className={cn(
+   196→                "rounded-full px-1.5 py-0.5 text-[10px] tabular-nums",
+   197→                tab === key ? "bg-foreground text-background" : "bg-muted text-muted-foreground",
+   198→              )}
+   199→            >
+   200→              {count}
+   201→            </span>
+   202→            {tab === key && (
+   203→              <span className="absolute inset-x-0 -bottom-px h-0.5 bg-foreground" />
+   204→            )}
+   205→          </button>
+   206→        ))}
+   207→      </div>
+   208→
+   209→      {/* ─── TAB: INVENTARIO (KPIs + chips + tabla) ─── */}
+   210→      {tab === "inventario" && (
+   211→        <>
+   212→      {/* KPIs superiores — entrada escalonada con stagger delay */}
+   213→      <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+   214→        {/* 1. Productos en catálogo */}
+   215→        <div
+   216→          className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+   217→          style={{ animationDelay: "0ms" }}
+   218→        >
+   219→          <div className="flex items-center gap-1.5">
+   220→            <Package className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+   221→            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Catálogo</p>
+   222→          </div>
+   223→          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(products.length)}</p>
+   224→        </div>
+   225→        {/* 2. Unidades totales */}
+   226→        <div
+   227→          className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+   228→          style={{ animationDelay: "60ms" }}
+   229→        >
+   230→          <div className="flex items-center gap-1.5">
+   231→            <Boxes className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+   232→            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Unidades</p>
+   233→          </div>
+   234→          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(totalUnidades)}</p>
+   235→        </div>
+   236→        {/* 3. Valor del inventario */}
+   237→        <div
+   238→          className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+   239→          style={{ animationDelay: "120ms" }}
+   240→        >
+   241→          <div className="flex items-center gap-1.5">
+   242→            <DollarSign className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+   243→            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Valor</p>
+   244→          </div>
+   245→          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+   246→            S/ {kpis.valor.toLocaleString("es-PE", { maximumFractionDigits: 0 })}
+   247→          </p>
+   248→        </div>
+   249→        {/* 4. Bajo stock — pulse dot si hay alerta */}
+   250→        <div
+   251→          className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+   252→          style={{ animationDelay: "180ms" }}
+   253→        >
+   254→          <div className="flex items-center gap-1.5">
+   255→            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Bajo stock</p>
+   256→            {kpis.bajoStock > 0 && <span className="anim-pulse-dot h-2 w-2 rounded-full bg-amber-500" />}
+   257→          </div>
+   258→          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.bajoStock)}</p>
+   259→        </div>
+   260→        {/* 5. Agotados — pulse dot si hay alerta */}
+   261→        <div
+   262→          className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+   263→          style={{ animationDelay: "240ms" }}
+   264→        >
+   265→          <div className="flex items-center gap-1.5">
+   266→            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Agotados</p>
+   267→            {kpis.agotados > 0 && <span className="anim-pulse-dot h-2 w-2 rounded-full bg-destructive" />}
+   268→          </div>
+   269→          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.agotados)}</p>
+   270→        </div>
+   271→        {/* 6. Sin mínimo */}
+   272→        <div
+   273→          className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+   274→          style={{ animationDelay: "300ms" }}
+   275→        >
+   276→          <div className="flex items-center gap-1.5">
+   277→            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Sin mínimo</p>
+   278→            {kpis.sinMin > 0 && <span className="anim-pulse-dot h-2 w-2 rounded-full bg-amber-500" />}
+   279→          </div>
+   280→          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.sinMin)}</p>
+   281→        </div>
+   282→      </section>
+   283→
+   284→      {/* Chips de filtro por estado */}
+   285→      <div className="anim-slide-up mb-4 flex flex-wrap items-center gap-2">
+   286→        <Filter className="h-3.5 w-3.5 text-muted-foreground" {...ICON_PROPS} />
+   287→        {([
+   288→          ["todos", "Todos", products.length],
+   289→          ["bajo", "Bajo stock", kpis.bajoStock],
+   290→          ["agotados", "Agotados", kpis.agotados],
+   291→          ["sinMin", "Sin mínimo", kpis.sinMin],
+   292→          ["ok", "OK", kpis.ok],
+   293→        ] as const).map(([key, label, count]) => (
+   294→          <button
+   295→            key={key}
+   296→            onClick={() => setFiltro(key)}
+   297→            className={cn(
+   298→              "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium transition-colors",
+   299→              filtro === key
+   300→                ? "border-foreground bg-foreground text-background"
+   301→                : "border-border bg-background text-foreground hover:bg-muted",
+   302→            )}
+   303→          >
+   304→            {label}
+   305→            <span
+   306→              className={cn(
+   307→                "rounded-full px-1.5 py-0.5 text-[10px] tabular-nums",
+   308→                filtro === key ? "bg-background/20 text-background" : "bg-muted text-muted-foreground",
+   309→              )}
+   310→            >
+   311→              {count}
+   312→            </span>
+   313→          </button>
+   314→        ))}
+   315→      </div>
+   316→
+   317→      {/* Tabla inventario */}
+   318→      {filtered.length === 0 ? (
+   319→        <div className="anim-fade-in rounded-lg border border-dashed border-border bg-background px-4 py-16 text-center text-[13px] text-muted-foreground">
+   320→          {products.length === 0 ? (
+   321→            "No hay productos en el inventario. Ingresa materiales desde la página de Recepciones."
+   322→          ) : (
+   323→            <div className="space-y-2">
+   324→              <p>Sin coincidencias para el filtro.</p>
+   325→              <button
+   326→                onClick={() => { setQuery(""); setFiltro("todos"); }}
+   327→                className="rounded-lg border border-border bg-background px-3 py-1.5 text-[12px] font-medium text-foreground transition-colors hover:bg-muted"
+   328→              >
+   329→                Limpiar filtros
+   330→              </button>
+   331→            </div>
+   332→          )}
+   333→        </div>
+   334→      ) : (
+   335→        <div className="anim-slide-up overflow-x-auto scroll-thin rounded-lg border border-border bg-background">
+   336→          <table className="w-full text-[13px]">
+   337→            <thead>
+   338→              <tr className="border-b border-border text-left text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+   339→                <th className="px-4 py-2.5 font-medium">SKU</th>
+   340→                <th className="px-4 py-2.5 font-medium">Producto</th>
+   341→                <th className="px-4 py-2.5 text-right font-medium">Stock</th>
+   342→                <th className="px-4 py-2.5 text-right font-medium">Mín</th>
+   343→                <th className="px-4 py-2.5 font-medium">Estado</th>
+   344→                <th className="px-4 py-2.5 font-medium">Categoría</th>
+   345→                <th className="px-4 py-2.5 text-right font-medium">Precio</th>
+   346→                <th className="px-4 py-2.5 font-medium">Últ. entrada</th>
+   347→                <th className="px-4 py-2.5 font-medium">UdM</th>
+   348→              </tr>
+   349→            </thead>
+   350→            <tbody className="divide-y divide-border">
+   351→              {paginaProductos.map((p, idx) => {
+   352→                const bajo = p.minStock !== undefined && p.minStock > 0 && p.quantity <= p.minStock;
+   353→                const agotado = p.quantity === 0;
+   354→                const sinMin = !p.minStock || p.minStock === 0;
+   355→                const ok = !sinMin && p.quantity > (p.minStock ?? 0);
+   356→                return (
+   357→                  <tr
+   358→                    key={p.id}
+   359→                    className="anim-fade-in group transition-colors duration-150 hover:bg-muted/50"
+   360→                    style={{ animationDelay: `${idx * 25}ms` }}
+   361→                  >
+   362→                    <td className="px-4 py-3">
+   363→                      <span className="font-mono text-[12px] text-foreground">{p.sku}</span>
+   364→                    </td>
+   365→                    <td className="px-4 py-3">
+   366→                      <span className="font-medium text-foreground">{p.name}</span>
+   367→                    </td>
+   368→                    <td className="px-4 py-3 text-right">
+   369→                      <span className="inline-flex items-center justify-end gap-1.5 tabular-nums text-foreground">
+   370→                        {bajo && (
+   371→                          <span
+   372→                            className="h-1.5 w-1.5 rounded-full bg-destructive"
+   373→                            aria-label="stock bajo mínimo"
+   374→                            title="Stock bajo el mínimo"
+   375→                          />
+   376→                        )}
+   377→                        {fmtNum(p.quantity)}
+   378→                      </span>
+   379→                    </td>
+   380→                    <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
+   381→                      {p.minStock ? fmtNum(p.minStock) : "—"}
+   382→                    </td>
+   383→                    <td className="px-4 py-3">
+   384→                      {agotado ? (
+   385→                        <span className="inline-flex items-center gap-1 rounded-full bg-destructive/15 px-2 py-0.5 text-[11px] font-medium text-destructive">
+   386→                          <span className="anim-pulse-dot h-1.5 w-1.5 rounded-full bg-destructive" /> Agotado
+   387→                        </span>
+   388→                      ) : sinMin ? (
+   389→                        <span className="text-[11px] text-muted-foreground">— Sin mínimo</span>
+   390→                      ) : bajo ? (
+   391→                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-600">
+   392→                          <span className="anim-pulse-dot h-1.5 w-1.5 rounded-full bg-amber-500" /> Bajo
+   393→                        </span>
+   394→                      ) : ok ? (
+   395→                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium text-emerald-600">
+   396→                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> OK
+   397→                        </span>
+   398→                      ) : null}
+   399→                    </td>
+   400→                    <td className="px-4 py-3 text-[12px] text-muted-foreground">
+   401→                      {p.categoria || "—"}
+   402→                    </td>
+   403→                    <td className="px-4 py-3 text-right text-[12px] tabular-nums text-muted-foreground">
+   404→                      {p.precio ? `S/ ${p.precio.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
+   405→                    </td>
+   406→                    <td className="px-4 py-3 text-[11px] text-muted-foreground">
+   407→                      {fmtRelativo(lastEntradaBySku.get(p.sku))}
+   408→                    </td>
+   409→                    <td className="px-4 py-3 text-[12px] text-muted-foreground">{p.udm ?? "—"}</td>
+   410→                  </tr>
+   411→                );
+   412→              })}
+   413→            </tbody>
+   414→          </table>
+   415→        </div>
+   416→      )}
+   417→
+   418→      {/* Controles de paginación — solo si hay más de 1 página */}
+   419→      {filtered.length > PRODUCTOS_POR_PAGINA && (
+   420→        <div className="anim-slide-up mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+   421→          <p className="text-[12px] text-muted-foreground">
+   422→            Mostrando <span className="font-semibold tabular-nums text-foreground">{indiceInicio + 1}</span>–
+   423→            <span className="font-semibold tabular-nums text-foreground">{Math.min(indiceInicio + PRODUCTOS_POR_PAGINA, filtered.length)}</span> de{" "}
+   424→            <span className="font-semibold tabular-nums text-foreground">{filtered.length}</span> productos
+   425→          </p>
+   426→          <div className="flex items-center gap-1">
+   427→            <button
+   428→              onClick={() => setPagina((p) => Math.max(1, p - 1))}
+   429→              disabled={paginaActual === 1}
+   430→              aria-label="Página anterior"
+   431→              className="inline-flex h-8 items-center gap-1 rounded-lg border border-border bg-background px-3 text-[12px] font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+   432→            >
+   433→              <ChevronLeft className="h-3.5 w-3.5" {...ICON_PROPS} /> Anterior
+   434→            </button>
+   435→            {Array.from({ length: totalPaginas }, (_, i) => i + 1)
+   436→              .filter((p) => p === 1 || p === totalPaginas || (p >= paginaActual - 1 && p <= paginaActual + 1))
+   437→              .map((p, i, arr) => (
+   438→                <span key={p} className="flex items-center">
+   439→                  {i > 0 && arr[i - 1] !== p - 1 && (
+   440→                    <span className="px-1 text-[12px] text-muted-foreground">…</span>
+   441→                  )}
+   442→                  <button
+   443→                    onClick={() => setPagina(p)}
+   444→                    aria-label={`Ir a página ${p}`}
+   445→                    className={cn(
+   446→                      "inline-flex h-8 min-w-[2rem] items-center justify-center rounded-lg border px-2 text-[12px] font-medium tabular-nums transition-colors",
+   447→                      p === paginaActual
+   448→                        ? "border-foreground bg-foreground text-background"
+   449→                        : "border-border bg-background text-foreground hover:bg-muted",
+   450→                    )}
+   451→                  >
+   452→                    {p}
+   453→                  </button>
+   454→                </span>
+   455→              ))}
+   456→            <button
+   457→              onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+   458→              disabled={paginaActual === totalPaginas}
+   459→              aria-label="Página siguiente"
+   460→              className="inline-flex h-8 items-center gap-1 rounded-lg border border-border bg-background px-3 text-[12px] font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
+   461→            >
+   462→              Siguiente <ChevronRight className="h-3.5 w-3.5" {...ICON_PROPS} />
+   463→            </button>
+   464→          </div>
+   465→        </div>
+   466→      )}
+   467→        </>
+   468→      )}
+   469→
+   470→      {/* ─── TAB: RECOMENDACIONES (las 4 cards inteligentes) ─── */}
+   471→      {tab === "recomendaciones" && (
+   472→        <>
+   473→          {(recomendaciones.reponer.length > 0 || recomendaciones.sinMinimo.length > 0 || recomendaciones.sinMovimiento.length > 0 || recomendaciones.topConsumo.length > 0) ? (
+   474→            <section className="anim-slide-up">
+   475→              <h2 className="mb-3 text-[13px] font-medium uppercase tracking-wider text-muted-foreground">
+   476→                Recomendaciones Inteligentes
+   477→              </h2>
+   478→              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+   479→            {/* Card 1: Reponer urgentemente */}
+   480→            <div
+   481→              className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+   482→              style={{ animationDelay: "0ms" }}
+   483→            >
+   484→              <div className="mb-3 flex items-center justify-between">
+   485→                <div className="flex items-center gap-2">
+   486→                  <AlertTriangle className="h-4 w-4 text-amber-600" {...ICON_PROPS} />
+   487→                  <h3 className="text-[13px] font-semibold text-foreground">Reponer urgentemente</h3>
+   488→                </div>
+   489→                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-amber-600">
+   490→                  {recomendaciones.reponer.length}
+   491→                </span>
+   492→              </div>
+   493→              {recomendaciones.reponer.length === 0 ? (
+   494→                <p className="text-[12px] text-muted-foreground">Todo el inventario está por encima del mínimo</p>
+   495→              ) : (
+   496→                <div className="space-y-2.5">
+   497→                  {recomendaciones.reponer.slice(0, 6).map((p) => {
+   498→                    const pct = Math.min(100, Math.max(0, (p.quantity / Math.max(p.minStock!, 1)) * 100));
+   499→                    return (
+   500→                      <div key={p.id} className="space-y-1">
+   501→                        <div className="flex items-baseline justify-between gap-2">
+   502→                          <span className="truncate text-[12px] font-medium text-foreground">{p.name}</span>
+   503→                          <span className="shrink-0 font-mono text-[10px] text-muted-foreground">{p.sku}</span>
+   504→                        </div>
+   505→                        <div className="flex items-center justify-between text-[11px]">
+   506→                          <span className={cn("font-semibold tabular-nums", p.quantity === 0 ? "text-destructive" : "text-amber-600")}>
+   507→                            {fmtNum(p.quantity)} / {fmtNum(p.minStock)}
+   508→                          </span>
+   509→                          <span className="text-right text-muted-foreground">
+   510→                            {p.sugerido === 0 ? (
+   511→                              "Stock suficiente p/ 14 días"
+   512→                            ) : (
+   513→                              <>Pedir: <span className="font-semibold text-foreground">{fmtNum(p.sugerido)}</span> u.</>
+   514→                            )}
+   515→                          </span>
+   516→                        </div>
+   517→                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+   518→                          <div
+   519→                            className={cn("anim-draw-in h-full rounded-full", p.quantity === 0 ? "bg-destructive" : "bg-amber-500")}
+   520→                            style={{ width: `${pct}%` }}
+   521→                          />
+   522→                        </div>
+   523→                      </div>
+   524→                    );
+   525→                  })}
+   526→                  {recomendaciones.reponer.length > 6 && (
+   527→                    <p className="text-[11px] text-muted-foreground">+{recomendaciones.reponer.length - 6} más</p>
+   528→                  )}
+   529→                  <div className="border-t border-border pt-2 text-[11px] text-muted-foreground">
+   530→                    Total: <span className="font-semibold text-foreground">{recomendaciones.reponer.length}</span> productos, ~
+   531→                    <span className="font-semibold tabular-nums text-foreground">{fmtNum(recomendaciones.reponer.reduce((s, p) => s + p.sugerido, 0))}</span> u. a pedir
+   532→                  </div>
+   533→                </div>
+   534→              )}
+   535→            </div>
+   536→
+   537→            {/* Card 2: Sin mínimo configurado */}
+   538→            {recomendaciones.sinMinimo.length > 0 && (
+   539→              <div
+   540→                className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+   541→                style={{ animationDelay: "80ms" }}
+   542→              >
+   543→                <div className="mb-3 flex items-center justify-between">
+   544→                  <div className="flex items-center gap-2">
+   545→                    <Settings className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+   546→                    <h3 className="text-[13px] font-semibold text-foreground">Sin mínimo configurado</h3>
+   547→                  </div>
+   548→                  <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
+   549→                    {recomendaciones.sinMinimo.length}
+   550→                  </span>
+   551→                </div>
+   552→                <p className="mb-2 text-[12px] text-muted-foreground">Configura el stock mínimo para monitorearlos</p>
+   553→                <div className="space-y-1.5">
+   554→                  {recomendaciones.sinMinimo.slice(0, 5).map((p) => (
+   555→                    <div key={p.id} className="flex items-baseline justify-between gap-2">
+   556→                      <span className="truncate text-[12px] text-foreground">{p.name}</span>
+   557→                      <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+   558→                        {fmtNum(p.quantity)} {p.udm || "u."}
+   559→                      </span>
+   560→                    </div>
+   561→                  ))}
+   562→                  {recomendaciones.sinMinimo.length > 5 && (
+   563→                    <p className="text-[11px] text-muted-foreground">+{recomendaciones.sinMinimo.length - 5} productos más</p>
+   564→                  )}
+   565→                </div>
+   566→              </div>
+   567→            )}
+   568→
+   569→            {/* Card 3: Stock sin movimiento */}
+   570→            {recomendaciones.sinMovimiento.length > 0 && (
+   571→              <div
+   572→                className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+   573→                style={{ animationDelay: "160ms" }}
+   574→              >
+   575→                <div className="mb-3 flex items-center justify-between">
+   576→                  <div className="flex items-center gap-2">
+   577→                    <Clock className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+   578→                    <h3 className="text-[13px] font-semibold text-foreground">Stock sin movimiento</h3>
+   579→                  </div>
+   580→                  <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
+   581→                    {recomendaciones.sinMovimiento.length}
+   582→                  </span>
+   583→                </div>
+   584→                <p className="mb-2 text-[12px] text-muted-foreground">Productos en stock sin despachos en 30+ días</p>
+   585→                <div className="space-y-1.5">
+   586→                  {recomendaciones.sinMovimiento.map((p) => {
+   587→                    const ultimoDespacho = despachos
+   588→                      .filter((d) => d.sku === p.sku)
+   589→                      .sort((a, b) => b.fecha - a.fecha)[0];
+   590→                    return (
+   591→                      <div key={p.id} className="flex items-baseline justify-between gap-2">
+   592→                        <div className="min-w-0 flex-1">
+   593→                          <span className="block truncate text-[12px] text-foreground">{p.name}</span>
+   594→                          <span className="font-mono text-[10px] text-muted-foreground">{p.sku}</span>
+   595→                        </div>
+   596→                        <div className="shrink-0 text-right">
+   597→                          <span className="block text-[11px] tabular-nums text-muted-foreground">
+   598→                            {fmtNum(p.quantity)} {p.udm || "u."}
+   599→                          </span>
+   600→                          <span className="text-[10px] text-muted-foreground">
+   601→                            {ultimoDespacho ? fmtRelativo(ultimoDespacho.fecha) : "Nunca despachado"}
+   602→                          </span>
+   603→                        </div>
+   604→                      </div>
+   605→                    );
+   606→                  })}
+   607→                </div>
+   608→              </div>
+   609→            )}
+   610→
+   611→            {/* Card 4: Top consumo (30 días) */}
+   612→            {recomendaciones.topConsumo.length > 0 && (
+   613→              <div
+   614→                className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+   615→                style={{ animationDelay: "240ms" }}
+   616→              >
+   617→                <div className="mb-3 flex items-center gap-2">
+   618→                  <TrendingUp className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+   619→                  <h3 className="text-[13px] font-semibold text-foreground">Top consumo (30 días)</h3>
+   620→                </div>
+   621→                <div className="space-y-2">
+   622→                  {recomendaciones.topConsumo.map((c, i) => {
+   623→                    const max = recomendaciones.topConsumo[0].unidades || 1;
+   624→                    const pct = Math.max(4, (c.unidades / max) * 100);
+   625→                    return (
+   626→                      <div key={c.sku} className="space-y-1">
+   627→                        <div className="flex items-baseline justify-between gap-2 text-[12px]">
+   628→                          <span className="flex min-w-0 items-center gap-1.5">
+   629→                            <span className="font-mono text-[10px] tabular-nums text-muted-foreground">{i + 1}.</span>
+   630→                            <span className="truncate font-medium text-foreground">{c.nombre}</span>
+   631→                          </span>
+   632→                          <span className="shrink-0 tabular-nums text-muted-foreground">
+   633→                            {fmtNum(c.unidades)} u · {c.eventos} evt
+   634→                          </span>
+   635→                        </div>
+   636→                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+   637→                          <div className="anim-draw-in h-full rounded-full bg-foreground/60" style={{ width: `${pct}%` }} />
+   638→                        </div>
+   639→                      </div>
+   640→                    );
+   641→                  })}
+   642→                </div>
+   643→              </div>
+   644→            )}
+   645→              </div>
+   646→            </section>
+   647→          ) : (
+   648→            <div className="anim-fade-in rounded-lg border border-dashed border-border bg-background px-4 py-16 text-center text-[13px] text-muted-foreground">
+   649→              No hay recomendaciones activas. Todo el inventario está por encima del mínimo.
+   650→            </div>
+   651→          )}
+   652→        </>
+   653→      )}
+   654→
+   655→      {/* ─── TAB: ENTRADAS (entradas recientes) ─── */}
+   656→      {tab === "entradas" && (
+   657→        <>
+   658→          {entradas.length > 0 ? (
+   659→            <section className="anim-slide-up">
+   660→              <h2 className="mb-3 text-[13px] font-medium uppercase tracking-wider text-muted-foreground">
+   661→                Entradas recientes
+   662→              </h2>
+   663→              <div className="divide-y divide-border rounded-lg border border-border bg-background">
+   664→                {entradas.slice(0, 15).map((e) => {
+   665→                  const prodActual = findProductBySku(e.sku);
+   666→                  const nombreMostrar = prodActual?.name ?? e.producto;
+   667→                  const enCatalogo = !!prodActual;
+   668→                  return (
+   669→                    <div key={e.id} className="group flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/40">
+   670→                      <span className="font-mono text-[12px] tabular-nums text-foreground">+{e.cantidad}</span>
+   671→                      <div className="min-w-0 flex-1">
+   672→                        <p className="flex items-center gap-2 truncate text-[13px] font-medium text-foreground">
+   673→                          {nombreMostrar}
+   674→                          {!enCatalogo && (
+   675→                            <span className="inline-flex items-center gap-1 text-[11px] font-normal text-muted-foreground">
+   676→                              <span className="h-1 w-1 rounded-full bg-muted-foreground" />
+   677→                              no en catálogo
+   678→                            </span>
+   679→                          )}
+   680→                        </p>
+   681→                        <p className="font-mono text-[11px] text-muted-foreground">{e.sku}</p>
+   682→                      </div>
+   683→                      <span className="text-[11px] tabular-nums text-muted-foreground">
+   684→                        {new Date(e.fecha).toLocaleDateString("es-PE")}
+   685→                      </span>
+   686→                    </div>
+   687→                  );
+   688→                })}
+   689→              </div>
+   690→            </section>
+   691→          ) : (
+   692→            <div className="anim-fade-in rounded-lg border border-dashed border-border bg-background px-4 py-16 text-center text-[13px] text-muted-foreground">
+   693→              No hay entradas registradas. Ingresa materiales desde la página de Recepciones.
+   694→            </div>
+   695→          )}
+   696→        </>
+   697→      )}
+   698→
+   699→
+   700→
+   701→    </div>
+   702→  );
+   703→}
+   704→

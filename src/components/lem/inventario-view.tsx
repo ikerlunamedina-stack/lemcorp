@@ -20,6 +20,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AuroraSearchInput } from "@/components/lem/aurora-search-input";
+import { motion, AnimatePresence } from "framer-motion";
+import { useCountUp } from "@/lib/hooks/use-count-up";
 
 const ICON_PROPS = { strokeWidth: 1.5 } as const;
 
@@ -142,6 +144,13 @@ export function InventarioView() {
     return meses === 1 ? "hace 1 mes" : `hace ${meses} meses`;
   };
 
+  // ─── Count-up (spring Apple/iOS) para los 6 KPIs superiores ───
+  const animCatalogo = useCountUp(products.length);
+  const animUnidades = useCountUp(totalUnidades);
+  const animValor = useCountUp(kpis.valor);
+  const animBajoStock = useCountUp(kpis.bajoStock);
+  const animAgotados = useCountUp(kpis.agotados);
+  const animSinMin = useCountUp(kpis.sinMin);
 
   return (
     <div className="select-text cursor-text px-6 py-6 anim-fade-in">
@@ -162,13 +171,19 @@ export function InventarioView() {
             placeholderFocused="Escribe para filtrar…"
             className="w-56"
           />
-          <Button
-            variant="outline"
-            onClick={() => exportInventarioExcel()}
-            className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted"
+          <motion.div
+            whileTap={{ scale: 0.97 }}
+            transition={{ type: "spring", stiffness: 300, damping: 15 }}
+            className="inline-block"
           >
-            <Download className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Exportar
-          </Button>
+            <Button
+              variant="outline"
+              onClick={() => exportInventarioExcel()}
+              className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted"
+            >
+              <Download className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Exportar
+            </Button>
+          </motion.div>
           {/* Botón "Añadir" eliminado — los materiales solo se pueden ingresar
               desde la página /recepciones con una guía de remisión PDF o manualmente.
               Esto evita inconsistencias de inventario por altas manuales sueltas. */}
@@ -182,11 +197,11 @@ export function InventarioView() {
           ["recomendaciones", "Recomendaciones", (recomendaciones.reponer.length + recomendaciones.sinMinimo.length + recomendaciones.sinMovimiento.length)],
           ["entradas", "Entradas", entradas.length],
         ] as const).map(([key, label, count]) => (
-          <button
+          <motion.button
             key={key}
             onClick={() => setTab(key)}
             className={cn(
-              "relative inline-flex h-10 items-center gap-2 px-4 text-[13px] font-medium transition-colors",
+              "relative inline-flex h-9 items-center gap-2 px-3.5 text-[13px] font-medium transition-colors",
               tab === key ? "text-foreground" : "text-muted-foreground hover:text-foreground",
             )}
           >
@@ -200,19 +215,32 @@ export function InventarioView() {
               {count}
             </span>
             {tab === key && (
-              <span className="absolute inset-x-0 -bottom-px h-0.5 bg-foreground" />
+              <motion.span
+                layoutId="tab-indicator"
+                className="absolute inset-x-0 -bottom-px h-0.5 bg-foreground"
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              />
             )}
-          </button>
+          </motion.button>
         ))}
       </div>
 
       {/* ─── TAB: INVENTARIO (KPIs + chips + tabla) ─── */}
+      <AnimatePresence mode="wait">
       {tab === "inventario" && (
-        <>
+        <motion.div
+          key="inventario"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] as const }}
+        >
       {/* KPIs superiores — entrada escalonada con stagger delay */}
-      <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="sticky-kpis mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {/* 1. Productos en catálogo */}
-        <div
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
           className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
           style={{ animationDelay: "0ms" }}
         >
@@ -220,10 +248,12 @@ export function InventarioView() {
             <Package className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Catálogo</p>
           </div>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(products.length)}</p>
-        </div>
+          <p className="tabular mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(animCatalogo)}</p>
+        </motion.div>
         {/* 2. Unidades totales */}
-        <div
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
           className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
           style={{ animationDelay: "60ms" }}
         >
@@ -231,10 +261,12 @@ export function InventarioView() {
             <Boxes className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Unidades</p>
           </div>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(totalUnidades)}</p>
-        </div>
+          <p className="tabular mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(animUnidades)}</p>
+        </motion.div>
         {/* 3. Valor del inventario */}
-        <div
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
           className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
           style={{ animationDelay: "120ms" }}
         >
@@ -242,12 +274,14 @@ export function InventarioView() {
             <DollarSign className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Valor</p>
           </div>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
-            S/ {kpis.valor.toLocaleString("es-PE", { maximumFractionDigits: 0 })}
+          <p className="tabular mt-1 text-2xl font-bold tabular-nums text-foreground">
+            S/ {animValor.toLocaleString("es-PE", { maximumFractionDigits: 0 })}
           </p>
-        </div>
+        </motion.div>
         {/* 4. Bajo stock — pulse dot si hay alerta */}
-        <div
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
           className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
           style={{ animationDelay: "180ms" }}
         >
@@ -255,10 +289,12 @@ export function InventarioView() {
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Bajo stock</p>
             {kpis.bajoStock > 0 && <span className="anim-pulse-dot h-2 w-2 rounded-full bg-amber-500" />}
           </div>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.bajoStock)}</p>
-        </div>
+          <p className="tabular mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(animBajoStock)}</p>
+        </motion.div>
         {/* 5. Agotados — pulse dot si hay alerta */}
-        <div
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
           className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
           style={{ animationDelay: "240ms" }}
         >
@@ -266,10 +302,12 @@ export function InventarioView() {
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Agotados</p>
             {kpis.agotados > 0 && <span className="anim-pulse-dot h-2 w-2 rounded-full bg-destructive" />}
           </div>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.agotados)}</p>
-        </div>
+          <p className="tabular mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(animAgotados)}</p>
+        </motion.div>
         {/* 6. Sin mínimo */}
-        <div
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
           className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
           style={{ animationDelay: "300ms" }}
         >
@@ -277,9 +315,9 @@ export function InventarioView() {
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Sin mínimo</p>
             {kpis.sinMin > 0 && <span className="anim-pulse-dot h-2 w-2 rounded-full bg-amber-500" />}
           </div>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.sinMin)}</p>
-        </div>
-      </section>
+          <p className="tabular mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(animSinMin)}</p>
+        </motion.div>
+      </div>
 
       {/* Chips de filtro por estado */}
       <div className="anim-slide-up mb-4 flex flex-wrap items-center gap-2">
@@ -291,8 +329,10 @@ export function InventarioView() {
           ["sinMin", "Sin mínimo", kpis.sinMin],
           ["ok", "OK", kpis.ok],
         ] as const).map(([key, label, count]) => (
-          <button
+          <motion.button
             key={key}
+            whileTap={{ scale: 0.97 }}
+            transition={{ type: "spring", stiffness: 300, damping: 15 }}
             onClick={() => setFiltro(key)}
             className={cn(
               "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium transition-colors",
@@ -310,7 +350,7 @@ export function InventarioView() {
             >
               {count}
             </span>
-          </button>
+          </motion.button>
         ))}
       </div>
 
@@ -348,15 +388,20 @@ export function InventarioView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {paginaProductos.map((p, idx) => {
+              <AnimatePresence>
+                {paginaProductos.map((p, idx) => {
                 const bajo = p.minStock !== undefined && p.minStock > 0 && p.quantity <= p.minStock;
                 const agotado = p.quantity === 0;
                 const sinMin = !p.minStock || p.minStock === 0;
                 const ok = !sinMin && p.quantity > (p.minStock ?? 0);
                 return (
-                  <tr
+                  <motion.tr
                     key={p.id}
-                    className="anim-fade-in group transition-colors duration-150 hover:bg-muted/50"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.2, delay: idx * 0.02 }}
+                    className="anim-fade-in group transition-colors duration-200 hover:bg-muted/50"
                     style={{ animationDelay: `${idx * 25}ms` }}
                   >
                     <td className="px-4 py-3">
@@ -407,9 +452,10 @@ export function InventarioView() {
                       {fmtRelativo(lastEntradaBySku.get(p.sku))}
                     </td>
                     <td className="px-4 py-3 text-[12px] text-muted-foreground">{p.udm ?? "—"}</td>
-                  </tr>
+                  </motion.tr>
                 );
               })}
+              </AnimatePresence>
             </tbody>
           </table>
         </div>
@@ -464,12 +510,18 @@ export function InventarioView() {
           </div>
         </div>
       )}
-        </>
+        </motion.div>
       )}
 
       {/* ─── TAB: RECOMENDACIONES (las 4 cards inteligentes) ─── */}
       {tab === "recomendaciones" && (
-        <>
+        <motion.div
+          key="recomendaciones"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] as const }}
+        >
           {(recomendaciones.reponer.length > 0 || recomendaciones.sinMinimo.length > 0 || recomendaciones.sinMovimiento.length > 0 || recomendaciones.topConsumo.length > 0) ? (
             <section className="anim-slide-up">
               <h2 className="mb-3 text-[13px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -477,7 +529,9 @@ export function InventarioView() {
               </h2>
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {/* Card 1: Reponer urgentemente */}
-            <div
+            <motion.div
+              whileHover={{ scale: 1.01 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
               className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
               style={{ animationDelay: "0ms" }}
             >
@@ -532,11 +586,13 @@ export function InventarioView() {
                   </div>
                 </div>
               )}
-            </div>
+            </motion.div>
 
             {/* Card 2: Sin mínimo configurado */}
             {recomendaciones.sinMinimo.length > 0 && (
-              <div
+              <motion.div
+                whileHover={{ scale: 1.01 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
                 style={{ animationDelay: "80ms" }}
               >
@@ -563,12 +619,14 @@ export function InventarioView() {
                     <p className="text-[11px] text-muted-foreground">+{recomendaciones.sinMinimo.length - 5} productos más</p>
                   )}
                 </div>
-              </div>
+              </motion.div>
             )}
 
             {/* Card 3: Stock sin movimiento */}
             {recomendaciones.sinMovimiento.length > 0 && (
-              <div
+              <motion.div
+                whileHover={{ scale: 1.01 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
                 style={{ animationDelay: "160ms" }}
               >
@@ -605,12 +663,14 @@ export function InventarioView() {
                     );
                   })}
                 </div>
-              </div>
+              </motion.div>
             )}
 
             {/* Card 4: Top consumo (30 días) */}
             {recomendaciones.topConsumo.length > 0 && (
-              <div
+              <motion.div
+                whileHover={{ scale: 1.01 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
                 style={{ animationDelay: "240ms" }}
               >
@@ -640,7 +700,7 @@ export function InventarioView() {
                     );
                   })}
                 </div>
-              </div>
+              </motion.div>
             )}
               </div>
             </section>
@@ -649,12 +709,18 @@ export function InventarioView() {
               No hay recomendaciones activas. Todo el inventario está por encima del mínimo.
             </div>
           )}
-        </>
+        </motion.div>
       )}
 
       {/* ─── TAB: ENTRADAS (entradas recientes) ─── */}
       {tab === "entradas" && (
-        <>
+        <motion.div
+          key="entradas"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] as const }}
+        >
           {entradas.length > 0 ? (
             <section className="anim-slide-up">
               <h2 className="mb-3 text-[13px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -693,10 +759,9 @@ export function InventarioView() {
               No hay entradas registradas. Ingresa materiales desde la página de Recepciones.
             </div>
           )}
-        </>
+        </motion.div>
       )}
-
-
+      </AnimatePresence>
 
     </div>
   );

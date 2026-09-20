@@ -1,0 +1,702 @@
+     1→"use client";
+     2→
+     3→import { useMemo, useState, useEffect } from "react";
+     4→import { useRouter } from "next/navigation";
+     5→import {
+     6→  ArrowRight,
+     7→  AlertTriangle,
+     8→  Settings,
+     9→  ChevronLeft,
+    10→  ChevronRight,
+    11→  Clock,
+    12→  TrendingUp,
+    13→  Package,
+    14→  Boxes,
+    15→  Check,
+    16→  Undo,
+    17→  Filter,
+    18→  Calendar,
+    19→  MapPin,
+    20→} from "lucide-react";
+    21→import { useStore } from "@/lib/store";
+    22→import {
+    23→  ESTADO_META,
+    24→  ANTIGUEDAD_META,
+    25→  calcularAntiguedad,
+    26→  type EstadoEquipo,
+    27→} from "@/lib/types";
+    28→import { fmtNum } from "@/lib/num";
+    29→import { cn } from "@/lib/utils";
+    30→import { Button } from "@/components/ui/button";
+    31→import { AuroraSearchInput } from "@/components/lem/aurora-search-input";
+    32→import { EstadoIcon } from "@/components/lem/estado-icon";
+    33→
+    34→const ICON_PROPS = { strokeWidth: 1.5 } as const;
+    35→const ESTADOS: EstadoEquipo[] = ["disponible", "averiado", "en_retiro"];
+    36→const SERIES_POR_MODELO_INICIAL = 50;
+    37→
+    38→export function SeriesView() {
+    39→  const equipos = useStore((s) => s.equipos);
+    40→  const despachos = useStore((s) => s.despachos);
+    41→  const router = useRouter();
+    42→
+    43→  const [query, setQuery] = useState("");
+    44→  const [estadoFilter, setEstadoFilter] = useState<"todos" | EstadoEquipo>("todos");
+    45→  const [tab, setTab] = useState<"series" | "recomendaciones" | "movimientos">("series");
+    46→  const [expandido, setExpandido] = useState<Record<string, boolean>>({});
+    47→
+    48→  // Reset expandido cuando cambian query o filtros para evitar estados huérfanos
+    49→  useEffect(() => {
+    50→    setExpandido({});
+    51→  }, [query, estadoFilter, equipos]);
+    52→
+    53→  // Filtrado por estado + query (serie / modelo / MAC / CM MAC)
+    54→  const filtered = useMemo(() => {
+    55→    const q = query.toLowerCase().trim();
+    56→    return equipos.filter((e) => {
+    57→      if (estadoFilter !== "todos" && e.estado !== estadoFilter) return false;
+    58→      if (!q) return true;
+    59→      return (
+    60→        e.serie.toLowerCase().includes(q) ||
+    61→        e.modelo.toLowerCase().includes(q) ||
+    62→        (e.mac ?? "").toLowerCase().includes(q) ||
+    63→        (e.cmMac ?? "").toLowerCase().includes(q)
+    64→      );
+    65→    });
+    66→  }, [equipos, query, estadoFilter]);
+    67→
+    68→  // Agrupar por modelo (ordenado por cantidad descendente)
+    69→  const models = useMemo(() => {
+    70→    const byModel: Record<string, typeof equipos> = {};
+    71→    for (const e of filtered) {
+    72→      const k = e.modelo || "Sin modelo";
+    73→      if (!byModel[k]) byModel[k] = [];
+    74→      byModel[k].push(e);
+    75→    }
+    76→    return Object.entries(byModel).sort((a, b) => b[1].length - a[1].length);
+    77→  }, [filtered]);
+    78→
+    79→  const toggleExpandido = (modelo: string) =>
+    80→    setExpandido((p) => ({ ...p, [modelo]: !p[modelo] }));
+    81→
+    82→  // Cantidad de modelos únicos en el catálogo completo
+    83→  const modelosDistintos = useMemo(
+    84→    () => new Set(equipos.map((e) => e.modelo || "Sin modelo")).size,
+    85→    [equipos],
+    86→  );
+    87→
+    88→  // ─── KPIs superiores ───
+    89→  const kpis = useMemo(() => {
+    90→    const disponibles = equipos.filter((e) => e.estado === "disponible").length;
+    91→    const averiadosList = equipos.filter((e) => e.estado === "averiado");
+    92→    const enRetiro = equipos.filter((e) => e.estado === "en_retiro").length;
+    93→
+    94→    // Sin despachar 30+d: equipos disponibles hace 30+ días sin despacho
+    95→    const ahora = Date.now();
+    96→    const dias30 = 30 * 86400_000;
+    97→    const sinDespachar30List = equipos.filter((e) => {
+    98→      if (e.estado !== "disponible") return false;
+    99→      const seriesEnDespachos = despachos.filter((d) => d.series?.includes(e.serie));
+   100→      const ultimoDespacho =
+   101→        seriesEnDespachos.length > 0 ? Math.max(...seriesEnDespachos.map((d) => d.fecha)) : 0;
+   102→      const referencia = ultimoDespacho || e.createdAt;
+   103→      return ahora - referencia >= dias30;
+   104→    });
+   105→
+   106→    return {
+   107→      total: equipos.length,
+   108→      disponibles,
+   109→      averiados: averiadosList.length,
+   110→      averiadosList,
+   111→      enRetiro,
+   112→      sinDespachar30: sinDespachar30List.length,
+   113→      sinDespachar30List,
+   114→      modelosDistintos,
+   115→    };
+   116→  }, [equipos, despachos, modelosDistintos]);
+   117→
+   118→  // ─── Recomendaciones Inteligentes ───
+   119→  const recomendaciones = useMemo(() => {
+   120→    const ahora = Date.now();
+   121→    const dias30 = 30 * 86400_000;
+   122→
+   123→    // 1. Sin despachar hace 30+ días (con días sin movimiento y últimoDespacho)
+   124→    const sinDespachar30ConDias = kpis.sinDespachar30List
+   125→      .map((e) => {
+   126→        const seriesEnDespachos = despachos.filter((d) => d.series?.includes(e.serie));
+   127→        const ultimoDespacho =
+   128→          seriesEnDespachos.length > 0 ? Math.max(...seriesEnDespachos.map((d) => d.fecha)) : 0;
+   129→        const referencia = ultimoDespacho || e.createdAt;
+   130→        return {
+   131→          equipo: e,
+   132→          ultimoDespacho: referencia,
+   133→          dias: Math.max(0, Math.floor((ahora - referencia) / 86400_000)),
+   134→        };
+   135→      })
+   136→      .sort((a, b) => b.dias - a.dias);
+   137→
+   138→    // 2. Series averiadas (con días en estado averiado usando updatedAt)
+   139→    const averiadosConDias = kpis.averiadosList
+   140→      .map((e) => ({
+   141→        equipo: e,
+   142→        dias: Math.max(0, Math.floor((ahora - (e.updatedAt || e.createdAt)) / 86400_000)),
+   143→      }))
+   144→      .sort((a, b) => b.dias - a.dias);
+   145→
+   146→    // 3. Antigüedad de stock: distribución por nivel (solo equipos disponibles)
+   147→    const ant = equipos
+   148→      .filter((e) => e.estado === "disponible")
+   149→      .map((e) => calcularAntiguedad(e.createdAt));
+   150→    const antNuevo = ant.filter((a) => a.nivel === "nuevo").length;
+   151→    const antAdv = ant.filter((a) => a.nivel === "advertencia").length;
+   152→    const antCrit = ant.filter((a) => a.nivel === "critico").length;
+   153→    const antOld = ant.filter((a) => a.nivel === "antiguo").length;
+   154→    const antSinMov = antAdv + antCrit + antOld;
+   155→
+   156→    // 4. Top modelos más despachados 30d (por series únicas despachadas)
+   157→    const porModelo = new Map<string, { modelo: string; seriesUnicas: Set<string> }>();
+   158→    for (const d of despachos) {
+   159→      if (d.fecha < ahora - dias30) continue;
+   160→      if (!d.series || d.series.length === 0) continue;
+   161→      for (const serie of d.series) {
+   162→        const equipo = equipos.find((e) => e.serie === serie);
+   163→        const modelo = equipo?.modelo || "Sin modelo";
+   164→        const cur = porModelo.get(modelo) ?? { modelo, seriesUnicas: new Set<string>() };
+   165→        cur.seriesUnicas.add(serie);
+   166→        porModelo.set(modelo, cur);
+   167→      }
+   168→    }
+   169→    const topDespachados = Array.from(porModelo.values())
+   170→      .map((m) => ({ modelo: m.modelo, count: m.seriesUnicas.size }))
+   171→      .sort((a, b) => b.count - a.count)
+   172→      .slice(0, 5);
+   173→    const maxTopDespachados = topDespachados.length > 0 ? topDespachados[0].count : 1;
+   174→
+   175→    return {
+   176→      sinDespachar30ConDias,
+   177→      averiadosConDias,
+   178→      antNuevo,
+   179→      antAdv,
+   180→      antCrit,
+   181→      antOld,
+   182→      antSinMov,
+   183→      topDespachados,
+   184→      maxTopDespachados,
+   185→    };
+   186→  }, [kpis, despachos, equipos]);
+   187→
+   188→  // Helper: tiempo relativo "hace X días/meses"
+   189→  const fmtRelativo = (ts?: number) => {
+   190→    if (!ts) return "—";
+   191→    const diff = Date.now() - ts;
+   192→    const dias = Math.floor(diff / 86400_000);
+   193→    if (dias < 1) return "hoy";
+   194→    if (dias === 1) return "ayer";
+   195→    if (dias < 7) return `hace ${dias} días`;
+   196→    if (dias < 30) return `hace ${Math.floor(dias / 7)} sem`;
+   197→    const meses = Math.floor(dias / 30);
+   198→    return meses === 1 ? "hace 1 mes" : `hace ${meses} meses`;
+   199→  };
+   200→
+   201→  // Count total para la pestaña "Recomendaciones"
+   202→  const recomendacionesCount =
+   203→    kpis.sinDespachar30 + kpis.averiados + recomendaciones.antSinMov + recomendaciones.topDespachados.length;
+   204→
+   205→  const goEquipos = () => router.push("/equipos");
+   206→
+   207→  return (
+   208→    <div className="select-text cursor-text px-4 py-8 sm:px-6 lg:px-10 anim-fade-in">
+   209→      {/* Header */}
+   210→      <header className="anim-slide-up mb-8 flex flex-wrap items-end justify-between gap-4">
+   211→        <div>
+   212→          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+   213→            {equipos.length} series · {kpis.modelosDistintos} modelos
+   214→          </p>
+   215→          <h1 className="mt-1 text-[28px] font-semibold tracking-tight text-foreground sm:text-[32px]">Series</h1>
+   216→        </div>
+   217→        <AuroraSearchInput
+   218→          value={query}
+   219→          onChange={setQuery}
+   220→          placeholder="Buscar serie, modelo, MAC…"
+   221→          placeholderFocused="Escribe para filtrar series…"
+   222→          className="w-56"
+   223→          iconSize="h-3.5 w-3.5"
+   224→        />
+   225→      </header>
+   226→
+   227→      {/* Pestañas: Series | Recomendaciones | Movimientos */}
+   228→      <div className="anim-slide-up mb-6 flex items-center gap-1 border-b border-border">
+   229→        {([
+   230→          ["series", "Series", equipos.length],
+   231→          ["recomendaciones", "Recomendaciones", recomendacionesCount],
+   232→          ["movimientos", "Movimientos", despachos.length],
+   233→        ] as const).map(([key, label, count]) => (
+   234→          <button
+   235→            key={key}
+   236→            onClick={() => setTab(key)}
+   237→            className={cn(
+   238→              "relative inline-flex h-10 items-center gap-2 px-4 text-[13px] font-medium transition-colors",
+   239→              tab === key ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+   240→            )}
+   241→          >
+   242→            {label}
+   243→            <span
+   244→              className={cn(
+   245→                "rounded-full px-1.5 py-0.5 text-[10px] tabular-nums",
+   246→                tab === key ? "bg-foreground text-background" : "bg-muted text-muted-foreground",
+   247→              )}
+   248→            >
+   249→              {count}
+   250→            </span>
+   251→            {tab === key && <span className="absolute inset-x-0 -bottom-px h-0.5 bg-foreground" />}
+   252→          </button>
+   253→        ))}
+   254→      </div>
+   255→
+   256→      {/* ─── TAB: SERIES (KPIs + chips + tabla expandible por modelo) ─── */}
+   257→      {tab === "series" && (
+   258→        <>
+   259→          {/* KPIs superiores — entrada escalonada con stagger delay */}
+   260→          <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+   261→            {/* 1. Total series */}
+   262→            <div
+   263→              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+   264→              style={{ animationDelay: "0ms" }}
+   265→            >
+   266→              <div className="flex items-center gap-1.5">
+   267→                <Package className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+   268→                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Total series</p>
+   269→              </div>
+   270→              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.total)}</p>
+   271→            </div>
+   272→            {/* 2. Disponibles */}
+   273→            <div
+   274→              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+   275→              style={{ animationDelay: "60ms" }}
+   276→            >
+   277→              <div className="flex items-center gap-1.5">
+   278→                <Check className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+   279→                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Disponibles</p>
+   280→              </div>
+   281→              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.disponibles)}</p>
+   282→            </div>
+   283→            {/* 3. Averiadas — pulse dot si hay alerta */}
+   284→            <div
+   285→              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+   286→              style={{ animationDelay: "120ms" }}
+   287→            >
+   288→              <div className="flex items-center gap-1.5">
+   289→                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Averiadas</p>
+   290→                {kpis.averiados > 0 && <span className="anim-pulse-dot h-2 w-2 rounded-full bg-destructive" />}
+   291→              </div>
+   292→              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.averiados)}</p>
+   293→            </div>
+   294→            {/* 4. En retiro */}
+   295→            <div
+   296→              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+   297→              style={{ animationDelay: "180ms" }}
+   298→            >
+   299→              <div className="flex items-center gap-1.5">
+   300→                <Undo className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+   301→                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">En retiro</p>
+   302→              </div>
+   303→              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.enRetiro)}</p>
+   304→            </div>
+   305→            {/* 5. Sin despachar 30+d — pulse dot si hay alerta */}
+   306→            <div
+   307→              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+   308→              style={{ animationDelay: "240ms" }}
+   309→            >
+   310→              <div className="flex items-center gap-1.5">
+   311→                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Sin despachar 30+d</p>
+   312→                {kpis.sinDespachar30 > 0 && <span className="anim-pulse-dot h-2 w-2 rounded-full bg-amber-500" />}
+   313→              </div>
+   314→              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.sinDespachar30)}</p>
+   315→            </div>
+   316→            {/* 6. Modelos */}
+   317→            <div
+   318→              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+   319→              style={{ animationDelay: "300ms" }}
+   320→            >
+   321→              <div className="flex items-center gap-1.5">
+   322→                <Boxes className="h-3 w-3 text-muted-foreground" {...ICON_PROPS} />
+   323→                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Modelos</p>
+   324→              </div>
+   325→              <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">{fmtNum(kpis.modelosDistintos)}</p>
+   326→            </div>
+   327→          </section>
+   328→
+   329→          {/* Chips de filtro por estado */}
+   330→          <div className="anim-slide-up mb-6 flex flex-wrap items-center gap-1">
+   331→            <Filter className="mr-1 h-3.5 w-3.5 text-muted-foreground" {...ICON_PROPS} />
+   332→            <FilterChip active={estadoFilter === "todos"} onClick={() => setEstadoFilter("todos")} label="Todos" count={equipos.length} />
+   333→            {ESTADOS.map((est) => {
+   334→              const n = equipos.filter((e) => e.estado === est).length;
+   335→              return <FilterChip key={est} active={estadoFilter === est} onClick={() => setEstadoFilter(est)} label={ESTADO_META[est].short} count={n} />;
+   336→            })}
+   337→          </div>
+   338→
+   339→          {/* Lista de series agrupadas por modelo (expandible) */}
+   340→          {models.length === 0 ? (
+   341→            <p className="py-12 text-center text-[13px] text-muted-foreground">
+   342→              {equipos.length === 0 ? "No hay series registradas. Las series se añaden automáticamente al recibir equipos en la página de Recepciones." : "Sin coincidencias."}
+   343→            </p>
+   344→          ) : (
+   345→            <div className="space-y-10">
+   346→              {models.map(([modelo, items]) => {
+   347→                const mostrarTodas = expandido[modelo] || items.length <= SERIES_POR_MODELO_INICIAL;
+   348→                const itemsVisibles = mostrarTodas ? items : items.slice(0, SERIES_POR_MODELO_INICIAL);
+   349→                return (
+   350→                  <section key={modelo}>
+   351→                    <div className="mb-3 flex items-baseline justify-between">
+   352→                      <h2 className="text-[15px] font-medium text-foreground">{modelo}</h2>
+   353→                      <span className="text-[12px] tabular-nums text-muted-foreground">{items.length}</span>
+   354→                    </div>
+   355→                    <div className="overflow-x-auto scroll-thin">
+   356→                      <table className="w-full text-[13px]">
+   357→                        <thead>
+   358→                          <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+   359→                            <th className="py-2 pr-3 font-medium">#</th>
+   360→                            <th className="py-2 pr-3 font-medium">Serie</th>
+   361→                            <th className="py-2 pr-3 font-medium">MAC</th>
+   362→                            <th className="py-2 pr-3 font-medium">CM MAC</th>
+   363→                            <th className="py-2 pr-3 font-medium">Estado</th>
+   364→                            <th className="py-2 pr-3 font-medium">Antig.</th>
+   365→                            <th className="py-2 pr-3 font-medium">Ubicación</th>
+   366→                            <th className="py-2 font-medium">Observación</th>
+   367→                          </tr>
+   368→                        </thead>
+   369→                        <tbody className="divide-y divide-border">
+   370→                          {itemsVisibles.map((e, idx) => {
+   371→                            const ant = e.estado === "disponible" ? calcularAntiguedad(e.createdAt) : null;
+   372→                            return (
+   373→                              <tr key={e.id} className="anim-fade-in transition-colors hover:bg-muted/30" style={{ animationDelay: `${idx * 25}ms` }}>
+   374→                                <td className="py-2.5 pr-3 tabular-nums text-muted-foreground">{idx + 1}</td>
+   375→                                <td className="py-2.5 pr-3 font-mono text-[12px] font-medium text-foreground">{e.serie}</td>
+   376→                                <td className="py-2.5 pr-3 font-mono text-[11px] text-muted-foreground">{e.mac ?? "—"}</td>
+   377→                                <td className="py-2.5 pr-3 font-mono text-[11px] text-muted-foreground">{e.cmMac ?? "—"}</td>
+   378→                                <td className="py-2.5 pr-3">
+   379→                                  <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+   380→                                    <EstadoIcon name={ESTADO_META[e.estado].icon} className="h-3 w-3" />
+   381→                                    {ESTADO_META[e.estado].short}
+   382→                                  </span>
+   383→                                </td>
+   384→                                <td className="py-2.5 pr-3">
+   385→                                  {ant ? (
+   386→                                    <span className={cn("inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium", ant.bg, ant.text)} title={ant.label}>
+   387→                                      <span className={cn("h-1.5 w-1.5 rounded-full", ant.dot)} />
+   388→                                      {ant.dias}d
+   389→                                    </span>
+   390→                                  ) : (
+   391→                                    <span className="text-[10px] text-muted-foreground">—</span>
+   392→                                  )}
+   393→                                </td>
+   394→                                <td className="py-2.5 pr-3 text-[12px] text-muted-foreground">{e.ubicacion ?? "—"}</td>
+   395→                                <td className="py-2.5 text-[12px] text-muted-foreground">{e.observacion ?? "—"}</td>
+   396→                              </tr>
+   397→                            );
+   398→                          })}
+   399→                        </tbody>
+   400→                      </table>
+   401→                    </div>
+   402→                    {!mostrarTodas && (
+   403→                      <div className="mt-3">
+   404→                        <Button
+   405→                          variant="outline"
+   406→                          size="sm"
+   407→                          onClick={() => toggleExpandido(modelo)}
+   408→                          className="press h-8 rounded-lg border-border bg-background text-[12px] font-medium hover:bg-muted"
+   409→                        >
+   410→                          Ver {items.length - SERIES_POR_MODELO_INICIAL} más
+   411→                        </Button>
+   412→                      </div>
+   413→                    )}
+   414→                  </section>
+   415→                );
+   416→              })}
+   417→            </div>
+   418→          )}
+   419→        </>
+   420→      )}
+   421→
+   422→      {/* ─── TAB: RECOMENDACIONES (4 cards inteligentes) ─── */}
+   423→      {tab === "recomendaciones" && (
+   424→        <>
+   425→          {recomendaciones.sinDespachar30ConDias.length > 0 ||
+   426→          recomendaciones.averiadosConDias.length > 0 ||
+   427→          recomendaciones.antSinMov > 0 ||
+   428→          recomendaciones.topDespachados.length > 0 ? (
+   429→            <section className="anim-slide-up">
+   430→              <h2 className="mb-3 text-[13px] font-medium uppercase tracking-wider text-muted-foreground">
+   431→                Recomendaciones Inteligentes
+   432→              </h2>
+   433→              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+   434→                {/* Card 1: Sin despachar hace 30+ días */}
+   435→                <div
+   436→                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+   437→                  style={{ animationDelay: "0ms" }}
+   438→                >
+   439→                  <div className="mb-3 flex items-center justify-between">
+   440→                    <div className="flex items-center gap-2">
+   441→                      <Clock className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+   442→                      <h3 className="text-[13px] font-semibold text-foreground">Sin despachar hace 30+ días</h3>
+   443→                    </div>
+   444→                    <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
+   445→                      {recomendaciones.sinDespachar30ConDias.length}
+   446→                    </span>
+   447→                  </div>
+   448→                  {recomendaciones.sinDespachar30ConDias.length === 0 ? (
+   449→                    <p className="text-[12px] text-muted-foreground">No hay series disponibles sin despachar hace 30+ días</p>
+   450→                  ) : (
+   451→                    <div className="space-y-2">
+   452→                      {recomendaciones.sinDespachar30ConDias.slice(0, 6).map(({ equipo, ultimoDespacho }) => (
+   453→                        <div key={equipo.id} className="flex items-baseline justify-between gap-2">
+   454→                          <div className="min-w-0 flex-1">
+   455→                            <p className="truncate text-[12px] font-medium text-foreground">{equipo.modelo || "Sin modelo"}</p>
+   456→                            <p className="font-mono text-[10px] text-muted-foreground">{equipo.serie}</p>
+   457→                          </div>
+   458→                          <div className="shrink-0 text-right">
+   459→                            <p className="text-[11px] tabular-nums text-muted-foreground">{fmtRelativo(ultimoDespacho)}</p>
+   460→                            <p className="text-[10px] text-muted-foreground">sin movimiento</p>
+   461→                          </div>
+   462→                        </div>
+   463→                      ))}
+   464→                      {recomendaciones.sinDespachar30ConDias.length > 6 && (
+   465→                        <p className="text-[11px] text-muted-foreground">+{recomendaciones.sinDespachar30ConDias.length - 6} más</p>
+   466→                      )}
+   467→                      <div className="border-t border-border pt-2 text-[11px] text-muted-foreground">
+   468→                        Total: <span className="font-semibold text-foreground">{recomendaciones.sinDespachar30ConDias.length}</span> series sin despachar 30+ días
+   469→                      </div>
+   470→                    </div>
+   471→                  )}
+   472→                </div>
+   473→
+   474→                {/* Card 2: Series averiadas */}
+   475→                <div
+   476→                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+   477→                  style={{ animationDelay: "80ms" }}
+   478→                >
+   479→                  <div className="mb-3 flex items-center justify-between">
+   480→                    <div className="flex items-center gap-2">
+   481→                      <AlertTriangle className="h-4 w-4 text-amber-600" {...ICON_PROPS} />
+   482→                      <h3 className="text-[13px] font-semibold text-foreground">Series averiadas</h3>
+   483→                    </div>
+   484→                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-amber-600">
+   485→                      {recomendaciones.averiadosConDias.length}
+   486→                    </span>
+   487→                  </div>
+   488→                  {recomendaciones.averiadosConDias.length === 0 ? (
+   489→                    <p className="text-[12px] text-muted-foreground">No hay series averiadas</p>
+   490→                  ) : (
+   491→                    <div className="space-y-2.5">
+   492→                      {recomendaciones.averiadosConDias.slice(0, 6).map(({ equipo, dias }) => {
+   493→                        // 90 días = 100% (capped). El bar representa antigüedad en estado averiado.
+   494→                        const pct = Math.min(100, Math.max(2, (dias / 90) * 100));
+   495→                        return (
+   496→                          <div key={equipo.id} className="space-y-1">
+   497→                            <div className="flex items-baseline justify-between gap-2">
+   498→                              <span className="truncate text-[12px] font-medium text-foreground">{equipo.modelo || "Sin modelo"}</span>
+   499→                              <span className="shrink-0 font-mono text-[10px] text-muted-foreground">{equipo.serie}</span>
+   500→                            </div>
+   501→                            <div className="flex items-center justify-between gap-2 text-[11px]">
+   502→                              <span className="truncate text-muted-foreground">
+   503→                                <MapPin className="mr-1 inline h-3 w-3 align-text-bottom" {...ICON_PROPS} />
+   504→                                {equipo.ubicacion || "Sin ubicación"}
+   505→                              </span>
+   506→                              <span className="shrink-0 font-semibold tabular-nums text-amber-600">{dias}d</span>
+   507→                            </div>
+   508→                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+   509→                              <div className="anim-draw-in h-full rounded-full bg-amber-500" style={{ width: `${pct}%` }} />
+   510→                            </div>
+   511→                          </div>
+   512→                        );
+   513→                      })}
+   514→                      {recomendaciones.averiadosConDias.length > 6 && (
+   515→                        <p className="text-[11px] text-muted-foreground">+{recomendaciones.averiadosConDias.length - 6} más</p>
+   516→                      )}
+   517→                      <div className="border-t border-border pt-2 text-[11px] text-muted-foreground">
+   518→                        Total: <span className="font-semibold text-foreground">{recomendaciones.averiadosConDias.length}</span> series averiadas
+   519→                      </div>
+   520→                    </div>
+   521→                  )}
+   522→                </div>
+   523→
+   524→                {/* Card 3: Antigüedad de stock */}
+   525→                <div
+   526→                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+   527→                  style={{ animationDelay: "160ms" }}
+   528→                >
+   529→                  <div className="mb-3 flex items-center gap-2">
+   530→                    <Calendar className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+   531→                    <h3 className="text-[13px] font-semibold text-foreground">Antigüedad de stock</h3>
+   532→                  </div>
+   533→                  {kpis.disponibles === 0 ? (
+   534→                    <p className="text-[12px] text-muted-foreground">No hay series disponibles para analizar antigüedad</p>
+   535→                  ) : (
+   536→                    <div className="space-y-2">
+   537→                      {recomendaciones.antNuevo > 0 && (
+   538→                        <div className="flex items-center justify-between">
+   539→                          <span className="text-[12px] text-muted-foreground">Nuevo (0-30 días)</span>
+   540→                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-medium tabular-nums text-emerald-600">
+   541→                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+   542→                            {recomendaciones.antNuevo}
+   543→                          </span>
+   544→                        </div>
+   545→                      )}
+   546→                      {recomendaciones.antAdv > 0 && (
+   547→                        <div className="flex items-center justify-between">
+   548→                          <span className="text-[12px] text-muted-foreground">Advertencia (31-60)</span>
+   549→                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium tabular-nums text-amber-600">
+   550→                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+   551→                            {recomendaciones.antAdv}
+   552→                          </span>
+   553→                        </div>
+   554→                      )}
+   555→                      {recomendaciones.antCrit > 0 && (
+   556→                        <div className="flex items-center justify-between">
+   557→                          <span className="text-[12px] text-muted-foreground">Crítico (61-120)</span>
+   558→                          <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/15 px-2 py-0.5 text-[11px] font-medium tabular-nums text-rose-600">
+   559→                            <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+   560→                            {recomendaciones.antCrit}
+   561→                          </span>
+   562→                        </div>
+   563→                      )}
+   564→                      {recomendaciones.antOld > 0 && (
+   565→                        <div className="flex items-center justify-between">
+   566→                          <span className="text-[12px] text-muted-foreground">Antiguo (120+)</span>
+   567→                          <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2 py-0.5 text-[11px] font-medium tabular-nums text-red-700">
+   568→                            <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+   569→                            {recomendaciones.antOld}
+   570→                          </span>
+   571→                        </div>
+   572→                      )}
+   573→                      <div className="border-t border-border pt-2 text-[11px] text-muted-foreground">
+   574→                        Total disponibles: <span className="font-semibold text-foreground">{kpis.disponibles}</span> series
+   575→                      </div>
+   576→                    </div>
+   577→                  )}
+   578→                </div>
+   579→
+   580→                {/* Card 4: Top modelos más despachados 30d */}
+   581→                <div
+   582→                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+   583→                  style={{ animationDelay: "240ms" }}
+   584→                >
+   585→                  <div className="mb-3 flex items-center gap-2">
+   586→                    <TrendingUp className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
+   587→                    <h3 className="text-[13px] font-semibold text-foreground">Top modelos más despachados 30d</h3>
+   588→                  </div>
+   589→                  {recomendaciones.topDespachados.length === 0 ? (
+   590→                    <p className="text-[12px] text-muted-foreground">No hay despachos con series en los últimos 30 días</p>
+   591→                  ) : (
+   592→                    <div className="space-y-2">
+   593→                      {recomendaciones.topDespachados.map((m, i) => {
+   594→                        const pct = Math.max(4, (m.count / recomendaciones.maxTopDespachados) * 100);
+   595→                        return (
+   596→                          <div key={m.modelo} className="space-y-1">
+   597→                            <div className="flex items-baseline justify-between gap-2 text-[12px]">
+   598→                              <span className="flex min-w-0 items-center gap-1.5">
+   599→                                <span className="font-mono text-[10px] tabular-nums text-muted-foreground">{i + 1}.</span>
+   600→                                <span className="truncate font-medium text-foreground">{m.modelo}</span>
+   601→                              </span>
+   602→                              <span className="shrink-0 tabular-nums text-muted-foreground">
+   603→                                {fmtNum(m.count)} {m.count === 1 ? "serie" : "series"}
+   604→                              </span>
+   605→                            </div>
+   606→                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+   607→                              <div className="anim-draw-in h-full rounded-full bg-foreground/60" style={{ width: `${pct}%` }} />
+   608→                            </div>
+   609→                          </div>
+   610→                        );
+   611→                      })}
+   612→                    </div>
+   613→                  )}
+   614→                </div>
+   615→              </div>
+   616→            </section>
+   617→          ) : (
+   618→            <div className="anim-fade-in rounded-lg border border-dashed border-border bg-background px-4 py-16 text-center text-[13px] text-muted-foreground">
+   619→              No hay recomendaciones activas. Todo está en orden.
+   620→            </div>
+   621→          )}
+   622→        </>
+   623→      )}
+   624→
+   625→      {/* ─── TAB: MOVIMIENTOS (últimos despachos con serie asociada) ─── */}
+   626→      {tab === "movimientos" && (
+   627→        <>
+   628→          {despachos.filter((d) => d.series && d.series.length > 0).length > 0 ? (
+   629→            <section className="anim-slide-up">
+   630→              <h2 className="mb-3 text-[13px] font-medium uppercase tracking-wider text-muted-foreground">
+   631→                Últimos despachos con serie
+   632→              </h2>
+   633→              <div className="scroll-thin divide-y divide-border rounded-lg border border-border bg-background">
+   634→                {despachos
+   635→                  .filter((d) => d.series && d.series.length > 0)
+   636→                  .sort((a, b) => b.fecha - a.fecha)
+   637→                  .slice(0, 15)
+   638→                  .map((d) => {
+   639→                    const serie = d.series![0];
+   640→                    const equipo = equipos.find((e) => e.serie === serie);
+   641→                    return (
+   642→                      <div
+   643→                        key={d.id}
+   644→                        className="group flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/40"
+   645→                      >
+   646→                        <span className="font-mono text-[12px] tabular-nums text-foreground">
+   647→                          {new Date(d.fecha).toLocaleDateString("es-PE")}
+   648→                        </span>
+   649→                        <div className="min-w-0 flex-1">
+   650→                          <p className="truncate text-[13px] font-medium text-foreground">
+   651→                            {equipo?.modelo || d.producto || "—"}
+   652→                          </p>
+   653→                          <p className="font-mono text-[11px] text-muted-foreground">{serie}</p>
+   654→                        </div>
+   655→                        <div className="hidden text-right sm:block">
+   656→                          {d.destino && (
+   657→                            <p className="truncate text-[11px] text-muted-foreground">{d.destino}</p>
+   658→                          )}
+   659→                          {d.tecnico && (
+   660→                            <p className="text-[10px] text-muted-foreground">{d.tecnico}</p>
+   661→                          )}
+   662→                        </div>
+   663→                      </div>
+   664→                    );
+   665→                  })}
+   666→              </div>
+   667→            </section>
+   668→          ) : (
+   669→            <div className="anim-fade-in rounded-lg border border-dashed border-border bg-background px-4 py-16 text-center text-[13px] text-muted-foreground">
+   670→              No hay despachos con series asociadas.
+   671→            </div>
+   672→          )}
+   673→        </>
+   674→      )}
+   675→
+   676→      {/* Footer */}
+   677→      <div className="mt-8 border-t border-border pt-6">
+   678→        <Button variant="ghost" onClick={goEquipos} className="press rounded-lg text-[13px] font-medium text-muted-foreground hover:text-foreground">
+   679→          Gestionar equipos <ArrowRight className="ml-1.5 h-3.5 w-3.5" strokeWidth={1.5} />
+   680→        </Button>
+   681→      </div>
+   682→    </div>
+   683→  );
+   684→}
+   685→
+   686→function FilterChip({ active, onClick, label, count }: { active: boolean; onClick: () => void; label: string; count: number }) {
+   687→  return (
+   688→    <button
+   689→      onClick={onClick}
+   690→      className={cn(
+   691→        "press flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors",
+   692→        active
+   693→          ? "border-foreground bg-foreground text-background"
+   694→          : "border-border bg-background text-muted-foreground hover:text-foreground hover:bg-muted"
+   695→      )}
+   696→    >
+   697→      {label}
+   698→      <span className={cn("tabular-nums", active ? "text-background/70" : "text-muted-foreground")}>{count}</span>
+   699→    </button>
+   700→  );
+   701→}
+   702→

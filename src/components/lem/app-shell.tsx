@@ -7,6 +7,7 @@ import { Navbar } from "@/components/lem/navbar";
 import { SubHeader } from "@/components/lem/sub-header";
 import { Footer } from "@/components/lem/footer";
 import { NotificationStack } from "@/components/lem/notification-stack";
+import { ScrollToTop } from "@/components/lem/scroll-to-top";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -142,6 +143,7 @@ export function AppShell({ children, isChat = false }: AppShellProps) {
         </main>
         {!isChat && <Footer />}
         <NotificationStack />
+        <ScrollToTop />
       </div>
 
       {/* Menú contextual personalizado (reemplaza click derecho del browser) */}

@@ -548,3 +548,96 @@ html.light {
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   UTILIDADES SPRING PREMIUM (Apple/iOS style) — MOVIMIENTO, no color
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Variable de easing spring (Apple-style overshoot) */
+:root {
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Tabular numbers — los números no saltan de ancho */
+.tabular { font-feature-settings: "tnum" 1; font-variant-numeric: tabular-nums; }
+
+/* Transition spring utility (vanilla fallback) */
+.transition-spring {
+  transition-property: transform, opacity, background-color, box-shadow;
+  transition-timing-function: var(--ease-spring);
+  transition-duration: 250ms;
+}
+.transition-smooth {
+  transition-property: transform, opacity, background-color;
+  transition-timing-function: var(--ease-smooth);
+  transition-duration: 200ms;
+}
+
+/* Scale-down al presionar (táctil) */
+.press-tap {
+  transition: transform 150ms var(--ease-spring);
+}
+.press-tap:active {
+  transform: scale(0.97);
+}
+
+/* Hover scale sutil */
+.hover-spring {
+  transition: transform 200ms var(--ease-spring), box-shadow 200ms var(--ease-smooth);
+  will-change: transform;
+}
+.hover-spring:hover {
+  transform: scale(1.02);
+}
+
+/* Skeleton shimmer (loading state) */
+@keyframes lem-skeleton {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--muted) 0%, var(--muted-foreground/10) 50%, var(--muted) 100%);
+  background-size: 200% 100%;
+  animation: lem-skeleton 1.4s ease-in-out infinite;
+}
+
+/* Fade + slide entrance (alternativa CSS para FiltrerMode) */
+@keyframes lem-fade-slide-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes lem-fade-slide-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-8px); }
+}
+.anim-fade-slide-in { animation: lem-fade-slide-in 250ms var(--ease-spring) both; }
+.anim-fade-slide-out { animation: lem-fade-slide-out 200ms var(--ease-smooth) both; }
+
+/* Sticky KPIs wrapper */
+.sticky-kpis {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--background);
+  padding-bottom: 0.5rem;
+}
+
+/* Botón "Volver arriba" */
+.scroll-top-btn {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 50;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms var(--ease-smooth), transform 200ms var(--ease-spring);
+  transform: translateY(8px) scale(0.95);
+}
+.scroll-top-btn.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}

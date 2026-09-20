@@ -53,6 +53,8 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { speak } from "@/lib/tts";
+import { motion, AnimatePresence } from "framer-motion";
+import { useCountUp } from "@/lib/hooks/use-count-up";
 
 const ICON_PROPS = { strokeWidth: 1.5 } as const;
 
@@ -150,6 +152,10 @@ export function PistolearView() {
     return ORDEN_CAMPOS.filter((c) => pistoleoCamposMarcados.includes(c));
   }, [pistoleoCamposMarcados]);
 
+  // Count-up animado (estilo Apple/iOS) para los KPIs principales
+  const escaneadasCount = useCountUp(pistoleoFilas.length);
+  const enSistemaCount = useCountUp(equipos.length);
+
   // Toggle de un campo marcado
   const toggleCampoMarcado = (campo: CampoPistoleo) => {
     const actuales = pistoleoCamposMarcados.includes(campo)
@@ -167,10 +173,11 @@ export function PistolearView() {
   const camposEsperados = camposMarcadosOrdenados.length;
   const [parcial, setParcial] = useState<string[]>([]);
 
-  // Foco automático al input
+  // Foco automático al input (también recupera el foco tras el remount del motion.input
+  // que ocurre al añadir una fila — necesario para la animación de pulse al escanear)
   useEffect(() => {
     inputRef.current?.focus();
-  }, [pistoleoCamposMarcados]);
+  }, [pistoleoCamposMarcados, pistoleoFilas.length]);
 
   // Detectar duplicados en sistema cada vez que cambian las filas
   useEffect(() => {
@@ -407,17 +414,23 @@ export function PistolearView() {
       <div className="relative z-10">
       {/* Header */}
       <header className="anim-slide-up mb-6 flex flex-wrap items-center justify-end gap-4">
-        <Button
-          variant="outline"
-          onClick={() => setShowConfig((v) => !v)}
-          className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted"
+        <motion.div
+          whileTap={{ scale: 0.97 }}
+          transition={{ type: "spring", stiffness: 300, damping: 15 }}
+          className="inline-flex"
         >
-          <Settings2 className="mr-1.5 h-4 w-4" {...ICON_PROPS} />
-          {showConfig ? "Ocultar" : "Configuración"}
-          {showConfig
-            ? <ChevronDown className="ml-1 h-3.5 w-3.5" {...ICON_PROPS} />
-            : <ChevronRight className="ml-1 h-3.5 w-3.5" {...ICON_PROPS} />}
-        </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowConfig((v) => !v)}
+            className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted"
+          >
+            <Settings2 className="mr-1.5 h-4 w-4" {...ICON_PROPS} />
+            {showConfig ? "Ocultar" : "Configuración"}
+            {showConfig
+              ? <ChevronDown className="ml-1 h-3.5 w-3.5" {...ICON_PROPS} />
+              : <ChevronRight className="ml-1 h-3.5 w-3.5" {...ICON_PROPS} />}
+          </Button>
+        </motion.div>
       </header>
 
       {/* Panel: seleccionar equipo del inventario */}
@@ -442,12 +455,14 @@ export function PistolearView() {
           <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" {...ICON_PROPS} />
         </div>
         {modeloSeleccionado && (
-          <button
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            transition={{ type: "spring", stiffness: 300, damping: 15 }}
             onClick={() => setModeloSeleccionado("")}
             className="press mt-2 inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             <X className="h-3 w-3" {...ICON_PROPS} /> Cambiar
-          </button>
+          </motion.button>
         )}
       </div>
 
@@ -466,12 +481,14 @@ export function PistolearView() {
             disabled={!settings.pistoleoPrefijoEnabled}
           />
           {settings.pistoleoPrefijo && settings.pistoleoPrefijoEnabled && (
-            <button
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              transition={{ type: "spring", stiffness: 300, damping: 15 }}
               onClick={() => setSetting("pistoleoPrefijo", "")}
               className="press inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               <X className="h-3 w-3" {...ICON_PROPS} /> Limpiar
-            </button>
+            </motion.button>
           )}
         </div>
       </div>
@@ -528,8 +545,10 @@ export function PistolearView() {
           {ORDEN_CAMPOS.map((campo) => {
             const marcado = pistoleoCamposMarcados.includes(campo);
             return (
-              <button
+              <motion.button
                 key={campo}
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: "spring", stiffness: 300, damping: 15 }}
                 onClick={() => toggleCampoMarcado(campo)}
                 className={cn(
                   "press flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12px] font-medium transition-colors",
@@ -547,7 +566,7 @@ export function PistolearView() {
                   {marcado && <Check className="h-2.5 w-2.5 text-foreground" {...ICON_PROPS} />}
                 </span>
                 {CAMPOS_PISTOLEO_META[campo].label}
-              </button>
+              </motion.button>
             );
           })}
           <div className="ml-auto flex items-center gap-2 text-[11px] text-muted-foreground">
@@ -564,7 +583,9 @@ export function PistolearView() {
       {/* KPIs compactos del pistoleo actual */}
       <div className="anim-slide-up mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
         {/* KPI 1: Series escaneadas (este lote) */}
-        <div
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
           className="press-card anim-slide-up rounded-lg border border-border bg-card p-3 text-card-foreground shadow transition-shadow hover:shadow-md"
           style={{ animationDelay: "0ms" }}
         >
@@ -574,13 +595,15 @@ export function PistolearView() {
               Escaneadas
             </p>
           </div>
-          <p className="mt-0.5 text-xl font-bold tabular-nums text-foreground">
-            {pistoleoFilas.length}
+          <p className="mt-0.5 text-xl font-bold tabular tabular-nums text-foreground">
+            {escaneadasCount}
           </p>
-        </div>
+        </motion.div>
 
         {/* KPI 2: Estado de destino seleccionado */}
-        <div
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
           className="press-card anim-slide-up rounded-lg border border-border bg-card p-3 text-card-foreground shadow transition-shadow hover:shadow-md"
           style={{ animationDelay: "60ms" }}
         >
@@ -595,10 +618,12 @@ export function PistolearView() {
           <p className="mt-0.5 text-[13px] font-semibold text-foreground">
             {ESTADO_META[pistoleoEstado].label}
           </p>
-        </div>
+        </motion.div>
 
         {/* KPI 3: Ubicación de guardado */}
-        <div
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
           className="press-card anim-slide-up rounded-lg border border-border bg-card p-3 text-card-foreground shadow transition-shadow hover:shadow-md"
           style={{ animationDelay: "120ms" }}
         >
@@ -611,10 +636,12 @@ export function PistolearView() {
           <p className="mt-0.5 truncate text-[13px] font-semibold text-foreground">
             {pistoleoUbicacion || "Almacén"}
           </p>
-        </div>
+        </motion.div>
 
         {/* KPI 4: Total equipos en el sistema */}
-        <div
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
           className="press-card anim-slide-up rounded-lg border border-border bg-card p-3 text-card-foreground shadow transition-shadow hover:shadow-md"
           style={{ animationDelay: "180ms" }}
         >
@@ -624,17 +651,20 @@ export function PistolearView() {
               En sistema
             </p>
           </div>
-          <p className="mt-0.5 text-xl font-bold tabular-nums text-foreground">
-            {equipos.length}
+          <p className="mt-0.5 text-xl font-bold tabular tabular-nums text-foreground">
+            {enSistemaCount}
           </p>
-        </div>
+        </motion.div>
       </div>
 
       {/* Input grande */}
       <div className="anim-slide-up mb-3">
         <div className="relative">
           <ScanLine className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" {...ICON_PROPS} />
-          <input
+          <motion.input
+            key={pistoleoFilas.length}
+            animate={{ scale: [1, 1.01, 1] }}
+            transition={{ duration: 0.25, ease: [0.34, 1.56, 0.64, 1] }}
             ref={inputRef}
             value={valor}
             onChange={(e) => setValor(e.target.value)}
@@ -687,25 +717,34 @@ export function PistolearView() {
         )}
         {/* Live feedback */}
         <div className="mt-2 h-5">
-          {feedbackVisible && feedback && (
-            <div
-              className={cn(
-                "anim-fade-in inline-flex items-center gap-1.5 text-[12px] font-medium",
-                feedback.ok ? "text-foreground" : "text-destructive"
-              )}
-            >
-              {feedback.ok
-                ? <Check className="h-3.5 w-3.5" {...ICON_PROPS} />
-                : <AlertCircle className="h-3.5 w-3.5" {...ICON_PROPS} />}
-              {feedback.text}
-            </div>
-          )}
+          <AnimatePresence>
+            {feedbackVisible && feedback && (
+              <motion.div
+                key={feedback.ts}
+                initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className={cn(
+                  "inline-flex items-center gap-1.5 text-[12px] font-medium",
+                  feedback.ok ? "text-foreground" : "text-destructive"
+                )}
+              >
+                {feedback.ok
+                  ? <Check className="h-3.5 w-3.5" {...ICON_PROPS} />
+                  : <AlertCircle className="h-3.5 w-3.5" {...ICON_PROPS} />}
+                {feedback.text}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
       {/* Banner: series ya registradas en el sistema (clickeable) */}
       {duplicadosSistema.length > 0 && (
-        <button
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          transition={{ type: "spring", stiffness: 300, damping: 15 }}
           onClick={() => setShowDuplicadosModal(true)}
           className="press anim-fade-in mb-3 flex w-full items-center gap-2.5 rounded-lg bg-muted/30 px-3 py-2.5 text-left transition-colors hover:bg-muted"
         >
@@ -716,7 +755,7 @@ export function PistolearView() {
             </p>
           </div>
           <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" {...ICON_PROPS} />
-        </button>
+        </motion.button>
       )}
 
       {/* Banner: duplicados dentro del lote actual */}
@@ -733,36 +772,54 @@ export function PistolearView() {
 
       {/* Acciones */}
       <div className="anim-slide-up mb-4 flex flex-wrap items-center gap-2">
-        <Button
-          onClick={handleConfirmar}
-          disabled={pistoleoFilas.length === 0}
-          className="h-9 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90 disabled:opacity-40"
+        <motion.div
+          whileTap={{ scale: 0.97 }}
+          transition={{ type: "spring", stiffness: 300, damping: 15 }}
+          className="inline-flex"
         >
-          <Save className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Guardar ({pistoleoFilas.length})
-        </Button>
-        <Button
-          variant="outline"
-          onClick={handleClear}
-          disabled={pistoleoFilas.length === 0}
-          className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted disabled:opacity-40"
+          <Button
+            onClick={handleConfirmar}
+            disabled={pistoleoFilas.length === 0}
+            className="h-9 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90 disabled:opacity-40"
+          >
+            <Save className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Guardar ({pistoleoFilas.length})
+          </Button>
+        </motion.div>
+        <motion.div
+          whileTap={{ scale: 0.97 }}
+          transition={{ type: "spring", stiffness: 300, damping: 15 }}
+          className="inline-flex"
         >
-          <Trash2 className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Descartar
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => {
-            if (pistoleoFilas.length === 0) {
-              toast({ title: "No hay series para exportar", variant: "destructive" });
-              return;
-            }
-            exportarPistoleoExcel();
-            toast({ title: "Excel generado", description: `${pistoleoFilas.length} serie(s) exportadas` });
-          }}
-          disabled={pistoleoFilas.length === 0}
-          className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted disabled:opacity-40"
+          <Button
+            variant="outline"
+            onClick={handleClear}
+            disabled={pistoleoFilas.length === 0}
+            className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted disabled:opacity-40"
+          >
+            <Trash2 className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Descartar
+          </Button>
+        </motion.div>
+        <motion.div
+          whileTap={{ scale: 0.97 }}
+          transition={{ type: "spring", stiffness: 300, damping: 15 }}
+          className="inline-flex"
         >
-          <Download className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Exportar Excel
-        </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (pistoleoFilas.length === 0) {
+                toast({ title: "No hay series para exportar", variant: "destructive" });
+                return;
+              }
+              exportarPistoleoExcel();
+              toast({ title: "Excel generado", description: `${pistoleoFilas.length} serie(s) exportadas` });
+            }}
+            disabled={pistoleoFilas.length === 0}
+            className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted disabled:opacity-40"
+          >
+            <Download className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Exportar Excel
+          </Button>
+        </motion.div>
       </div>
 
       {/* Aviso de límite */}
@@ -799,6 +856,7 @@ export function PistolearView() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
+                <AnimatePresence>
                 {filasVisibles.map((f, i) => {
                   // Campos de ESTA fila (no los globales)
                   const camposFila = (f.camposMarcados && f.camposMarcados.length > 0)
@@ -823,7 +881,15 @@ export function PistolearView() {
 
                   if (editingId === f.id) {
                     return (
-                      <tr key={f.id} className="bg-muted/40">
+                      <motion.tr
+                        key={f.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ duration: 0.25, ease: [0.34, 1.56, 0.64, 1] }}
+                        layout
+                        className="bg-muted/40"
+                      >
                         <td className="px-3 py-2.5 text-[11px] tabular-nums text-muted-foreground">{i + 1}</td>
                         {camposTabla.map((c, idx) => {
                           const idxF = idxFila(c);
@@ -859,29 +925,38 @@ export function PistolearView() {
                         </td>
                         <td className="px-3 py-2.5">
                           <div className="flex items-center gap-1">
-                            <button
+                            <motion.button
+                              whileTap={{ scale: 0.9 }}
+                              transition={{ type: "spring", stiffness: 300, damping: 15 }}
                               onClick={saveEdit}
                               className="press rounded-lg p-1.5 text-foreground hover:bg-muted"
                               title="Guardar"
                             >
                               <Check className="h-3.5 w-3.5" {...ICON_PROPS} />
-                            </button>
-                            <button
+                            </motion.button>
+                            <motion.button
+                              whileTap={{ scale: 0.9 }}
+                              transition={{ type: "spring", stiffness: 300, damping: 15 }}
                               onClick={cancelEdit}
                               className="press rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
                               title="Cancelar"
                             >
                               <X className="h-3.5 w-3.5" {...ICON_PROPS} />
-                            </button>
+                            </motion.button>
                           </div>
                         </td>
-                      </tr>
+                      </motion.tr>
                     );
                   }
 
                   return (
-                    <tr
+                    <motion.tr
                       key={f.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ duration: 0.25, ease: [0.34, 1.56, 0.64, 1] }}
+                      layout
                       className="group transition-colors hover:bg-muted/40"
                     >
                       <td className="px-3 py-2.5 text-[11px] tabular-nums text-muted-foreground">{i + 1}</td>
@@ -928,35 +1003,42 @@ export function PistolearView() {
                       </td>
                       <td className="px-3 py-2.5">
                         <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                          <button
+                          <motion.button
+                            whileTap={{ scale: 0.9 }}
+                            transition={{ type: "spring", stiffness: 300, damping: 15 }}
                             onClick={() => startEdit(f.id, f.valores, f.modeloSeleccionado)}
                             className="press rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
                             title="Editar"
                           >
                             <Pencil className="h-3.5 w-3.5" {...ICON_PROPS} />
-                          </button>
-                          <button
+                          </motion.button>
+                          <motion.button
+                            whileTap={{ scale: 0.9 }}
+                            transition={{ type: "spring", stiffness: 300, damping: 15 }}
                             onClick={() => deletePistoleoFila(f.id)}
                             className="press rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                             title="Eliminar"
                           >
                             <Trash2 className="h-3.5 w-3.5" {...ICON_PROPS} />
-                          </button>
+                          </motion.button>
                         </div>
                       </td>
-                    </tr>
+                    </motion.tr>
                   );
                 })}
+                </AnimatePresence>
               </tbody>
             </table>
             {hayMasFilas && (
               <div className="border-t border-border px-4 py-3 text-center">
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 15 }}
                   onClick={() => setVisibleCount((c) => c + 100)}
                   className="press rounded-lg border border-border bg-background px-4 py-2 text-[12px] font-medium text-foreground hover:bg-muted"
                 >
                   Cargar más
-                </button>
+                </motion.button>
               </div>
             )}
           </div>
@@ -979,6 +1061,13 @@ export function PistolearView() {
       {/* Modal: Preview antes de guardar */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
         <DialogContent className="max-h-[85vh] gap-0 overflow-hidden rounded-lg p-0 sm:max-w-2xl">
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="grid"
+          >
           <DialogHeader className="border-b border-border px-5 py-4">
             <DialogTitle className="flex items-center gap-2 text-[15px] font-semibold text-foreground">
               <Eye className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
@@ -1053,24 +1142,44 @@ export function PistolearView() {
           </div>
           <DialogFooter className="border-t border-border px-5 py-4 sm:justify-end">
             <DialogClose asChild>
-              <Button variant="outline" className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted">
-                Cancelar
-              </Button>
+              <motion.div
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                className="inline-flex"
+              >
+                <Button variant="outline" className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted">
+                  Cancelar
+                </Button>
+              </motion.div>
             </DialogClose>
-            <Button
-              onClick={handleConfirmarReal}
-              className="h-9 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+            <motion.div
+              whileTap={{ scale: 0.97 }}
+              transition={{ type: "spring", stiffness: 300, damping: 15 }}
+              className="inline-flex"
             >
-              <Save className="mr-1.5 h-4 w-4" {...ICON_PROPS} />
-              Guardar {pistoleoFilas.length}
-            </Button>
+              <Button
+                onClick={handleConfirmarReal}
+                className="h-9 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+              >
+                <Save className="mr-1.5 h-4 w-4" {...ICON_PROPS} />
+                Guardar {pistoleoFilas.length}
+              </Button>
+            </motion.div>
           </DialogFooter>
+          </motion.div>
         </DialogContent>
       </Dialog>
 
       {/* Modal: Detalle de duplicados */}
       <Dialog open={showDuplicadosModal} onOpenChange={setShowDuplicadosModal}>
         <DialogContent className="max-h-[85vh] gap-0 overflow-hidden rounded-lg p-0 sm:max-w-lg">
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="grid"
+          >
           <DialogHeader className="border-b border-border px-5 py-4">
             <DialogTitle className="flex items-center gap-2 text-[15px] font-semibold text-foreground">
               <AlertCircle className="h-4 w-4 text-muted-foreground" {...ICON_PROPS} />
@@ -1107,11 +1216,18 @@ export function PistolearView() {
           </div>
           <DialogFooter className="border-t border-border px-5 py-4 sm:justify-end">
             <DialogClose asChild>
-              <Button variant="outline" className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted">
-                Entendido
-              </Button>
+              <motion.div
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                className="inline-flex"
+              >
+                <Button variant="outline" className="h-9 rounded-lg border-border bg-background px-3.5 text-[13px] font-medium hover:bg-muted">
+                  Entendido
+                </Button>
+              </motion.div>
             </DialogClose>
           </DialogFooter>
+          </motion.div>
         </DialogContent>
       </Dialog>
       </div>
