@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Sparkles, X, Send, AlertCircle } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -147,48 +147,37 @@ export function AlanaSidebar({ open, onClose, selectedText, pageContext }: Alana
   }, [input, loading, messages, selectedText, products, equipos, miembros, despachos, empresa, usuario, memoriaIA]);
 
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          {/* Overlay oscuro detrás del sidebar */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={onClose}
-            className="fixed inset-0 z-[100] bg-background/40 backdrop-blur-[2px]"
-          />
-
-          {/* Sidebar que se desliza desde la derecha */}
-          <motion.div
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed right-0 top-0 z-[101] flex h-full w-full max-w-[420px] flex-col border-l border-border bg-background"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground">
-                  <Sparkles className="h-3.5 w-3.5 text-background" {...ICON_PROPS} />
-                </div>
-                <div>
-                  <p className="text-[13px] font-semibold text-foreground">Alana</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {pageContext ? `Viendo: ${pageContext}` : "Asistente del almacén"}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={onClose}
-                aria-label="Cerrar Alana"
-                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <X className="h-4 w-4" {...ICON_PROPS} />
-              </button>
+    // El sidebar es un FLEX CHILD (no fixed) — empuja el contenido principal
+    // Anima width de 0 a 420px con spring. Sin overlay, sin posición encima.
+    <motion.div
+      animate={{ width: open ? 420 : 0 }}
+      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      className="relative z-[101] flex h-full shrink-0 overflow-hidden border-l border-border bg-background"
+      style={{ width: open ? 420 : 0 }}
+    >
+      {/* Contenido del sidebar — siempre renderizado pero clipped por overflow-hidden */}
+      <div className="flex h-full w-[420px] shrink-0 flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground">
+              <Sparkles className="h-3.5 w-3.5 text-background" {...ICON_PROPS} />
             </div>
+            <div>
+              <p className="text-[13px] font-semibold text-foreground">Alana</p>
+              <p className="text-[10px] text-muted-foreground">
+                {pageContext ? `Viendo: ${pageContext}` : "Asistente del almacén"}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Cerrar Alana"
+            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <X className="h-4 w-4" {...ICON_PROPS} />
+          </button>
+        </div>
 
             {/* Mensajes scrollable */}
             <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto scroll-thin px-4 py-4">
@@ -271,9 +260,7 @@ export function AlanaSidebar({ open, onClose, selectedText, pageContext }: Alana
                 </button>
               </div>
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+          </div>
+      </motion.div>
   );
 }

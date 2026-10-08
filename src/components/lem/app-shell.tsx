@@ -162,15 +162,25 @@ export function AppShell({ children, isChat = false }: AppShellProps) {
       <div className="flex h-screen flex-col bg-background text-foreground">
         <Navbar />
         {!isChat && <SubHeader />}
-        <main className={cn("relative flex-1", isChat ? "overflow-hidden" : "overflow-auto scroll-thin")}>
-          {isChat ? (
-            children
-          ) : (
-            <div className="min-h-full pb-14 lg:pb-0 anim-page-enter">
-              {children}
-            </div>
-          )}
-        </main>
+        {/* Wrapper horizontal: main + sidebar al lado (el sidebar EMPUJA el contenido, no se encima) */}
+        <div className="flex flex-1 overflow-hidden">
+          <main className={cn("relative flex-1", isChat ? "overflow-hidden" : "overflow-auto scroll-thin")}>
+            {isChat ? (
+              children
+            ) : (
+              <div className="min-h-full pb-14 lg:pb-0 anim-page-enter">
+                {children}
+              </div>
+            )}
+          </main>
+          {/* Sidebar de Alana — ocupa espacio a la derecha, empuja el main */}
+          <AlanaSidebar
+            open={alanaOpen}
+            onClose={() => setAlanaOpen(false)}
+            selectedText={alanaSelectedText}
+            pageContext={alanaPageContext}
+          />
+        </div>
         {!isChat && <Footer />}
         <NotificationStack />
         <ScrollToTop />
@@ -187,13 +197,6 @@ export function AppShell({ children, isChat = false }: AppShellProps) {
           </button>
         )}
 
-        {/* Sidebar de Alana — se desliza desde la derecha */}
-        <AlanaSidebar
-          open={alanaOpen}
-          onClose={() => setAlanaOpen(false)}
-          selectedText={alanaSelectedText}
-          pageContext={alanaPageContext}
-        />
       </div>
 
       {/* Menú contextual personalizado (reemplaza click derecho del browser) */}
