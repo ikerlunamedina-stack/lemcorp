@@ -8,11 +8,12 @@ import { SubHeader } from "@/components/lem/sub-header";
 import { Footer } from "@/components/lem/footer";
 import { NotificationStack } from "@/components/lem/notification-stack";
 import { ScrollToTop } from "@/components/lem/scroll-to-top";
+import { AlanaSidebar } from "@/components/lem/alana-sidebar";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Sparkles, Copy, ClipboardPaste, CheckSquare, X, Brain, FileText,
+  Sparkles, Copy, ClipboardPaste, CheckSquare, X, Brain, FileText, Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +31,9 @@ interface ContextMenuState {
 export function AppShell({ children, isChat = false }: AppShellProps) {
   const router = useRouter();
   const [ctxMenu, setCtxMenu] = useState<ContextMenuState>({ x: 0, y: 0, visible: false });
+  const [alanaOpen, setAlanaOpen] = useState(false);
+  const [alanaSelectedText, setAlanaSelectedText] = useState("");
+  const [alanaPageContext, setAlanaPageContext] = useState("");
 
   // Bloquear click derecho nativo del navegador y mostrar menú propio
   useEffect(() => {
@@ -117,6 +121,32 @@ export function AppShell({ children, isChat = false }: AppShellProps) {
     setCtxMenu((s) => ({ ...s, visible: false }));
   }, [router]);
 
+  // Abrir Alana como sidebar con el texto seleccionado y contexto de la página
+  const askAlana = useCallback(() => {
+    const selection = window.getSelection()?.toString() || "";
+    const path = window.location.pathname;
+    const pageNames: Record<string, string> = {
+      "/": "Dashboard",
+      "/inventario": "Inventario",
+      "/equipos": "Equipos",
+      "/series": "Series",
+      "/despachos": "Despachos",
+      "/pistolear": "Pistolear",
+      "/horario": "Horario",
+      "/bloc": "Bloc de notas",
+      "/recepciones": "Recepciones",
+      "/transferencias": "Transferencias",
+      "/precios": "Precios",
+      "/kpis": "KPIs",
+      "/reportes": "Reportes",
+      "/empresa": "Empresas",
+    };
+    setAlanaSelectedText(selection);
+    setAlanaPageContext(pageNames[path] || path);
+    setAlanaOpen(true);
+    setCtxMenu((s) => ({ ...s, visible: false }));
+  }, []);
+
   const goToBloc = useCallback(() => {
     router.push("/bloc");
     setCtxMenu((s) => ({ ...s, visible: false }));
@@ -144,6 +174,26 @@ export function AppShell({ children, isChat = false }: AppShellProps) {
         {!isChat && <Footer />}
         <NotificationStack />
         <ScrollToTop />
+
+        {/* Botón flotante de Alana — aparece en todas las páginas excepto /ia */}
+        {!isChat && (
+          <button
+            onClick={askAlana}
+            aria-label="Abrir Alana"
+            className="fixed bottom-5 left-5 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-foreground text-background transition-transform hover:scale-105 active:scale-95"
+            style={{ bottom: "max(env(safe-area-inset-bottom, 0px), 20px)" }}
+          >
+            <Sparkles className="h-5 w-5" strokeWidth={1.5} />
+          </button>
+        )}
+
+        {/* Sidebar de Alana — se desliza desde la derecha */}
+        <AlanaSidebar
+          open={alanaOpen}
+          onClose={() => setAlanaOpen(false)}
+          selectedText={alanaSelectedText}
+          pageContext={alanaPageContext}
+        />
       </div>
 
       {/* Menú contextual personalizado (reemplaza click derecho del browser) */}
@@ -158,11 +208,11 @@ export function AppShell({ children, isChat = false }: AppShellProps) {
           </div>
           <div className="py-1">
             <button
-              onClick={goToIA}
+              onClick={askAlana}
               className="flex w-full items-center gap-2.5 px-3 py-2 text-[12px] text-foreground hover:bg-muted transition-colors"
             >
               <Sparkles className="h-4 w-4 text-primary" strokeWidth={1.5} />
-              Ir a IA (Alana)
+              Preguntar a Alana
             </button>
             <button
               onClick={copySelection}
