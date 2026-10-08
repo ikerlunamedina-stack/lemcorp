@@ -82,7 +82,7 @@
   --accent-foreground: oklch(0.20 0 0);
   --destructive: oklch(0.55 0.20 25);
   /* Borders más visibles que antes para mejor separación */
-  --border: oklch(0.91 0 0);
+  --border: oklch(0.96 0 0);
   --input: oklch(0.93 0 0);
   --ring: oklch(0.48 0.20 270);
   /* Charts neutros: grises + 1 acento indigo */
@@ -150,7 +150,7 @@
   --accent-foreground: #E4E6E8;
   --destructive: oklch(0.55 0.20 25);
   /* Borders visibles sobre fondo oscuro */
-  --border: #4D5258;
+  --border: #44484C;
   --input: #4D5258;
   --ring: oklch(0.48 0.20 270);
   --chart-1: #E4E6E8;
