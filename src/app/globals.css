@@ -359,16 +359,6 @@ html.light {
 
 .aurora rect { fill: none; stroke-linecap: round; }
 
-.aurora-veil {
-  animation: aurora-drift 8s linear infinite;
-  animation-play-state: running;
-}
-
-@keyframes aurora-drift {
-  from { stroke-dashoffset: 0; }
-  to   { stroke-dashoffset: -100; }
-}
-
 .aurora-breathe {
   animation: aurora-breathe 6.5s ease-in-out infinite;
   animation-play-state: running;
@@ -454,16 +444,13 @@ html.light {
 
 /* Cards premium: sombra sutil + elevación fluida al hover */
 .press-card {
-  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease, opacity 0.3s ease;
-  box-shadow: var(--shadow-sm);
+  transition: opacity 0.3s ease;
 }
 .press-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-lg);
+  opacity: 0.95;
 }
 .press-card:active {
-  transform: translateY(-1px);
-  transition: transform 0.1s ease;
+  opacity: 0.9;
 }
 
 /* Glow border sutil en hover */

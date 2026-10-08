@@ -1289,14 +1289,14 @@ function AnunciosDelSistema({ products, notas, horario }: { products: any[]; not
   return (
     <div className="h-full flex flex-col">
       <div className={cn(
-        "flex-1 flex items-center gap-3 rounded-lg border p-3 transition-all duration-500 anim-fade-in",
+        "flex-1 flex items-center gap-3 rounded-lg border p-4 transition-all duration-500 anim-fade-in",
         current?.bg || "border-border"
       )}>
         <div className="min-w-0 flex-1">
-          <p className={cn("text-[9px] font-bold uppercase tracking-wider anim-slide-up", current?.color)}>
+          <p className={cn("text-[11px] font-bold uppercase tracking-wider anim-slide-up", current?.color)}>
             {current?.titulo}
           </p>
-          <p className="mt-0.5 text-[13px] font-medium text-foreground anim-slide-up" style={{ animationDelay: "100ms" }}>
+          <p className="mt-1 text-[15px] font-medium text-foreground anim-slide-up" style={{ animationDelay: "100ms" }}>
             {current?.texto}
           </p>
         </div>

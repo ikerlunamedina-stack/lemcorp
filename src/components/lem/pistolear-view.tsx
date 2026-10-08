@@ -586,7 +586,7 @@ export function PistolearView() {
         <motion.div
           whileHover={{ scale: 1.02 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          className="press-card anim-slide-up rounded-lg border border-border bg-card p-3 text-card-foreground shadow transition-shadow hover:shadow-md"
+          className="press-card anim-slide-up rounded-lg border border-border bg-card p-3 text-card-foreground"
           style={{ animationDelay: "0ms" }}
         >
           <div className="flex items-center gap-1.5">
@@ -604,7 +604,7 @@ export function PistolearView() {
         <motion.div
           whileHover={{ scale: 1.02 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          className="press-card anim-slide-up rounded-lg border border-border bg-card p-3 text-card-foreground shadow transition-shadow hover:shadow-md"
+          className="press-card anim-slide-up rounded-lg border border-border bg-card p-3 text-card-foreground"
           style={{ animationDelay: "60ms" }}
         >
           <div className="flex items-center gap-1.5">
@@ -624,7 +624,7 @@ export function PistolearView() {
         <motion.div
           whileHover={{ scale: 1.02 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          className="press-card anim-slide-up rounded-lg border border-border bg-card p-3 text-card-foreground shadow transition-shadow hover:shadow-md"
+          className="press-card anim-slide-up rounded-lg border border-border bg-card p-3 text-card-foreground"
           style={{ animationDelay: "120ms" }}
         >
           <div className="flex items-center gap-1.5">
@@ -642,7 +642,7 @@ export function PistolearView() {
         <motion.div
           whileHover={{ scale: 1.02 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          className="press-card anim-slide-up rounded-lg border border-border bg-card p-3 text-card-foreground shadow transition-shadow hover:shadow-md"
+          className="press-card anim-slide-up rounded-lg border border-border bg-card p-3 text-card-foreground"
           style={{ animationDelay: "180ms" }}
         >
           <div className="flex items-center gap-1.5">
@@ -780,7 +780,7 @@ export function PistolearView() {
           <Button
             onClick={handleConfirmar}
             disabled={pistoleoFilas.length === 0}
-            className="h-9 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90 disabled:opacity-40"
+            className="h-9 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background hover:bg-foreground/90 disabled:opacity-40"
           >
             <Save className="mr-1.5 h-4 w-4" {...ICON_PROPS} /> Guardar ({pistoleoFilas.length})
           </Button>
@@ -831,7 +831,7 @@ export function PistolearView() {
       )}
 
       {/* Tabla de capturas */}
-      <div className="anim-slide-up overflow-hidden rounded-lg bg-card shadow-sm">
+      <div className="anim-slide-up overflow-hidden rounded-lg bg-card">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <span className="text-[11px] tabular-nums text-muted-foreground">
             {pistoleoFilas.length}
@@ -1076,7 +1076,7 @@ export function PistolearView() {
           </DialogHeader>
           <div className="flex flex-col gap-3 px-5 py-4">
             {/* Resumen */}
-            <div className="grid grid-cols-3 overflow-hidden rounded-lg bg-card shadow-sm">
+            <div className="grid grid-cols-3 overflow-hidden rounded-lg bg-card">
               <div className="border-r border-border p-3 text-center">
                 <p className="text-[20px] font-semibold tabular-nums text-foreground">{pistoleoFilas.length}</p>
               </div>
@@ -1159,7 +1159,7 @@ export function PistolearView() {
             >
               <Button
                 onClick={handleConfirmarReal}
-                className="h-9 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background shadow-none hover:bg-foreground/90"
+                className="h-9 rounded-lg bg-foreground px-3.5 text-[13px] font-medium text-background hover:bg-foreground/90"
               >
                 <Save className="mr-1.5 h-4 w-4" {...ICON_PROPS} />
                 Guardar {pistoleoFilas.length}

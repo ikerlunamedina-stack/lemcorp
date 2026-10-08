@@ -265,7 +265,7 @@ export function EquiposView() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
               style={{ animationDelay: "0ms" }}
             >
               <div className="flex items-center gap-1.5">
@@ -278,7 +278,7 @@ export function EquiposView() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
               style={{ animationDelay: "60ms" }}
             >
               <div className="flex items-center gap-1.5">
@@ -291,7 +291,7 @@ export function EquiposView() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
               style={{ animationDelay: "120ms" }}
             >
               <div className="flex items-center gap-1.5">
@@ -304,7 +304,7 @@ export function EquiposView() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
               style={{ animationDelay: "180ms" }}
             >
               <div className="flex items-center gap-1.5">
@@ -317,7 +317,7 @@ export function EquiposView() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
               style={{ animationDelay: "240ms" }}
             >
               <div className="flex items-center gap-1.5">
@@ -330,7 +330,7 @@ export function EquiposView() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground shadow transition-shadow hover:shadow-md"
+              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
               style={{ animationDelay: "300ms" }}
             >
               <div className="flex items-center gap-1.5">
@@ -519,7 +519,7 @@ export function EquiposView() {
                 <motion.div
                   whileHover={{ scale: 1.01 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground"
                   style={{ animationDelay: "0ms" }}
                 >
                   <div className="mb-3 flex items-center justify-between">
@@ -568,7 +568,7 @@ export function EquiposView() {
                 <motion.div
                   whileHover={{ scale: 1.01 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground"
                   style={{ animationDelay: "80ms" }}
                 >
                   <div className="mb-3 flex items-center justify-between">
@@ -610,7 +610,7 @@ export function EquiposView() {
                 <motion.div
                   whileHover={{ scale: 1.01 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground"
                   style={{ animationDelay: "160ms" }}
                 >
                   <div className="mb-3 flex items-center gap-2">
@@ -645,7 +645,7 @@ export function EquiposView() {
                 <motion.div
                   whileHover={{ scale: 1.01 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground shadow transition-shadow hover:shadow-md"
+                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground"
                   style={{ animationDelay: "240ms" }}
                 >
                   <div className="mb-3 flex items-center gap-2">

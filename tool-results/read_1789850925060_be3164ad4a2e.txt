@@ -1999,4 +1999,4 @@
   1999→    - Permisos del rol: botón "Activo"/"Revocado"
   2000→    - Permisos fuera del rol: botón "Otorgar"/"Otorgado"
 
-[showing lines 1-2000 of 3281; use offset=2001 with limit to continue reading]
+[showing lines 1-2000 of 3422; use offset=2001 with limit to continue reading]

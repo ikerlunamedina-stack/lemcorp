@@ -116,38 +116,26 @@ export function AuroraSearchInput({
         {/* 4 capas del aurora: mismas dimensiones, distintos blur/width/opacity */}
         <g ref={layersRef} className="aurora-breathe">
           <rect
-            className="aurora-veil"
-            pathLength={100}
             stroke={`url(#${gradId})`}
             strokeWidth={20}
-            strokeDasharray="42 58"
             opacity={0.22}
             filter={`url(#${blurXwideId})`}
           />
           <rect
-            className="aurora-veil"
-            pathLength={100}
             stroke={`url(#${gradId})`}
             strokeWidth={14}
-            strokeDasharray="40 60"
             opacity={0.32}
             filter={`url(#${blurWideId})`}
           />
           <rect
-            className="aurora-veil"
-            pathLength={100}
             stroke={`url(#${gradId})`}
             strokeWidth={8}
-            strokeDasharray="38 62"
             opacity={0.45}
             filter={`url(#${blurMidId})`}
           />
           <rect
-            className="aurora-veil"
-            pathLength={100}
             stroke={`url(#${gradId})`}
             strokeWidth={4}
-            strokeDasharray="34 66"
             opacity={0.55}
             filter={`url(#${blurCoreId})`}
           />
