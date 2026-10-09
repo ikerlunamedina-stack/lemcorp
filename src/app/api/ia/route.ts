@@ -1,145 +1,83 @@
 // API route para Alana, asistente del almacén VRS (VRS WMS)
-// Usa Google Gemini API en el backend, con análisis en tiempo real del inventario.
+// Usa Groq (Llama 3.3 70B) + base de conocimientos de logística (RAG) en el backend.
 import { NextRequest, NextResponse } from "next/server";
-import { buscarConocimiento } from "@/lib/warehouse-knowledge";
+import { buscarConocimiento, buscarContextoConocimiento } from "@/lib/warehouse-knowledge";
 
 export const runtime = "nodejs";
 
-// ─── Cliente Gemini (REST oficial de Google AI Studio) ───
-// Usamos fetch directo para evitar dependencias externas y poder cambiar de modelo fácil.
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-// Lista de modelos a probar en orden; el primero que funcione se cachea en runtime.
-const MODELOS_CANDIDATOS = [
-  "gemini-3.6-flash",
-  "gemini-2.5-flash",
-  "gemini-2.0-flash",
-  "gemini-flash-latest",
-  "gemini-1.5-flash",
-];
-let MODELO_ACTIVO: string | null = null;
-const GEMINI_ENDPOINT = (modelo: string) =>
-  `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`;
+// ─── Cliente Groq (Llama 3.3 70B — gratis, rápido, sin restricción de región) ───
+const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
+const GROQ_MODEL = "llama-3.3-70b-versatile";
+const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 
 interface MensajeLLM {
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "system";
   content: string;
 }
 
 /**
- * Llama a la API de Google Gemini con un historial de mensajes y devuelve el texto generado.
- * - Usa el header `x-goog-api-key` (más confiable que el query param ?key= para evitar
- *   bloqueos por región/cors en algunos entornos).
- * - Si el modelo activo falla, prueba con los demás candidatos.
- * Lanza error si todos los modelos fallan o si no hay contenido útil.
+ * Llama a la API de Groq con RAG (Retrieval-Augmented Generation):
+ * 1. Busca conocimiento relevante en la base de conocimientos de logística
+ * 2. Incluye ese conocimiento + los datos del inventario en el system prompt
+ * 3. Llama a Llama 3.3 70B para generar una respuesta natural
  */
-async function llamarGemini(mensajes: MensajeLLM[]): Promise<string> {
-  if (!GEMINI_API_KEY) {
-    throw new Error("GEMINI_API_KEY no configurada en .env");
+async function llamarGroq(mensajes: MensajeLLM[], mensajeUsuario: string): Promise<string> {
+  if (!GROQ_API_KEY) {
+    throw new Error("GROQ_API_KEY no configurada");
   }
 
-  // Gemini usa roles "user" y "model" (mapeamos "assistant" -> "model")
-  const contents = mensajes.map((m) => ({
-    role: m.role === "assistant" ? "model" : "user",
-    parts: [{ text: m.content }],
-  }));
+  // RAG: buscar conocimiento relevante en la base de datos de logística
+  const conocimientoContexto = buscarContextoConocimiento(mensajeUsuario);
 
-  const body = JSON.stringify({
-    contents,
-    generationConfig: {
-      temperature: 0.7,
-      topP: 0.95,
-      topK: 40,
-      maxOutputTokens: 2048,
-    },
-    safetySettings: [
-      { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-      { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-      { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-      { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-    ],
-  });
+  // Construir messages con el system prompt + conocimiento + historial
+  const messages = [
+    // System message con el prompt del almacén + conocimiento RAG
+    ...(mensajes[0]?.role === "user" ? [{
+      role: "system" as const,
+      content: mensajes[0].content + (conocimientoContexto ? `\n\n═══════════════════════════════════════\nCONOCIMIENTO DE LOGÍSTICA RELEVANTE A LA PREGUNTA:\n═══════════════════════════════════════\n${conocimientoContexto}` : ""),
+    }] : []),
+    // Resto del historial (sin el primer mensaje que ya está en system)
+    ...mensajes.slice(1).map(m => ({
+      role: m.role === "assistant" ? "assistant" as const : "user" as const,
+      content: m.content,
+    })),
+  ];
 
-  // Si ya conocemos un modelo que funcionó antes, intentamos ese primero.
-  const orden = MODELO_ACTIVO
-    ? [MODELO_ACTIVO, ...MODELOS_CANDIDATOS.filter((m) => m !== MODELO_ACTIVO)]
-    : MODELOS_CANDIDATOS;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 45_000);
 
-  let ultimoError: Error | null = null;
-  for (const modelo of orden) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45_000); // 45s max
+  try {
+    const res = await fetch(GROQ_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        messages,
+        temperature: 0.7,
+        max_tokens: 2048,
+      }),
+    });
 
-    try {
-      const res = await fetch(`${GEMINI_ENDPOINT(modelo)}?key=${GEMINI_API_KEY}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": GEMINI_API_KEY, // header oficial de Google
-        },
-        signal: controller.signal,
-        body,
-      });
-
-      if (!res.ok) {
-        const errTxt = await res.text().catch(() => "");
-        const lower = errTxt.toLowerCase();
-        // Errores que NO dependen del modelo: cortamos el bucle y propagamos inmediatamente.
-        // Ej: "user location is not supported", "API key not valid", "permission denied", rate limit global.
-        const esErrorEstructural =
-          lower.includes("user location") ||
-          lower.includes("api key not valid") ||
-          lower.includes("api_key_invalid") ||
-          lower.includes("permission denied") ||
-          lower.includes("quota") ||
-          lower.includes("unauthorized") ||
-          lower.includes("resource has been exhausted");
-        if (esErrorEstructural) {
-          throw new Error(`Gemini HTTP ${res.status} (${modelo}): ${errTxt.slice(0, 300)}`);
-        }
-        // Errores de modelo (404, 400 por modelo inválido) → probar siguiente
-        if (res.status === 404 || res.status === 400) {
-          ultimoError = new Error(`Gemini HTTP ${res.status} (${modelo}): ${errTxt.slice(0, 200)}`);
-          continue;
-        }
-        // Otros errores (5xx) → cortar y propagar
-        throw new Error(`Gemini HTTP ${res.status} (${modelo}): ${errTxt.slice(0, 300)}`);
-      }
-
-      const data = await res.json();
-      const texto =
-        data?.candidates?.[0]?.content?.parts
-          ?.map((p: any) => p?.text || "")
-          .join("")
-          .trim() || "";
-
-      if (!texto) {
-        const blockReason = data?.promptFeedback?.blockReason;
-        if (blockReason) {
-          ultimoError = new Error(`Gemini bloqueado (${modelo}): ${blockReason}`);
-          continue;
-        }
-        ultimoError = new Error(`Respuesta vacía de Gemini (${modelo})`);
-        continue;
-      }
-
-      // Éxito — cachamos el modelo para no volver a probar todos en la próxima llamada
-      MODELO_ACTIVO = modelo;
-      return texto;
-    } catch (err: any) {
-      if (err?.name === "AbortError") {
-        ultimoError = new Error(`Timeout llamando a Gemini (${modelo})`);
-        continue;
-      }
-      // Errores no relacionados con el modelo (401, 429, 5xx, red) → propagar
-      if (ultimoError === null) ultimoError = err;
-      // No continuamos con otros modelos si es un error de red/autenticación
-      throw err;
-    } finally {
-      clearTimeout(timeoutId);
+    if (!res.ok) {
+      const errTxt = await res.text().catch(() => "");
+      throw new Error(`Groq HTTP ${res.status}: ${errTxt.slice(0, 300)}`);
     }
-  }
 
-  throw ultimoError || new Error("No se pudo obtener respuesta de Gemini");
+    const data = await res.json();
+    const texto = data?.choices?.[0]?.message?.content?.trim() || "";
+
+    if (!texto) {
+      throw new Error("Respuesta vacía de Groq");
+    }
+
+    return texto;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 interface ProductDTO {
@@ -616,11 +554,11 @@ ${modoContexto ? `MODO ACTIVO: ${modoContexto}\n` : ""}- Eres Alana, asistente d
     // Mensaje actual del usuario
     mensajesLLM.push({ role: "user", content: mensaje });
 
-    // ─── Llamar a la API real de Google Gemini ───
+    // ─── Llamar a Groq (Llama 3.3 70B + RAG con knowledge base) ───
     let respuesta = "";
     let usarFallback = false;
     try {
-      respuesta = await llamarGemini(mensajesLLM);
+      respuesta = await llamarGroq(mensajesLLM, mensaje);
       if (!respuesta || !respuesta.trim()) {
         usarFallback = true;
       }

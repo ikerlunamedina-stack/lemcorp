@@ -1,370 +1,547 @@
 // Base de conocimientos de logística, almacén y gestión de inventario
+// Esta es la "base de datos" de Alana — instrucciones de cómo manejar un almacén virtual.
 // Inspirada en repositorios públicos de GitHub sobre warehouse management, logistics e inventory control.
-// Esto hace que Alana sea inteligente incluso sin Gemini (fallback).
+// Se usa con RAG: buscar conocimiento relevante → enviar al LLM (Groq) → generar respuesta.
 
 export interface KnowledgeEntry {
   keywords: string[];
   topic: string;
+  category: "inventario" | "operaciones" | "logistica" | "telecom" | "gestion" | "general";
   response: string;
 }
 
 export const WAREHOUSE_KNOWLEDGE: KnowledgeEntry[] = [
-  // ─── ANÁLISIS ABC ───
+  // ─── INVENTARIO ───
   {
-    keywords: ["abc", "clasificacion abc", "analisis abc", "pareto inventario", "80/20"],
+    keywords: ["abc", "clasificacion abc", "analisis abc", "pareto inventario", "80/20", "clase a", "clase b", "clase c"],
     topic: "Análisis ABC",
+    category: "inventario",
     response: `Análisis ABC (basado en el Principio de Pareto 80/20):
 
-• Clase A: 20% de los productos que representan el 80% del valor/inventario. Requieren control estricto, revisiones frecuentes, stock exacto.
-• Clase B: 30% de los productos que representan el 15% del valor. Control moderado, revisiones periódicas.
-• Clase C: 50% de los productos que representan el 5% del valor. Control simple, pedidos en lote, revisiones anuales.
+• Clase A: 20% de los productos que representan el 80% del valor. Control estricto, revisiones frecuentes, stock exacto.
+• Clase B: 30% de los productos, 15% del valor. Control moderado, revisiones mensuales.
+• Clase C: 50% de los productos, 5% del valor. Control simple, pedidos en lote, revisiones trimestrales.
 
-Para aplicarlo en VRS: clasifica tus productos por valor de consumo anual (cantidad consumida × precio). Los Clase A son los que más valor mueven (routers, ONTs), los Clase C son los de bajo valor (conectores, cables cortos).
+Para aplicarlo en VRS: clasifica productos por valor de consumo anual (cantidad × precio). Clase A = routers, ONTs (alto valor). Clase C = conectores, cables cortos (bajo valor).
 
-Esto te ayuda a priorizar qué productos necesitan control más estricto y cuáles puedes gestionar de forma más relajada.`,
+Prioriza: control estricto en Clase A (revisiones semanales), moderado en B, simple en C.`,
   },
-
-  // ─── PUNTO DE REORDEN ───
   {
-    keywords: ["punto de reorden", "reorder point", "punto de pedido", "cuando pedir", "stock minimo"],
+    keywords: ["punto de reorden", "reorder point", "punto de pedido", "cuando pedir", "stock minimo", "rop"],
     topic: "Punto de Reorden",
-    response: `Punto de Reorden (ROP - Reorder Point):
+    category: "inventario",
+    response: `Punto de Reorden (ROP):
 
-Es el nivel de stock al que debes hacer un nuevo pedido antes de que se agote. Se calcula:
+Nivel de stock al que debes hacer un nuevo pedido antes de que se agote.
 
 ROP = (Demanda diaria × Tiempo de entrega en días) + Stock de seguridad
 
-Ejemplo: si consumes 5 routers/día y el proveedor tarda 7 días en entregar, y tienes un stock de seguridad de 10:
+Ejemplo: consumes 5 routers/día, proveedor tarda 7 días, stock de seguridad 10:
 ROP = (5 × 7) + 10 = 45 routers
 
-Cuando el stock llega a 45, debes pedir más. En VRS, el campo "stock mínimo" de cada producto funciona como el ROP — cuando el stock baja al mínimo, te avisamos con una alerta.
+Cuando el stock llega a 45, pide más. En VRS, el campo "stock mínimo" funciona como ROP — cuando baja, se activa la alerta.
 
-Consejo: revisa tus puntos de reorden mensualmente porque el consumo cambia.`,
+Revisa puntos de reorden mensualmente porque el consumo cambia.`,
   },
-
-  // ─── STOCK DE SEGURIDAD ───
   {
-    keywords: ["stock de seguridad", "safety stock", "inventario de seguridad", "colchon"],
+    keywords: ["stock de seguridad", "safety stock", "inventario de seguridad", "colchon", "stock adicional"],
     topic: "Stock de Seguridad",
+    category: "inventario",
     response: `Stock de Seguridad (Safety Stock):
 
-Es el inventario adicional que mantienes para protegerte contra:
-• Demdemanda inesperada (picos de consumo)
-• Retrasos del proveedor
-• Variabilidad en el tiempo de entrega
+Inventario adicional para proteger contra demanda inesperada, retrasos del proveedor o variabilidad.
 
-Fórmula simple: Stock de seguridad = (Demanda máxima diaria × Tiempo de entrega máximo) - (Demanda promedio diaria × Tiempo de entrega promedio)
+Fórmula: SS = (Demanda máxima diaria × Tiempo entrega máximo) - (Demanda promedio × Tiempo promedio)
 
-Ejemplo: si normalmente consumes 5/día pero a veces llegas a 8, y el proveedor tarda 7 días pero a veces 10:
+Ejemplo: normalmente 5/día pero a veces 8, proveedor tarda 7 días pero a veces 10:
 SS = (8 × 10) - (5 × 7) = 80 - 35 = 45 unidades extra
 
-En VRS, el campo "minStock" de cada producto es tu stock de seguridad. Cuando el stock baja a ese nivel, se activa la alerta de bajo stock.
-
-Consejo: para productos Clase A (alto valor), usa un stock de seguridad más alto. Para Clase C, puedes tenerlo más bajo.`,
+En VRS, el campo "minStock" es tu stock de seguridad. Para Clase A (alto valor), usa SS más alto. Para Clase C, más bajo.`,
   },
-
-  // ─── FIFO / LIFO ───
   {
     keywords: ["fifo", "lifo", "primeras entradas", "ultimas entradas", "peps", "ueps"],
     topic: "FIFO vs LIFO",
+    category: "inventario",
     response: `FIFO (Primeras Entradas, Primeras Salidas) vs LIFO (Últimas Entradas, Primeras Salidas):
 
-FIFO: los productos que entraron primero al almacén deben salir primero.
-• Ventajas: evita obsolescencia, productos más frescos, método más común.
+FIFO: los productos que entraron primero deben salir primero.
+• Evita obsolescencia, productos más frescos. Método más común.
 • Ideal para: equipos electrónicos (routers, ONTs), productos con fecha de vencimiento.
-• En VRS: cuando despachas, deberías entregar los equipos con series más antiguas primero.
+• En VRS: despacha primero los equipos con series más antiguas.
 
-LIFO: los productos que entraron últimos salen primero.
-• Ventajas: reduce impacto de inflación en costos, útil para productos no perecederos.
-• Ideal para: materiales de construcción, metales.
+LIFO: los últimos en entrar son los primeros en salir.
+• Reduce impacto de inflación en costos. Útil para productos no perecederos.
 
-Para un almacén de telecomunicaciones como VRS, FIFO es el método correcto porque los equipos electrónicos pueden volverse obsoletos. Siempre despacha primero los equipos que llevan más tiempo en el almacén (puedes ver la antigüedad en /equipos).`,
+Para un almacén de telecomunicaciones como VRS, FIFO es correcto porque los equipos electrónicos se vuelven obsoletos. Verifica la antigüedad en /equipos.`,
   },
-
-  // ─── EOQ ───
   {
-    keywords: ["eoq", "economic order quantity", "cantidad economica de pedido", "lote optimo"],
+    keywords: ["eoq", "economic order quantity", "cantidad economica de pedido", "lote optimo", "cuanto pedir"],
     topic: "Cantidad Económica de Pedido (EOQ)",
-    response: `Cantidad Económica de Pedido (EOQ - Economic Order Quantity):
+    category: "inventario",
+    response: `Cantidad Económica de Pedido (EOQ):
 
-Es la cantidad óptima de pedido que minimiza los costos totales de inventario (costo de pedido + costo de almacenamiento).
+Cantidad óptima de pedido que minimiza costos totales (costo de pedido + costo de almacenamiento).
 
-Fórmula: EOQ = √(2 × D × S / H)
-
-Donde:
+EOQ = √(2 × D × S / H)
 • D = Demanda anual
 • S = Costo de hacer un pedido
-• H = Costo de almacenamiento por unidad por año
+• H = Costo de almacenamiento por unidad/año
 
-Ejemplo: si consumes 1000 routers/año, cada pedido cuesta S/50 procesar, y almacenar un router cuesta S/10/año:
-EOQ = √(2 × 1000 × 50 / 10) = √10000 = 100 routers por pedido
+Ejemplo: 1000 routers/año, S/50 por pedido, S/10 almacenamiento:
+EOQ = √(2 × 1000 × 50 / 10) = √10000 = 100 routers por pedido (10 pedidos/año)
 
-Esto significa que deberías pedir 100 routers cada vez, lo que equivale a 10 pedidos al año.
-
-Consejo: usa EOQ para productos Clase A (alto valor) donde optimizar el tamaño del pedido tiene mayor impacto económico.`,
+Usa EOQ para productos Clase A donde optimizar el tamaño del pedido tiene mayor impacto económico.`,
   },
-
-  // ─── KPIs DE ALMACÉN ───
   {
-    keywords: ["kpi", "indicadores", "metricas almacen", "tasa de rotacion", "precisión inventario"],
-    topic: "KPIs de Almacén",
-    response: `KPIs principales de gestión de almacén:
+    keywords: ["rotacion de inventario", "tasa de rotacion", "rotacion stock", "dias de inventario"],
+    topic: "Rotación de Inventario",
+    category: "inventario",
+    response: `Rotación de Inventario:
 
-1. Tasa de rotación de inventario = (Costo de ventas / Inventario promedio)
-   • Mide cuántas veces se renueva el inventario al año. Mayor = mejor.
+Mide cuántas veces se renueva el inventario al año. Mayor = mejor.
 
-2. Precisión de inventario = (Registros correctos / Total de registros) × 100
-   • Debe ser >95%. Se verifica con conteos cíclicos.
+Fórmula: Rotación = Costo de ventas / Inventario promedio
 
-3. Exactitud de picking = (Pedidos sin errores / Total de pedidos) × 100
-   • Debe ser >99%.
+Días de inventario = 365 / Rotación
 
-4. Costo de almacenamiento = (Costo total de almacenamiento / Valor del inventario)
-   • Incluye renta, personal, equipos, servicios.
+Ejemplo: si vendes S/500,000/año y tu inventario promedio es S/100,000:
+Rotación = 500,000 / 100,000 = 5 veces/año
+Días de inventario = 365 / 5 = 73 días
 
-5. Tiempo de entrega interno = Tiempo desde recepción hasta disponibilidad
-   • Debe ser <24h para productos de alta rotación.
+Interpretación:
+• Rotación alta (8+): inventario eficiente, poco capital inmovilizado
+• Rotación baja (<3): exceso de inventario, capital inmovilizado
 
-6. Tasa de devoluciones = (Devoluciones / Despachos totales) × 100
-   • Mide calidad de los despachos. Menor = mejor.
-
-En VRS puedes ver estos KPIs en el Dashboard y en /kpis.`,
+En VRS puedes ver el valor total del inventario en el Dashboard y comparar con los despachos del año.`,
   },
-
-  // ─── CONTEO CÍCLICO ───
   {
-    keywords: ["conteo ciclico", "inventario fisico", "auditoria inventario", "recuento"],
+    keywords: ["conteo ciclico", "cycle counting", "inventario fisico", "auditoria inventario", "recuento", "conteo"],
     topic: "Conteo Cíclico",
+    category: "inventario",
     response: `Conteo Cíclico (Cycle Counting):
 
-Es una técnica de verificación de inventario donde en lugar de hacer un conteo completo anual, cuentas una parte del inventario cada día/semana/mes.
+Verificación de inventario donde cuentas una parte cada día/semana/mes en vez de un conteo anual completo.
 
-Tipos de conteo cíclico:
-• Por valor ABC: cuenta Clase A semanal, Clase B mensual, Clase C trimestral.
-• Por ubicación: cuenta una sección del almacén cada semana.
-• Por aleatorio: selecciona productos al azar cada día.
+Tipos:
+• Por valor ABC: Clase A semanal, B mensual, C trimestral
+• Por ubicación: una sección del almacén cada semana
+• Aleatorio: productos al azar cada día
 
-Ventajas:
-• No paraliza el almacén (a diferencia del conteo anual)
-• Detecta errores pronto
-• Mejora la precisión del inventario continuamente
+Ventajas: no paraliza el almacén, detecta errores pronto, mejora precisión continuamente.
 
-En VRS: usa /pistolear para hacer conteos cíclicos. Escanea las series de un modelo, compara con lo que dice el sistema, y registra las diferencias. El sistema guarda el registro para auditoría.`,
+En VRS: usa /pistolear para conteos cíclicos. Escanea series, compara con el sistema, registra diferencias. El sistema guarda todo para auditoría.
+
+Meta: precisión de inventario >95%.`,
+  },
+  {
+    keywords: ["stockout", "quiebre de stock", "ruptura de stock", "sin stock", "agotado", "desabastecimiento"],
+    topic: "Quiebre de Stock",
+    category: "inventario",
+    response: `Quiebre de Stock (Stockout):
+
+Cuando un producto se agota y no puedes despachar. Causas:
+• Punto de reorden mal configurado
+• Demanda inesperada
+• Retraso del proveedor
+• Error en el conteo de inventario
+
+Costos del quiebre:
+• Pérdida de ventas/despachos
+• Insatisfacción del cliente/técnico
+• Costos de urgencia (pedidos exprés)
+
+Prevención:
+1. Mantén stock de seguridad adecuado
+2. Revisa puntos de reorden mensualmente
+3. Monitorea alertas de bajo stock en VRS diariamente
+4. Diversifica proveedores para Clase A
+5. Usa conteos cíclicos para mantener precisión del inventario`,
   },
 
-  // ─── 5S EN ALMACÉN ───
+  // ─── OPERACIONES ───
   {
-    keywords: ["5s", "metodo 5s", "organizacion almacen", "seiri seiton", "seiri", "seiton"],
-    topic: "Metodología 5S",
-    response: `Metodología 5S para almacén:
-
-1. Seiri (Clasificar): separar lo necesario de lo innecesario. Elimina equipos averiados, materiales obsoletos, embalajes vacíos.
-
-2. Seiton (Ordenar): cada cosa en su lugar. Etiqueta estantes, define ubicaciones fijas para cada tipo de producto. En VRS usa el campo "ubicación" para saber dónde está cada equipo.
-
-3. Seiso (Limpiar): mantener el almacén limpio. Un almacén limpio permite detectar derrames, daños y problemas rápidamente.
-
-4. Seiketsu (Estandarizar): crear procedimientos estándar. Documenta cómo recibir, almacenar, despachar. En VRS, las guías de remisión SUNAT son parte de la estandarización.
-
-5. Shitsuke (Disciplina): mantener las 4S anteriores en el tiempo. Auditorías periódicas.
-
-Beneficios: menos errores, menos tiempo buscando cosas, menos accidentes, más espacio, mejor imagen.`,
-  },
-
-  // ─── RECEPCIÓN DE MERCANCÍA ───
-  {
-    keywords: ["recepcion", "recepcion de mercancia", "guia de remision", "recepcion sunat", "como recibir"],
+    keywords: ["recepcion", "recepcion de mercancia", "guia de remision", "recepcion sunat", "como recibir", "ingreso mercancia"],
     topic: "Recepción de Mercancía",
-    response: `Proceso de recepción de mercancía:
+    category: "operaciones",
+    response: `Proceso de Recepción de Mercancía:
 
-1. Verificar la guía de remisión SUNAT contra el pedido/orden de compra.
-   • Revisar: RUC del remitente, cantidades, descripción de productos, motivo del traslado.
+1. Verificar la guía de remisión SUNAT contra el pedido/orden de compra (RUC, cantidades, descripción, motivo del traslado).
 
-2. Conteo físico: contar las unidades recibidas. Si hay diferencia con la guía, anotar observaciones.
+2. Conteo físico: contar unidades recibidas. Si hay diferencia, anotar observaciones en la guía.
 
 3. Inspección visual: verificar que los equipos no tengan daños visibles.
 
 4. Registro de series: para equipos con serie (routers, ONTs, decodificadores), escanear cada serie con /pistolear.
 
-5. Ubicación: llevar los productos a su ubicación asignada en el almacén.
+5. Ubicación: llevar productos a su ubicación asignada en el almacén.
 
-6. Actualizar inventario: en VRS, la recepción se registra en /recepciones subiendo la guía SUNAT en PDF (el sistema extrae automáticamente los datos).
+6. Actualizar inventario: en VRS, la recepción se registra en /recepciones subiendo la guía SUNAT en PDF.
 
 7. Documentar: guardar la guía firmada como comprobante.
 
-Consejo: nunca recibas mercancía sin guía de remisión. Si hay diferencias, anota "recibido con observaciones" en la guía antes de firmar.`,
+NUNCA recibas mercancía sin guía de remisión. Si hay diferencias, anota "recibido con observaciones" antes de firmar.`,
   },
-
-  // ─── DESPACHO ───
   {
-    keywords: ["despacho", "picking", "como despachar", "preparar pedido", "empaque"],
+    keywords: ["despacho", "picking", "como despachar", "preparar pedido", "empaque", "packing", "salida mercancia"],
     topic: "Proceso de Despacho",
-    response: `Proceso de despacho (picking y packing):
+    category: "operaciones",
+    response: `Proceso de Despacho (Picking + Packing):
 
-1. Recibir la orden de despacho (del técnico o destino).
+1. Recibir orden de despacho (del técnico o destino).
 
-2. Picking: extraer los productos del inventario según la orden.
-   • Verificar SKU y cantidad.
-   • Para equipos con serie, escanear la serie correspondiente.
-   • Aplicar FIFO: entregar primero los equipos más antiguos.
+2. Picking: extraer productos del inventario según la orden. Verificar SKU y cantidad. Para equipos con serie, escanear la serie. Aplicar FIFO (entregar primero lo más antiguo).
 
-3. Packing: empaquetar los productos.
-   • Proteger equipos frágiles.
-   • Incluir la guía de remisión si es traslado entre almacenes.
+3. Packing: empaquetar. Proteger equipos frágiles. Incluir guía si es traslado entre almacenes.
 
 4. Verificación: doble check de SKU, cantidad y series.
 
-5. Registro: en VRS, registrar el despacho con /despachos. El sistema descuenta el stock automáticamente.
+5. Registro: en VRS, registrar en /despachos. El sistema descuenta el stock automáticamente.
 
-6. Firma: el destinatario firma la conformidad de recepción.
+6. Firma: el destinatario firma conformidad.
 
-Tipos de despacho en VRS:
-• Despacho a técnico: equipos para instalación en campo.
-• Transferencia: traslado entre almacenes (ej: HUB a almacén secundario).
-• Devolución: equipos que regresan del campo (cambiar estado a averiado o retiro).`,
+Tipos en VRS:
+• Despacho a técnico: equipos para instalación en campo
+• Transferencia: traslado entre almacenes
+• Devolución: equipos que regresan del campo (cambiar estado a averiado o retiro)`,
+  },
+  {
+    keywords: ["pistolear", "escanear", "lector codigo", "codigo de barras", "pistoleo", "scan"],
+    topic: "Pistoleo / Escaneo",
+    category: "operaciones",
+    response: `Pistoleo (Escaneo de series):
+
+Herramienta para registrar equipos por su número de serie usando un lector de código de barras.
+
+Usos en VRS:
+1. Recepción: escanear series de equipos nuevos que ingresan al almacén
+2. Devoluciones: escanear equipos averiados o de retiro que regresan del campo
+3. Conteo cíclico: verificar que las series físicas coincidan con el sistema
+4. Despachos: escanear series que se entregan al técnico
+
+Flujo:
+1. Ve a /pistolear
+2. Configura el estado (disponible/averiado/en_retiro) y ubicación de guardado
+3. Escanea cada serie (el lector envía Enter automáticamente)
+4. Revisa el preview antes de guardar
+5. Guarda → el sistema actualiza el inventario automáticamente
+6. Exporta a Excel si necesitas el registro físico
+
+Consejo: el lector de código de barras funciona como un teclado. Solo enfoca el input y dispara.`,
+  },
+  {
+    keywords: ["putaway", "almacenamiento", "ubicacion", "estanteria", "organizacion fisica", "layout"],
+    topic: "Putaway y Organización Física",
+    category: "operaciones",
+    response: `Putaway (Almacenamiento):
+
+Proceso de ubicar los productos recibidos en su lugar asignado.
+
+Principios:
+• Productos de alta rotación cerca de la salida (reduce tiempo de picking)
+• Productos pesados abajo, livianos arriba
+• Productos similares agrupados
+• Pasillos despejados y etiquetados
+
+En VRS: el campo "ubicación" de cada equipo indica dónde está guardado. Opciones:
+• Almacén: zona principal de stock
+• Taller: equipos en reparación
+• Cuarto Técnico: equipos reservados
+• Bodega de Averías: equipos averiados pendientes de baja
+• Bodega de Retiro: equipos cambiados en campo
+• Estantería: ubicación específica
+
+Consejo: etiqueta cada estante con un código (A1, B2, etc.) y úsalo en el campo ubicación de VRS para encontrar equipos rápidamente.`,
   },
 
-  // ─── EQUIPOS DE TELECOMUNICACIONES ───
+  // ─── LOGÍSTICA ───
   {
-    keywords: ["router", "ont", "decodificador", "modem", "repetidor", "equipo telecom", "serie equipo"],
-    topic: "Gestión de Equipos de Telecomunicaciones",
-    response: `Gestión de equipos de telecomunicaciones en almacén:
+    keywords: ["kpi", "indicadores", "metricas", "tasa rotacion", "precision inventario", "exactitud picking"],
+    topic: "KPIs de Almacén",
+    category: "logistica",
+    response: `KPIs principales de gestión de almacén:
 
-Tipos de equipos:
-• Router/ONT: equipo que da internet al cliente. Cada uno tiene número de serie único.
-• Decodificador IPTV: equipo para TV. También con serie única.
-• Repetidor WiFi: amplía la señal WiFi.
+1. Rotación de inventario = Costo de ventas / Inventario promedio (mayor = mejor)
+2. Precisión de inventario = Registros correctos / Total × 100 (meta >95%)
+3. Exactitud de picking = Pedidos sin errores / Total × 100 (meta >99%)
+4. Costo de almacenamiento = Costo total / Valor del inventario
+5. Tiempo de entrega interno = Recepción → Disponibilidad (meta <24h)
+6. Tasa de devoluciones = Devoluciones / Despachos × 100 (menor = mejor)
 
-Estados de equipos en VRS:
-• Disponible: en el almacén, listo para despachar.
-• Averiado: no funciona, necesita reparación o baja.
-• En retiro: fue cambiado por uno nuevo en la casa del cliente, regresó al almacén.
-
-Control por serie:
-Cada equipo tiene un número de serie único (generalmente en la etiqueta del fabricante). El control por serie permite:
-• Trazabilidad: saber dónde está cada equipo y su historial.
-• Garantía: verificar si el equipo está en garantía por su serie.
-• Robo: detectar si un equipo reportado como robado aparece en el sistema.
-
-En VRS: usa /pistolear para escanear series al recibir o devolver equipos. Usa /equipos para ver el estado de cada modelo. Usa /series para buscar una serie específica.
-
-Consejo: cuando recibas un equipo devuelto (averiado o retiro), escanéalo con /pistolear y márcalo con el estado correcto para mantener el control.`,
+En VRS puedes ver estos KPIs en el Dashboard y en /kpis.`,
   },
-
-  // ─── JUST IN TIME ───
   {
-    keywords: ["jit", "just in time", "justo a tiempo", "inventario cero"],
+    keywords: ["5s", "metodo 5s", "organizacion almacen", "seiri", "seiton", "seiso", "seiketsu", "shitsuke"],
+    topic: "Metodología 5S",
+    category: "gestion",
+    response: `Metodología 5S para almacén:
+
+1. Seiri (Clasificar): separar lo necesario de lo innecesario. Elimina averiados, obsoletos, embalajes vacíos.
+
+2. Seiton (Ordenar): cada cosa en su lugar. Etiqueta estantes, define ubicaciones. En VRS usa el campo "ubicación".
+
+3. Seiso (Limpiar): almacén limpio. Detecta derrames, daños, problemas rápido.
+
+4. Seiketsu (Estandarizar): procedimientos estándar. Documenta cómo recibir, almacenar, despachar.
+
+5. Shitsuke (Disciplina): mantener las 4S en el tiempo. Auditorías periódicas.
+
+Beneficios: menos errores, menos tiempo buscando, menos accidentes, más espacio, mejor imagen.`,
+  },
+  {
+    keywords: ["jit", "just in time", "justo a tiempo", "inventario cero", "stock minimo"],
     topic: "Just In Time (JIT)",
+    category: "logistica",
     response: `Just In Time (JIT):
 
-Filosofía de gestión donde recibes los productos exactamente cuando los necesitas, minimizando el inventario almacenado.
+Filosofía de recibir productos exactamente cuando se necesitan, minimizando inventario.
 
-Ventajas:
-• Menor costo de almacenamiento.
-• Menos espacio necesario.
-• Menos riesgo de obsolescencia.
-• Mejor flujo de caja (no tienes capital inmovilizado en inventario).
+Ventajas: menor costo de almacenamiento, menos espacio, menos obsolescencia, mejor flujo de caja.
+Desventajas: requiere proveedores confiables, mayor riesgo de quiebres, necesita sistema robusto.
 
-Desventajas:
-• Requiere proveedores muy confiables.
-• Mayor riesgo de quiebres de stock si el proveedor falla.
-• Necesita sistema de información robusto (como VRS).
+¿Aplica a VRS? Parcialmente:
+• Clase A (routers, ONTs): stocks bajos, reposición frecuente
+• Clase C (conectores, cables): mantener stock de seguridad (costo almacenamiento mínimo)
 
-¿Aplica a VRS?
-Parcialmente. Para equipos de alto valor (routers, ONTs) que cuestan S/100-300, puedes aplicar JIT manteniendo stocks bajos. Para materiales de bajo valor (conectores, cables) es mejor mantener stock de seguridad porque el costo de almacenamiento es mínimo.
+Usa ABC para decidir qué productos gestionar con JIT y cuáles con stock de seguridad.`,
+  },
+  {
+    keywords: ["cross docking", "transbordo", "directo"],
+    topic: "Cross-Docking",
+    category: "logistica",
+    response: `Cross-Docking:
 
-Consejo: usa el análisis ABC para decidir qué productos gestionar con JIT (Clase A) y cuáles con stock de seguridad (Clase C).`,
+Recibir mercancía y enviarla inmediatamente sin almacenarla. El producto pasa del muelle de recepción al de despacho.
+
+Ventajas: reduce costos de almacenamiento, acelera el flujo, menos manipulación.
+Desventajas: requiere coordinación precisa, necesita espacio de tránsito.
+
+Aplica a VRS cuando: recibes equipos que ya están asignados a un técnico/despacho específico. En vez de almacenarlos, los entregas directamente.`,
+  },
+  {
+    keywords: ["lead time", "tiempo de entrega", "tiempo de respuesta proveedor", "plazo"],
+    topic: "Lead Time",
+    category: "logistica",
+    response: `Lead Time (Tiempo de Entrega):
+
+Tiempo desde que haces el pedido hasta que recibes la mercancía. Incluye:
+• Tiempo de procesamiento del proveedor
+• Tiempo de fabricación (si aplica)
+• Tiempo de transporte
+• Tiempo de recepción y verificación
+
+Lead Time más corto = menor stock de seguridad necesario = menos capital inmovilizado.
+
+Para reducirlo:
+• Negocia tiempos de entrega con proveedores
+• Diversifica proveedores (alternativa si uno falla)
+• Usa pedidos anticipados (pre-pedido antes de llegar al ROP)
+• Considera proveedores locales para productos Clase A`,
   },
 
-  // ─── TÉRMINOS DE LOGÍSTICA ───
+  // ─── TELECOM ───
   {
-    keywords: ["terminos logistica", "glosario", "que es sku", "que es lead time", "que es picking", "que es putaway"],
-    topic: "Glosario de Logística",
-    response: `Glosario de términos de logística y almacén:
+    keywords: ["router", "ont", "decodificador", "modem", "repetidor", "equipo telecom", "serie equipo", "hgu"],
+    topic: "Gestión de Equipos de Telecomunicaciones",
+    category: "telecom",
+    response: `Gestión de equipos de telecomunicaciones:
 
-• SKU (Stock Keeping Unit): código único que identifica un producto. En VRS es el campo "sku" de cada producto.
-• Lead Time: tiempo desde que haces el pedido hasta que recibes la mercancía.
-• Picking: proceso de extraer productos del inventario para preparar un despacho.
-• Putaway: proceso de ubicar los productos recibidos en su lugar del almacén.
-• Stockout: quiebre de stock, cuando un producto se agota y no puedes despachar.
-• Backorder: pedido que no se pudo cumplir por falta de stock y queda pendiente.
-• Drop shipping: enviar directamente del proveedor al cliente sin pasar por el almacén.
-• Cross-docking: recibir mercancía y enviarla inmediatamente sin almacenarla.
-• Cycle counting: conteo cíclico (ver Conteo Cíclico).
-• Pallet: tarima de madera o plástico para almacenar y transportar mercancía.
-• Lote/Número de lote: identifica un grupo de productos fabricados juntos.
-• Caducidad: fecha límite para usar un producto (aplica a algunos materiales).
-• Trazabilidad: capacidad de seguir el rastro de un producto desde origen hasta destino.
-• Pick and pack: proceso combinado de extraer y empaquetar para envío.`,
+Tipos:
+• Router/ONT: da internet al cliente. Serie única.
+• Decodificador IPTV: para TV. Serie única.
+• Repetidor WiFi: amplía señal WiFi.
+
+Estados en VRS:
+• Disponible: en almacén, listo para despachar
+• Averiado: no funciona, necesita reparación o baja
+• En retiro: fue cambiado por nuevo en casa del cliente, regresó al almacén
+
+Control por serie: cada equipo tiene serie única (etiqueta del fabricante). Permite trazabilidad, garantía y detección de robos.
+
+En VRS: usa /pistolear para escanear series. /equipos para ver estado por modelo. /series para buscar serie específica.
+
+Consejo: al recibir devolución, escanea con /pistolear y marca estado correcto (averiado o retiro).`,
+  },
+  {
+    keywords: ["conector", "cable", "fibra optica", "ftth", "rj45", "utp", "splitter", "roseta", "patch cord"],
+    topic: "Materiales de Telecomunicaciones",
+    category: "telecom",
+    response: `Materiales de telecomunicaciones (sin serie, control por cantidad):
+
+• Conectores FTTH PPC: para empalmes de fibra óptica
+• Cable UTP Cat6: para red ethernet
+• Splitter 1x4 / 1x8: divide señal de fibra
+• Roseta Optical: terminator de fibra en el hogar
+• Patch Cord: cable de conexión entre equipos
+• Conectores RJ-45: para cables ethernet
+
+Diferencia con equipos: los materiales NO tienen número de serie. Se controlan por cantidad (stock). Los equipos (routers, ONTs) SÍ tienen serie y se controlan individualmente.
+
+En VRS: los materiales están en /inventario con su stock mínimo. Los equipos están en /equipos y /series con control por serie.
+
+Consejo: define stock de seguridad para conectores y cables (Clase C) porque su costo de almacenamiento es mínimo pero un quiebre puede detener una instalación.`,
+  },
+  {
+    keywords: ["guia de remision", "sunat", "guia", "traslado", "comprobante"],
+    topic: "Guía de Remisión SUNAT",
+    category: "telecom",
+    response: `Guía de Remisión SUNAT:
+
+Documento que acompaña el traslado de bienes. Es obligatorio para transporte de mercancía en Perú.
+
+Datos de la guía:
+• RUC y nombre del remitente
+• RUC y nombre del destinatario
+• Punto de partida y llegada
+• Motivo del traslado (ej: "MATERIAL A OBRA")
+• Descripción de los productos
+• Cantidad y unidad de medida
+• Número de guía (ej: "EG07-00005170")
+
+Tipos:
+• Guía de remisión del remitente (transporte desde el almacén hacia el campo)
+• Guía de remisión del transportista (cuando un tercero transporta)
+
+En VRS: /recepciones acepta guías en PDF. El sistema extrae automáticamente los datos y registra la recepción.
+
+NUNCA recibas mercancía sin guía. Si hay diferencias, anota "con observaciones" antes de firmar.`,
   },
 
-  // ─── MEJORES PRÁCTICAS ───
+  // ─── GESTIÓN ───
   {
-    keywords: ["mejores practicas", "buenas practicas", "consejos almacen", "recomendaciones", "tips almacen"],
+    keywords: ["mejores practicas", "buenas practicas", "consejos", "recomendaciones", "tips", "recomendame"],
     topic: "Mejores Prácticas de Almacén",
+    category: "gestion",
     response: `Mejores prácticas de gestión de almacén:
 
-1. Organización física:
-   • Define zonas claras: recepción, almacenamiento, despacho, devoluciones, averiados.
-   • Etiqueta estantes y ubicaciones.
-   • Mantén pasillos despejados.
+1. Organización física: zonas claras (recepción, almacenamiento, despacho, devoluciones, averiados). Etiqueta estantes. Pasillos despejados.
 
-2. Control de inventario:
-   • Haz conteos cíclicos semanales para Clase A.
-   • Mantén el stock de seguridad actualizado.
-   • Revisa puntos de reorden mensualmente.
-   • Usa el campo "ubicación" de VRS para saber dónde está cada equipo.
+2. Control de inventario: conteos cíclicos semanales para Clase A. Stock de seguridad actualizado. Revisa ROP mensualmente.
 
-3. Recepción:
-   • Siempre verifica la guía de remisión SUNAT.
-   • Cuenta físicamente, no confíes en lo que dice el papel.
-   • Escanea series de equipos con /pistolear.
+3. Recepción: verifica guía SUNAT. Cuenta físicamente. Escanea series con /pistolear.
 
-4. Despacho:
-   • Aplica FIFO (entrega primero lo más antiguo).
-   • Doble verificación de SKU y cantidad.
-   • Registra el despacho en VRS para mantener el stock exacto.
+4. Despacho: aplica FIFO. Doble verificación. Registra en /despachos.
 
-5. Gestión de devoluciones:
-   • Clasifica el equipo: averiado vs retiro.
-   • Escanea la serie con /pistolear.
-   • Asigna ubicación: Taller para averiados, Bodega de Retiro para retiros.
+5. Devoluciones: clasifica (averiado vs retiro). Escanea serie. Asigna ubicación.
 
-6. Tecnología:
-   • Usa un lector de código de barras para pistolear.
-   • Mantén el sistema actualizado (VRS sincroniza entre dispositivos).
-   • Revisa las alertas de bajo stock diariamente.`,
+6. Tecnología: usa lector de código de barras. Mantén el sistema actualizado. Revisa alertas diariamente.
+
+7. Seguridad: acceso controlado. Inventario bajo llave. Registro de entradas/salidas.`,
+  },
+  {
+    keywords: ["terminos", "glosario", "sku", "lead time", "picking", "putaway", "stockout", "backorder", "pallet", "lote"],
+    topic: "Glosario de Logística",
+    category: "general",
+    response: `Glosario de logística:
+
+• SKU: código único de un producto (en VRS: campo "sku")
+• Lead Time: tiempo desde pedido hasta recepción
+• Picking: extraer productos del inventario para despacho
+• Putaway: ubicar productos recibidos en su lugar
+• Stockout: quiebre de stock (producto agotado)
+• Backorder: pedido pendiente por falta de stock
+• Drop shipping: enviar directo del proveedor al cliente
+• Cross-docking: recibir y enviar sin almacenar
+• Cycle counting: conteo cíclico (verificar inventario por partes)
+• Pallet: tarima para almacenar/transportar mercancía
+• FIFO: primeras entradas, primeras salidas
+• LIFO: últimas entradas, primeras salidas
+• ROP: punto de reorden
+• EOQ: cantidad económica de pedido
+• SS: stock de seguridad
+• ABC: clasificación por valor (Pareto 80/20)
+• KPI: indicador clave de rendimiento
+• JIT: just in time (inventario mínimo)
+• WMS: warehouse management system (como VRS)`,
+  },
+  {
+    keywords: ["mision", "que haces", "para que sirves", "que puedes hacer", "ayuda", "comandos"],
+    topic: "Capacidades de Alana",
+    category: "general",
+    response: `Soy Alana, asistente del almacén VRS. Puedo:
+
+1. ANÁLISIS DE STOCK: detectar bajo stock, calcular ratios, priorizar compras
+2. CÁLCULO DE CONSUMO: usar datos reales de despachos de 7 y 30 días
+3. RECOMENDACIONES DE COMPRA: sugerir qué pedir, cuánto, justificando con datos
+4. TRAZABILIDAD DE EQUIPOS: reportar estado de equipos, buscar por serie
+5. GESTIÓN DE PERSONAL: informar sobre el equipo del almacén
+6. ALERTAS TEMPRANAS: anticipar quiebres de stock
+7. REPORTES EJECUTIVOS: resúmenes con KPIs, tendencias y acciones
+8. PLANIFICACIÓN: calcular necesidades para un período
+9. CONOCIMIENTO DE LOGÍSTICA: responder sobre ABC, FIFO, EOQ, KPIs, 5S, JIT, etc.
+
+También puedo ejecutar acciones del sistema:
+• Añadir productos al inventario
+• Registrar despachos
+• Añadir equipos por serie
+• Crear notas en el bloc
+• Crear recordatorios
+• Cambiar el tema de la interfaz
+
+Y puedo hacer cálculos matemáticos: "cuánto es 15 × 23", "20% de 500".`,
   },
 ];
 
 /**
  * Busca la entrada de conocimiento más relevante para el mensaje del usuario.
- * Devuelve la respuesta de conocimiento si encuentra una coincidencia, o null si no.
+ * Usa scoring por longitud de keyword (keywords más largas valen más).
+ * Devuelve hasta 3 entradas relevantes para dar contexto al LLM.
  */
 export function buscarConocimiento(mensaje: string): string | null {
   const msg = mensaje.toLowerCase().trim();
 
-  // Buscar la entrada con más coincidencias de keywords
-  let mejorMatch: KnowledgeEntry | null = null;
-  let mejorScore = 0;
+  let entries: Array<{ entry: KnowledgeEntry; score: number }> = [];
 
   for (const entry of WAREHOUSE_KNOWLEDGE) {
     let score = 0;
     for (const kw of entry.keywords) {
       if (msg.includes(kw.toLowerCase())) {
-        score += kw.length; // keywords más largas valen más
+        score += kw.length; // keywords más largas = más específicas = valen más
       }
     }
-    if (score > mejorScore) {
-      mejorScore = score;
-      mejorMatch = entry;
+    if (score > 0) {
+      entries.push({ entry, score });
     }
   }
 
-  // Solo devolver si hay un match significativo
-  if (mejorMatch && mejorScore > 0) {
-    return mejorMatch.response;
+  // Ordenar por score descendente
+  entries.sort((a, b) => b.score - a.score);
+
+  // Devolver la mejor entrada (o null si no hay match)
+  if (entries.length > 0 && entries[0].score > 0) {
+    return entries[0].entry.response;
   }
 
   return null;
+}
+
+/**
+ * Busca hasta 3 entradas de conocimiento relevantes para usar como contexto del LLM (RAG).
+ * Devuelve un string con las entradas encontradas, separadas por líneas.
+ */
+export function buscarContextoConocimiento(mensaje: string): string {
+  const msg = mensaje.toLowerCase().trim();
+
+  let entries: Array<{ entry: KnowledgeEntry; score: number }> = [];
+
+  for (const entry of WAREHOUSE_KNOWLEDGE) {
+    let score = 0;
+    for (const kw of entry.keywords) {
+      if (msg.includes(kw.toLowerCase())) {
+        score += kw.length;
+      }
+    }
+    if (score > 0) {
+      entries.push({ entry, score });
+    }
+  }
+
+  entries.sort((a, b) => b.score - a.score);
+
+  if (entries.length === 0) return "";
+
+  // Tomar hasta 3 entradas más relevantes
+  const top = entries.slice(0, 3);
+  return top
+    .map(({ entry }, i) => `--- CONOCIMIENTO ${i + 1}: ${entry.topic} ---\n${entry.response}`)
+    .join("\n\n");
 }
