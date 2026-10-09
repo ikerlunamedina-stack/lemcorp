@@ -122,8 +122,8 @@ const MODOS_IA: ModoIA[] = [
   },
 ];
 
-const STORAGE_KEY = "nuclon-ia-chat-v3"; // v3: invalida cache viejo que tenía respuestas de Wikipedia
-const STORAGE_VERSION = 3; // bump si cambiamos el formato o queremos forzar reset
+const STORAGE_KEY = "nuclon-ia-chat-v4"; // v4: reset completo — nuevo sistema con Groq + RAG
+const STORAGE_VERSION = 4; // bump si cambiamos el formato o queremos forzar reset
 const CINCO_HORAS = 5 * 60 * 60 * 1000; // 5 horas en ms
 
 /**
