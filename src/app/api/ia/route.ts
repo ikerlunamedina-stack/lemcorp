@@ -55,14 +55,16 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     requestId = body.requestId || "no-id";
-    const { mensaje, historial, inventario, equipos, miembros, despachos, empresa, usuario, memoria } = body;
+    const { mensaje, historial, inventario, equipos, miembros, despachos, empresa, usuario } = body;
 
     const productos: ProductDTO[] = Array.isArray(inventario) ? inventario : [];
     const eqs: EquipmentDTO[] = Array.isArray(equipos) ? equipos : [];
     const pers: MiembroDTO[] = Array.isArray(miembros) ? miembros : [];
     const desps: DespachoDTO[] = Array.isArray(despachos) ? despachos : [];
     const usuarioNombre = typeof usuario === "string" && usuario ? usuario : "operador";
-    const memoriaAprendida: string[] = Array.isArray(memoria) ? memoria.filter((m: any) => typeof m === "string" && m.trim()) : [];
+    // memoriaAprendida ELIMINADA — el sistema de [[MEMORIA]] fue borrado.
+    // Las memorias viejas del sistema anterior pueden contener datos sensibles
+    // (como API keys) que se filtrarían al LLM. No incluir nada.
     const historialMsgs: Array<{ role: string; content: string }> = Array.isArray(historial)
       ? historial.filter((m: any) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
       : [];
@@ -105,8 +107,6 @@ DATOS DEL INVENTARIO:
 - ${bajoStock.length} productos con bajo stock
 - ${agotados.length} productos agotados
 ${productosTxt}${bajoStockTxt}${equiposTxt}${despachosTxt}
-
-${memoriaAprendida.length > 0 ? `\nLO QUE HAS APRENDIDO DEL USUARIO:\n${memoriaAprendida.map((m, i) => `${i + 1}. ${m}`).join("\n")}` : ""}
 
 ${conocimientoRAG ? `\nCONOCIMIENTO DE LOGÍSTICA RELEVANTE:\n${conocimientoRAG}` : ""}`;
 
