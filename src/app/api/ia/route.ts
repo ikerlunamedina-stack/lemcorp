@@ -1,6 +1,7 @@
 // API route para Alana, asistente del almacén VRS (VRS WMS)
 // Usa Google Gemini API en el backend, con análisis en tiempo real del inventario.
 import { NextRequest, NextResponse } from "next/server";
+import { buscarConocimiento } from "@/lib/warehouse-knowledge";
 
 export const runtime = "nodejs";
 
@@ -1182,6 +1183,13 @@ Preguntame especificamente: "que productos tienen bajo stock?", "como estan los 
   // ¿Cómo estás?
   if (/c[oó]mo est[aá]s|qu[eé] tal|c[oó]mo te va/i.test(msg)) {
     return `Todo bien, ${nombre} 😊 Lista para ayudarte con el almacén. ¿Qué necesitas?`;
+  }
+
+  // === 6.8. BASE DE CONOCIMIENTOS DE LOGÍSTICA Y ALMACÉN ===
+  // Si la pregunta coincide con algún tema de gestión de almacén, responder con el conocimiento
+  const conocimiento = buscarConocimiento(msg);
+  if (conocimiento) {
+    return conocimiento;
   }
 
   // ¿Quién eres?
