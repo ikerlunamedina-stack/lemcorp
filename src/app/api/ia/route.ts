@@ -5,10 +5,10 @@ import { buscarConocimiento, buscarContextoConocimiento } from "@/lib/warehouse-
 
 export const runtime = "nodejs";
 
-// ─── Groq (Llama 3.3 70B) ───
-const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
-const GROQ_MODEL = "llama-3.3-70b-versatile";
-const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
+// ─── OpenRouter (modelos gratis, sin bloqueo de IP) ───
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
+const OPENROUTER_MODEL = "nvidia/nemotron-3.5-lightning:free";
+const OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 
 interface ProductDTO {
   sku: string;
@@ -127,23 +127,25 @@ ${conocimientoRAG ? `\nCONOCIMIENTO DE LOGÍSTICA RELEVANTE:\n${conocimientoRAG}
     let usarFallback = false;
 
     try {
-      if (!GROQ_API_KEY) throw new Error("GROQ_API_KEY no configurada");
+      if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY no configurada");
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 45_000);
 
-      const res = await fetch(GROQ_ENDPOINT, {
+      const res = await fetch(OPENROUTER_ENDPOINT, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${GROQ_API_KEY}`,
+          "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+          "HTTP-Referer": "https://lemcorp.vercel.app",
+          "X-Title": "VRS WMS",
         },
         signal: controller.signal,
         body: JSON.stringify({
-          model: GROQ_MODEL,
+          model: OPENROUTER_MODEL,
           messages,
           temperature: 0.7,
-          max_tokens: 2048,
+          max_tokens: 1024,
         }),
       });
 
@@ -151,17 +153,17 @@ ${conocimientoRAG ? `\nCONOCIMIENTO DE LOGÍSTICA RELEVANTE:\n${conocimientoRAG}
 
       if (!res.ok) {
         const errTxt = await res.text().catch(() => "");
-        throw new Error(`Groq HTTP ${res.status}: ${errTxt.slice(0, 300)}`);
+        throw new Error(`OpenRouter HTTP ${res.status}: ${errTxt.slice(0, 300)}`);
       }
 
       const data = await res.json();
       respuesta = data?.choices?.[0]?.message?.content?.trim() || "";
 
-      if (!respuesta) throw new Error("Respuesta vacía de Groq");
+      if (!respuesta) throw new Error("Respuesta vacía de OpenRouter");
 
-      console.log(`[ALANA-API] ${requestId} ← Groq (${Date.now() - startTime}ms): ${respuesta.slice(0, 100)}...`);
+      console.log(`[ALANA-API] ${requestId} ← OpenRouter (${Date.now() - startTime}ms): ${respuesta.slice(0, 100)}...`);
     } catch (err: any) {
-      console.error(`[ALANA-API] ${requestId} Groq falló, usando fallback:`, err?.message);
+      console.error(`[ALANA-API] ${requestId} OpenRouter falló, usando fallback:`, err?.message);
       usarFallback = true;
     }
 
