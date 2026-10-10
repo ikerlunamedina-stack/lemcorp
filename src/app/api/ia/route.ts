@@ -177,7 +177,7 @@ ${conocimientoRAG ? `\nCONOCIMIENTO DE LOGÍSTICA RELEVANTE:\n${conocimientoRAG}
         // Respuestas básicas con datos del inventario
         const msg = (mensaje || "").toLowerCase().trim();
 
-        if (/hola|buenas|hey|saludos/i.test(msg)) {
+        if (/hola|ola|buenas|hey|saludos/i.test(msg)) {
           respuesta = `Hola ${usuarioNombre}. Tienes ${productos.length} productos en catálogo, ${totalUnidades} unidades en stock, ${bajoStock.length} con bajo stock. ¿Qué necesitas?`;
         } else if (/bajo stock|agotad|qu[eé] falta|reponer|pedir/i.test(msg)) {
           if (bajoStock.length === 0 && agotados.length === 0) {
