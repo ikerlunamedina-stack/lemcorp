@@ -413,7 +413,7 @@ export function PistolearView() {
       />
       <div className="relative z-10">
       {/* Header */}
-      <header className="anim-slide-up mb-6 flex flex-wrap items-center justify-end gap-4">
+      <header className="anim-slide-up mb-3 flex flex-wrap items-center justify-end gap-4">
         <motion.div
           whileTap={{ scale: 0.97 }}
           transition={{ type: "spring", stiffness: 300, damping: 15 }}

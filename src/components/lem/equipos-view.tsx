@@ -195,9 +195,9 @@ export function EquiposView() {
   const animModelos = useCountUp(kpis.modelosDistintos);
 
   return (
-    <div className="select-text cursor-text px-4 py-8 sm:px-6 lg:px-10 anim-fade-in">
+    <div className="select-text cursor-text px-6 py-4 anim-fade-in">
       {/* Header */}
-      <header className="anim-slide-up mb-8 flex flex-wrap items-end justify-between gap-4">
+      <header className="anim-slide-up mb-4 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
             {equipos.length} equipos · {models.length} modelos
@@ -215,7 +215,7 @@ export function EquiposView() {
       </header>
 
       {/* Pestañas: Equipos | Recomendaciones | Movimientos */}
-      <div className="anim-slide-up mb-6 flex items-center gap-1 border-b border-border">
+      <div className="anim-slide-up mb-3 flex items-center gap-1 border-b border-border">
         {([
           ["equipos", "Equipos", equipos.length],
           ["recomendaciones", "Recomendaciones", kpis.averiados + kpis.sinUso + kpis.modelosDistintos],
@@ -260,12 +260,12 @@ export function EquiposView() {
           transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
         >
           {/* KPIs superiores — entrada escalonada con stagger delay */}
-          <div className="sticky-kpis mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="sticky-kpis mb-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {/* 1. Catálogo */}
             <motion.div
               whileHover={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
+              className="press-card anim-slide-up rounded-xl border border-border bg-card p-3 text-card-foreground"
               style={{ animationDelay: "0ms" }}
             >
               <div className="flex items-center gap-1.5">
@@ -278,7 +278,7 @@ export function EquiposView() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
+              className="press-card anim-slide-up rounded-xl border border-border bg-card p-3 text-card-foreground"
               style={{ animationDelay: "60ms" }}
             >
               <div className="flex items-center gap-1.5">
@@ -291,7 +291,7 @@ export function EquiposView() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
+              className="press-card anim-slide-up rounded-xl border border-border bg-card p-3 text-card-foreground"
               style={{ animationDelay: "120ms" }}
             >
               <div className="flex items-center gap-1.5">
@@ -304,7 +304,7 @@ export function EquiposView() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
+              className="press-card anim-slide-up rounded-xl border border-border bg-card p-3 text-card-foreground"
               style={{ animationDelay: "180ms" }}
             >
               <div className="flex items-center gap-1.5">
@@ -317,7 +317,7 @@ export function EquiposView() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
+              className="press-card anim-slide-up rounded-xl border border-border bg-card p-3 text-card-foreground"
               style={{ animationDelay: "240ms" }}
             >
               <div className="flex items-center gap-1.5">
@@ -330,7 +330,7 @@ export function EquiposView() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
+              className="press-card anim-slide-up rounded-xl border border-border bg-card p-3 text-card-foreground"
               style={{ animationDelay: "300ms" }}
             >
               <div className="flex items-center gap-1.5">
@@ -342,7 +342,7 @@ export function EquiposView() {
           </div>
 
           {/* Chips de filtro por estado */}
-          <div className="anim-slide-up mb-6 flex flex-wrap items-center gap-1">
+          <div className="anim-slide-up mb-3 flex flex-wrap items-center gap-1">
             <Filter className="mr-1 h-3.5 w-3.5 text-muted-foreground" {...ICON_PROPS} />
             <FilterChip active={estadoFilter === "todos"} onClick={() => setEstadoFilter("todos")} label="Todos" count={equipos.length} />
             {ESTADOS.map((est) => {
@@ -519,7 +519,7 @@ export function EquiposView() {
                 <motion.div
                   whileHover={{ scale: 1.01 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground"
+                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
                   style={{ animationDelay: "0ms" }}
                 >
                   <div className="mb-3 flex items-center justify-between">
@@ -568,7 +568,7 @@ export function EquiposView() {
                 <motion.div
                   whileHover={{ scale: 1.01 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground"
+                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
                   style={{ animationDelay: "80ms" }}
                 >
                   <div className="mb-3 flex items-center justify-between">
@@ -610,7 +610,7 @@ export function EquiposView() {
                 <motion.div
                   whileHover={{ scale: 1.01 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground"
+                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
                   style={{ animationDelay: "160ms" }}
                 >
                   <div className="mb-3 flex items-center gap-2">
@@ -645,7 +645,7 @@ export function EquiposView() {
                 <motion.div
                   whileHover={{ scale: 1.01 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground"
+                  className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
                   style={{ animationDelay: "240ms" }}
                 >
                   <div className="mb-3 flex items-center gap-2">

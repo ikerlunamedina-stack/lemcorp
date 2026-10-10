@@ -155,7 +155,7 @@ export function InventarioView() {
   return (
     <div className="select-text cursor-text px-6 py-6 anim-fade-in">
       {/* Header */}
-      <header className="anim-slide-up mb-8 flex flex-wrap items-end justify-between gap-4">
+      <header className="anim-slide-up mb-4 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Inventario</h1>
           <p className="mt-1 text-[13px] text-muted-foreground">
@@ -191,7 +191,7 @@ export function InventarioView() {
       </header>
 
       {/* Pestañas: Inventario | Recomendaciones | Entradas */}
-      <div className="anim-slide-up mb-6 flex items-center gap-1 border-b border-border">
+      <div className="anim-slide-up mb-3 flex items-center gap-1 border-b border-border">
         {([
           ["inventario", "Inventario", products.length],
           ["recomendaciones", "Recomendaciones", (recomendaciones.reponer.length + recomendaciones.sinMinimo.length + recomendaciones.sinMovimiento.length)],
@@ -236,12 +236,12 @@ export function InventarioView() {
           transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] as const }}
         >
       {/* KPIs superiores — entrada escalonada con stagger delay */}
-      <div className="sticky-kpis mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="sticky-kpis mb-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {/* 1. Productos en catálogo */}
         <motion.div
           whileHover={{ scale: 1.02 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
+          className="press-card anim-slide-up rounded-xl border border-border bg-card p-3 text-card-foreground"
           style={{ animationDelay: "0ms" }}
         >
           <div className="flex items-center gap-1.5">
@@ -254,7 +254,7 @@ export function InventarioView() {
         <motion.div
           whileHover={{ scale: 1.02 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
+          className="press-card anim-slide-up rounded-xl border border-border bg-card p-3 text-card-foreground"
           style={{ animationDelay: "60ms" }}
         >
           <div className="flex items-center gap-1.5">
@@ -267,7 +267,7 @@ export function InventarioView() {
         <motion.div
           whileHover={{ scale: 1.02 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
+          className="press-card anim-slide-up rounded-xl border border-border bg-card p-3 text-card-foreground"
           style={{ animationDelay: "120ms" }}
         >
           <div className="flex items-center gap-1.5">
@@ -282,7 +282,7 @@ export function InventarioView() {
         <motion.div
           whileHover={{ scale: 1.02 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
+          className="press-card anim-slide-up rounded-xl border border-border bg-card p-3 text-card-foreground"
           style={{ animationDelay: "180ms" }}
         >
           <div className="flex items-center gap-1.5">
@@ -295,7 +295,7 @@ export function InventarioView() {
         <motion.div
           whileHover={{ scale: 1.02 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
+          className="press-card anim-slide-up rounded-xl border border-border bg-card p-3 text-card-foreground"
           style={{ animationDelay: "240ms" }}
         >
           <div className="flex items-center gap-1.5">
@@ -308,7 +308,7 @@ export function InventarioView() {
         <motion.div
           whileHover={{ scale: 1.02 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
+          className="press-card anim-slide-up rounded-xl border border-border bg-card p-3 text-card-foreground"
           style={{ animationDelay: "300ms" }}
         >
           <div className="flex items-center gap-1.5">
@@ -532,7 +532,7 @@ export function InventarioView() {
             <motion.div
               whileHover={{ scale: 1.01 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground"
+              className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
               style={{ animationDelay: "0ms" }}
             >
               <div className="mb-3 flex items-center justify-between">
@@ -593,7 +593,7 @@ export function InventarioView() {
               <motion.div
                 whileHover={{ scale: 1.01 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground"
+                className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
                 style={{ animationDelay: "80ms" }}
               >
                 <div className="mb-3 flex items-center justify-between">
@@ -627,7 +627,7 @@ export function InventarioView() {
               <motion.div
                 whileHover={{ scale: 1.01 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground"
+                className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
                 style={{ animationDelay: "160ms" }}
               >
                 <div className="mb-3 flex items-center justify-between">
@@ -671,7 +671,7 @@ export function InventarioView() {
               <motion.div
                 whileHover={{ scale: 1.01 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                className="press-card anim-slide-up rounded-xl border border-border bg-card p-5 text-card-foreground"
+                className="press-card anim-slide-up rounded-xl border border-border bg-card p-4 text-card-foreground"
                 style={{ animationDelay: "240ms" }}
               >
                 <div className="mb-3 flex items-center gap-2">
