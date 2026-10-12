@@ -52,14 +52,11 @@ const NAV_NEW_ITEMS: (NavNewItem & { permiso: Permiso })[] = [
   { href: "/exportar", icon: FileText, label: "Exportar", permiso: "ver_inventario", isNew: true },
 ];
 
-// Categorías para el navbar desplegable
+// Categorías para el navbar desplegable — REDUCIDO de 6 a 3
 const NAV_CATEGORIES = [
-  { label: "Almacén", items: NAV_ITEMS.filter(i => ["/equipos", "/series", "/pistolear"].includes(i.href)) },
-  { label: "Operaciones", items: [...NAV_ITEMS.filter(i => ["/horario"].includes(i.href)), ...NAV_NEW_ITEMS.filter(i => ["/transferencias", "/recepciones", "/movimientos"].includes(i.href))] },
-  { label: "Finanzas", items: NAV_NEW_ITEMS.filter(i => ["/precios", "/kpis"].includes(i.href)) },
-  { label: "Análisis", items: NAV_NEW_ITEMS.filter(i => ["/reportes", "/alertas"].includes(i.href)) },
-  { label: "Herramientas", items: NAV_ITEMS.filter(i => ["/ia", "/bloc", "/empresa"].includes(i.href)) },
-  { label: "Sistema", items: [...NAV_ITEMS.filter(i => i.href === "/config"), ...NAV_NEW_ITEMS.filter(i => ["/auditoria", "/proveedores", "/exportar"].includes(i.href))] },
+  { label: "Almacén", items: [...NAV_ITEMS.filter(i => ["/equipos", "/series", "/pistolear", "/despachos"].includes(i.href)), ...NAV_NEW_ITEMS.filter(i => ["/recepciones", "/transferencias"].includes(i.href))] },
+  { label: "Operaciones", items: [...NAV_ITEMS.filter(i => ["/horario"].includes(i.href)), ...NAV_NEW_ITEMS.filter(i => ["/movimientos", "/reportes", "/alertas", "/kpis"].includes(i.href))] },
+  { label: "Sistema", items: [...NAV_ITEMS.filter(i => ["/ia", "/bloc", "/empresa"].includes(i.href)), ...NAV_NEW_ITEMS.filter(i => ["/precios", "/auditoria", "/proveedores", "/exportar"].includes(i.href))] },
 ];
 
 // Items directos en la barra (sin desplegable)
@@ -205,38 +202,33 @@ export function Navbar() {
         </nav>
 
         {/* Zona derecha */}
-        <div className="ml-auto flex items-center gap-1">
-          {/* Nombre de la empresa */}
-          {empresa?.nombre && (
-            <span className="hidden text-[12px] font-semibold tracking-tight text-foreground sm:inline">
-              {empresa.nombre}
-            </span>
-          )}
+        <div className="ml-auto flex items-center gap-1.5">
+          {/* Badge de empresa (como SpaceCom) */}
+          <div className="flex h-8 items-center gap-1.5 rounded-md border border-border px-3 text-xs text-muted-foreground">
+            <Building2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
+            <span className="truncate max-w-[140px]">{empresa?.nombre || "VRS"}</span>
+          </div>
           {/* Tema */}
-          <button onClick={cycleTema} title={`Tema: ${settings.tema}`} className="press flex h-9 w-9 items-center justify-center text-muted-foreground hover:text-foreground">
+          <button onClick={cycleTema} title={`Tema: ${settings.tema}`} className="press flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-foreground">
             <TemaIcon className="h-4 w-4" strokeWidth={1.5} />
           </button>
           {/* Notificaciones */}
           {tienePermiso("ver_notificaciones") && (
-            <Link href="/notificaciones" className="press relative flex h-9 w-9 items-center justify-center text-muted-foreground hover:text-foreground">
+            <Link href="/notificaciones" className="press relative flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-foreground">
               <Bell className="h-4 w-4" strokeWidth={1.5} />
               {settings.lowStockAlerts && badgeCount > 0 && (
-                <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary" />
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
+                  {badgeCount}
+                </span>
               )}
             </Link>
           )}
-          {/* Config */}
-          {tienePermiso("ver_config") && (
-            <Link href="/config" className={cn("press flex h-9 w-9 items-center justify-center transition-colors", pathname?.startsWith("/config") ? "text-foreground" : "text-muted-foreground hover:text-foreground")}>
-              <SettingsIcon className="h-4 w-4" strokeWidth={1.5} />
-            </Link>
-          )}
           {/* Avatar */}
-          <Link href="/config" className={cn("press ml-1 flex h-8 w-8 items-center justify-center rounded-full border text-[11px] font-semibold transition-colors", esAdmin ? "border-foreground/30 text-foreground" : "border-muted-foreground/30 text-muted-foreground")} title={`${nombreUsuario} · ${rolLabel}`}>
+          <Link href="/config" className={cn("press flex h-8 w-8 items-center justify-center rounded-full border text-[11px] font-semibold transition-colors", esAdmin ? "border-foreground/30 text-foreground" : "border-muted-foreground/30 text-muted-foreground")} title={`${nombreUsuario} · ${rolLabel}`}>
             {iniciales(nombreUsuario)}
           </Link>
           {/* Menú móvil */}
-          <button onClick={() => setDrawerOpen(true)} className="press ml-1 flex h-9 w-9 items-center justify-center text-foreground lg:hidden" aria-label="Abrir menú">
+          <button onClick={() => setDrawerOpen(true)} className="press flex h-8 w-8 items-center justify-center text-foreground lg:hidden" aria-label="Abrir menú">
             <Menu className="h-5 w-5" strokeWidth={1.5} />
           </button>
         </div>

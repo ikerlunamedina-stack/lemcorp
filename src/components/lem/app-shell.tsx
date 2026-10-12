@@ -161,7 +161,6 @@ export function AppShell({ children, isChat = false }: AppShellProps) {
     <SyncProvider>
       <div className="flex h-screen flex-col bg-background text-foreground">
         <Navbar />
-        {!isChat && <SubHeader />}
         {/* Wrapper horizontal: main + sidebar al lado (el sidebar EMPUJA el contenido, no se encima) */}
         <div className="flex flex-1 overflow-hidden">
           <main className={cn("relative flex-1", isChat ? "overflow-hidden" : "overflow-auto scroll-thin")}>
