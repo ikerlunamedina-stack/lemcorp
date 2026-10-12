@@ -259,17 +259,26 @@ export function Navbar() {
                   <ChevronRight className="ml-auto h-4 w-4" strokeWidth={1.5} />
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="w-40">
-                  <DropdownMenuItem onClick={() => setSetting("tema", "claro")} className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm">
+                  <DropdownMenuItem
+                    onSelect={(e) => { e.preventDefault(); setSetting("tema", "claro"); }}
+                    className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm"
+                  >
                     <Sun className="mr-2 h-4 w-4" strokeWidth={1.5} />
                     Claro
                     {settings.tema === "claro" && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-foreground" />}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSetting("tema", "oscuro")} className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm">
+                  <DropdownMenuItem
+                    onSelect={(e) => { e.preventDefault(); setSetting("tema", "oscuro"); }}
+                    className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm"
+                  >
                     <Moon className="mr-2 h-4 w-4" strokeWidth={1.5} />
                     Oscuro
                     {settings.tema === "oscuro" && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-foreground" />}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setSetting("tema", "sistema")} className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm">
+                  <DropdownMenuItem
+                    onSelect={(e) => { e.preventDefault(); setSetting("tema", "sistema"); }}
+                    className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm"
+                  >
                     <Monitor className="mr-2 h-4 w-4" strokeWidth={1.5} />
                     Sistema
                     {settings.tema === "sistema" && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-foreground" />}
