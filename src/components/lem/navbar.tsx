@@ -8,7 +8,7 @@ import {
   Calendar, Sparkles, StickyNote, Building2, Bell,
   Settings as SettingsIcon, Sun, Moon, Monitor, Menu, X, ChevronDown,
   ArrowDownToLine, ArrowLeftRight, FileText, BarChart3, Package,
-  User, LogOut,
+  CircleUser, SunMoon, KeyRound, ChevronRight, User, LogOut,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,7 @@ import { RmpLogo } from "@/components/lem/rmp-logo";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 
 interface NavItem {
@@ -229,56 +230,61 @@ export function Navbar() {
               )}
             </Link>
           )}
-          {/* Avatar con dropdown menu (perfil, tema, configuración) */}
+          {/* Avatar con dropdown — igualito a SpaceCom */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className={cn("press flex h-8 w-8 items-center justify-center rounded-full border text-[11px] font-semibold transition-colors", esAdmin ? "border-foreground/30 text-foreground" : "border-muted-foreground/30 text-muted-foreground")} title={`${nombreUsuario} · ${rolLabel}`}>
-                {iniciales(nombreUsuario)}
+              <button className="press relative flex h-8 w-8 shrink-0 overflow-hidden rounded-full" title={`${nombreUsuario} · ${rolLabel}`}>
+                <span className="flex h-full w-full items-center justify-center rounded-full bg-muted text-xs font-medium">
+                  {iniciales(nombreUsuario)}
+                </span>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[220px] rounded-lg border-border">
-              <DropdownMenuLabel className="flex flex-col gap-0.5 px-3 py-2.5">
-                <span className="text-[13px] font-semibold text-foreground">{nombreUsuario}</span>
-                <span className="text-[11px] text-muted-foreground">{rolLabel}</span>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-border" />
+            <DropdownMenuContent align="end" className="w-48">
+              <div className="px-2 py-1.5">
+                <p className="text-sm font-medium">{nombreUsuario}</p>
+                <p className="text-xs text-muted-foreground">{rolLabel}</p>
+              </div>
+              <DropdownMenuSeparator className="-mx-1 my-1 h-px bg-muted" />
               <DropdownMenuItem asChild>
-                <Link href="/config" className="flex items-center gap-2 px-3 py-2 text-[13px] text-foreground hover:bg-muted cursor-pointer">
-                  <User className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-                  Mi perfil
+                <Link href="/config" className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground [&amp;>svg]:size-4 [&amp;>svg]:shrink-0">
+                  <CircleUser className="mr-2 h-4 w-4" strokeWidth={1.5} />
+                  Mi Perfil
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/config" className="flex items-center gap-2 px-3 py-2 text-[13px] text-foreground hover:bg-muted cursor-pointer">
-                  <SettingsIcon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-                  Configuración
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-border" />
-              <DropdownMenuItem onClick={() => setSetting("tema", "claro")} className="flex items-center gap-2 px-3 py-2 text-[13px] text-foreground hover:bg-muted cursor-pointer">
-                <Sun className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-                Tema claro
-                {settings.tema === "claro" && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-foreground" />}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSetting("tema", "oscuro")} className="flex items-center gap-2 px-3 py-2 text-[13px] text-foreground hover:bg-muted cursor-pointer">
-                <Moon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-                Tema oscuro
-                {settings.tema === "oscuro" && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-foreground" />}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSetting("tema", "sistema")} className="flex items-center gap-2 px-3 py-2 text-[13px] text-foreground hover:bg-muted cursor-pointer">
-                <Monitor className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-                Tema sistema
-                {settings.tema === "sistema" && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-foreground" />}
-              </DropdownMenuItem>
-              {sesionUsuarioId && (
-                <>
-                  <DropdownMenuSeparator className="bg-border" />
-                  <DropdownMenuItem onClick={() => cerrarSesion()} className="flex items-center gap-2 px-3 py-2 text-[13px] text-destructive hover:bg-destructive/10 cursor-pointer">
-                    <LogOut className="h-4 w-4" strokeWidth={1.5} />
-                    Cerrar sesión
+              {/* Submenú Tema (como SpaceCom) */}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0">
+                  <SunMoon className="mr-2 h-4 w-4" strokeWidth={1.5} />
+                  Tema
+                  <ChevronRight className="ml-auto h-4 w-4" strokeWidth={1.5} />
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-40">
+                  <DropdownMenuItem onClick={() => setSetting("tema", "claro")} className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm">
+                    <Sun className="mr-2 h-4 w-4" strokeWidth={1.5} />
+                    Claro
+                    {settings.tema === "claro" && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-foreground" />}
                   </DropdownMenuItem>
-                </>
-              )}
+                  <DropdownMenuItem onClick={() => setSetting("tema", "oscuro")} className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm">
+                    <Moon className="mr-2 h-4 w-4" strokeWidth={1.5} />
+                    Oscuro
+                    {settings.tema === "oscuro" && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-foreground" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSetting("tema", "sistema")} className="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm">
+                    <Monitor className="mr-2 h-4 w-4" strokeWidth={1.5} />
+                    Sistema
+                    {settings.tema === "sistema" && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-foreground" />}
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuItem className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent [&>svg]:size-4 [&>svg]:shrink-0">
+                <KeyRound className="mr-2 h-4 w-4" strokeWidth={1.5} />
+                Cambiar contraseña
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="-mx-1 my-1 h-px bg-muted" />
+              <DropdownMenuItem onClick={() => sesionUsuarioId && cerrarSesion()} className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent [&>svg]:size-4 [&>svg]:shrink-0">
+                <LogOut className="mr-2 h-4 w-4" strokeWidth={1.5} />
+                Cerrar sesión
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           {/* Menú móvil */}
