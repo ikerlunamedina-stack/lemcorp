@@ -8,11 +8,16 @@ import {
   Calendar, Sparkles, StickyNote, Building2, Bell,
   Settings as SettingsIcon, Sun, Moon, Monitor, Menu, X, ChevronDown,
   ArrowDownToLine, ArrowLeftRight, FileText, BarChart3, Package,
+  User, LogOut,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { ROL_META, type Permiso, type Tema } from "@/lib/types";
 import { RmpLogo } from "@/components/lem/rmp-logo";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface NavItem {
   href: string;
@@ -87,6 +92,7 @@ export function Navbar() {
   const tienePermiso = useStore((s) => s.tienePermiso);
   const miembros = useStore((s) => s.miembros);
   const sesionUsuarioId = useStore((s) => s.sesionUsuarioId);
+  const cerrarSesion = useStore((s) => s.cerrarSesion);
   const empresa = useStore((s) => s.empresa);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -150,7 +156,7 @@ export function Navbar() {
                 )}
               >
                 {item.label}
-                {active && <span className="absolute inset-x-3 -bottom-px h-px bg-foreground" />}
+                {active && <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-foreground/30 blur-[1.5px]" />}
               </Link>
             );
           })}
@@ -173,7 +179,7 @@ export function Navbar() {
                   {cat.label}
                   {hasNew && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
                   <ChevronDown className="h-3 w-3 opacity-50 transition-transform group-hover:opacity-100 group-hover:rotate-180" strokeWidth={1.5} />
-                  {hasActive && <span className="absolute inset-x-3 -bottom-px h-px bg-foreground" />}
+                  {hasActive && <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-foreground/30 blur-[1.5px]" />}
                 </button>
                 {/* Dropdown */}
                 <div className="invisible absolute left-0 top-full z-50 min-w-[220px] pt-1 opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0 translate-y-1">
@@ -223,10 +229,58 @@ export function Navbar() {
               )}
             </Link>
           )}
-          {/* Avatar */}
-          <Link href="/config" className={cn("press flex h-8 w-8 items-center justify-center rounded-full border text-[11px] font-semibold transition-colors", esAdmin ? "border-foreground/30 text-foreground" : "border-muted-foreground/30 text-muted-foreground")} title={`${nombreUsuario} · ${rolLabel}`}>
-            {iniciales(nombreUsuario)}
-          </Link>
+          {/* Avatar con dropdown menu (perfil, tema, configuración) */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className={cn("press flex h-8 w-8 items-center justify-center rounded-full border text-[11px] font-semibold transition-colors", esAdmin ? "border-foreground/30 text-foreground" : "border-muted-foreground/30 text-muted-foreground")} title={`${nombreUsuario} · ${rolLabel}`}>
+                {iniciales(nombreUsuario)}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[220px] rounded-lg border-border">
+              <DropdownMenuLabel className="flex flex-col gap-0.5 px-3 py-2.5">
+                <span className="text-[13px] font-semibold text-foreground">{nombreUsuario}</span>
+                <span className="text-[11px] text-muted-foreground">{rolLabel}</span>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-border" />
+              <DropdownMenuItem asChild>
+                <Link href="/config" className="flex items-center gap-2 px-3 py-2 text-[13px] text-foreground hover:bg-muted cursor-pointer">
+                  <User className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+                  Mi perfil
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/config" className="flex items-center gap-2 px-3 py-2 text-[13px] text-foreground hover:bg-muted cursor-pointer">
+                  <SettingsIcon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+                  Configuración
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-border" />
+              <DropdownMenuItem onClick={() => setSetting("tema", "claro")} className="flex items-center gap-2 px-3 py-2 text-[13px] text-foreground hover:bg-muted cursor-pointer">
+                <Sun className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+                Tema claro
+                {settings.tema === "claro" && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-foreground" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSetting("tema", "oscuro")} className="flex items-center gap-2 px-3 py-2 text-[13px] text-foreground hover:bg-muted cursor-pointer">
+                <Moon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+                Tema oscuro
+                {settings.tema === "oscuro" && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-foreground" />}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSetting("tema", "sistema")} className="flex items-center gap-2 px-3 py-2 text-[13px] text-foreground hover:bg-muted cursor-pointer">
+                <Monitor className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+                Tema sistema
+                {settings.tema === "sistema" && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-foreground" />}
+              </DropdownMenuItem>
+              {sesionUsuarioId && (
+                <>
+                  <DropdownMenuSeparator className="bg-border" />
+                  <DropdownMenuItem onClick={() => cerrarSesion()} className="flex items-center gap-2 px-3 py-2 text-[13px] text-destructive hover:bg-destructive/10 cursor-pointer">
+                    <LogOut className="h-4 w-4" strokeWidth={1.5} />
+                    Cerrar sesión
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
           {/* Menú móvil */}
           <button onClick={() => setDrawerOpen(true)} className="press flex h-8 w-8 items-center justify-center text-foreground lg:hidden" aria-label="Abrir menú">
             <Menu className="h-5 w-5" strokeWidth={1.5} />
