@@ -152,12 +152,11 @@ export function Navbar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "press relative flex h-9 items-center px-3 text-[13px] font-medium transition-colors",
-                  active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                  "press relative flex h-9 items-center rounded-md px-3 text-[13px] font-medium transition-colors",
+                  active ? "bg-muted/60 text-foreground" : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
                 )}
               >
                 {item.label}
-                {active && <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-foreground/30 blur-[1.5px]" />}
               </Link>
             );
           })}
@@ -173,14 +172,13 @@ export function Navbar() {
               <div key={cat.label} className="group relative">
                 <button
                   className={cn(
-                    "press relative flex h-9 items-center gap-1 px-3 text-[13px] font-medium transition-colors",
-                    hasActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                    "press relative flex h-9 items-center gap-1 rounded-md px-3 text-[13px] font-medium transition-colors",
+                    hasActive ? "bg-muted/60 text-foreground" : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
                   )}
                 >
                   {cat.label}
                   {hasNew && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
                   <ChevronDown className="h-3 w-3 opacity-50 transition-transform group-hover:opacity-100 group-hover:rotate-180" strokeWidth={1.5} />
-                  {hasActive && <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-foreground/30 blur-[1.5px]" />}
                 </button>
                 {/* Dropdown */}
                 <div className="invisible absolute left-0 top-full z-50 min-w-[220px] pt-1 opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0 translate-y-1">
