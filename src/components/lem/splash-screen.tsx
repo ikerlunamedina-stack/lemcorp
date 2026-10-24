@@ -8,20 +8,11 @@ export function SplashScreen() {
   const [bgColor, setBgColor] = useState("#FFFFFF");
 
   // Detectar tema para el fondo de la intro
+  // El inline script del layout ya aplicó la clase 'dark' o 'light' al HTML element
+  // antes de que React monte. Solo leemos esa clase.
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("lemcorp-v3");
-      let tema = "claro";
-      if (raw) {
-        const s = JSON.parse(raw);
-        tema = s?.state?.settings?.tema || "claro";
-      }
-      const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-      const dark = tema === "oscuro" || (tema === "sistema" && prefersDark);
-      setBgColor(dark ? "#242220" : "#FFFFFF");
-    } catch {
-      setBgColor("#FFFFFF");
-    }
+    const isDark = document.documentElement.classList.contains("dark");
+    setBgColor(isDark ? "#242220" : "#FFFFFF");
   }, []);
 
   // Timeline: la animación del HTML dura ~7.5s
