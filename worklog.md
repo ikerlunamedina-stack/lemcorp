@@ -3490,3 +3490,81 @@ Stage Summary:
   * Cards de recomendaciones con hover scale 1.01 spring (efecto más sutil que KPIs).
   * Tabular nums activados en KPIs para evitar saltos de ancho durante count-up.
 - Todas las animaciones son puramente de movimiento/interacción, sin alterar paleta cromática ni tipografía base.
+
+---
+Task ID: PISTOLEAR-REDESIGN
+Agent: frontend-styling-expert
+Task: Rediseñar pistolear-view.tsx siguiendo el patrón visual de inventario/equipos/series-view
+
+Work Log:
+- Leído `equipos-view.tsx` como referencia del patrón a seguir (header con subtitle H1, sticky-kpis, press-card motion.div, anim-slide-up) y `pistolear-view.tsx` (1304 líneas) como archivo a rediseñar.
+
+Cambios aplicados (SOLO className/JSX, lógica intacta):
+
+1. WRAPPER (línea 449):
+   - Eliminada la clase `anim-fade-in px-6 py-6 lg:px-8 relative` → `select-text cursor-text px-6 py-4 anim-fade-in`.
+   - Eliminado el patrón de puntos de fondo: el `<div className="pointer-events-none fixed inset-0 z-0 opacity-[0.025]" style={{ backgroundImage: "radial-gradient(circle, var(--foreground) 1px, transparent 1px)", backgroundSize: "24px 24px" }} />`.
+   - Eliminado el wrapper `<div className="relative z-10">` y su `</div>` de cierre al final del componente (línea 1277 original → 1274 nuevo).
+
+2. HEADER (líneas 449-478):
+   - Cambiado `anim-slide-up mb-3 flex flex-wrap items-center justify-end gap-4` → `anim-slide-up mb-3 flex flex-wrap items-end justify-between gap-4` (mismo patrón que equipos-view).
+   - Añadido título H1 "Pistolear" con `text-[28px] font-semibold tracking-tight text-foreground sm:text-[32px]`.
+   - Añadido subtítulo: `<p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">{pistoleoFilas.length} series escaneadas · {equipos.length} en sistema</p>`.
+   - Botón "Configuración" (motion.div whileTap + Button) preservado íntegro a la derecha.
+
+3. KPIs (línea 625):
+   - Wrapper cambiado de `anim-slide-up mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4` → `sticky-kpis mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4` para que las 4 KPIs (Escaneadas, Estado, Guardar en, En sistema) queden fijas al hacer scroll.
+   - Los 4 motion.div con whileHover scale 1.02, stagger delays (0ms/60ms/120ms/180ms), useCountUp (escaneadasCount, enSistemaCount) preservados íntegros.
+
+4. PANELES DE CONFIGURACIÓN (3 paneles):
+   - Panel "seleccionar equipo del inventario": `anim-slide-up mb-4 rounded-lg bg-muted/30 p-4` → `anim-slide-up mb-3 rounded-lg border border-border p-3`.
+   - Panel "prefijo de validación": `anim-slide-up mb-4 rounded-lg bg-muted/30 p-4` → `anim-slide-up mb-3 rounded-lg border border-border p-3`.
+   - Panel "Config avanzado (colapsable)": `anim-slide-up mb-4 rounded-lg bg-muted/30 p-4` → `anim-slide-up mb-3 rounded-lg border border-border p-3`.
+   - Wrapper de checkboxes: `anim-slide-up mb-4` → `anim-slide-up mb-3`.
+   - TODA la lógica del select de modelo (productosUnicos), Input de prefijo con Switch on/off, Selects de Estado (pistoleoEstado) y Guardar en (pistoleoUbicacion), y checkboxes toggleCampoMarcado (ORDEN_CAMPOS) preservada.
+
+5. INPUT GRANDE (línea 718):
+   - Altura: `h-12` → `h-14` (mejor visibilidad para pistoleo rápido).
+   - Añadido `focus:bg-muted/20` además del `focus:border-foreground` existente (sin ring azul, solo sutil cambio de fondo).
+   - El motion.input con `key={pistoleoFilas.length}` + `animate={{ scale: [1, 1.01, 1] }}` + transition cubic-bezier overshoot PRESERVADO (animación de pulse al escanear).
+   - Placeholder dinámico (`hayParcial ? CAMPOS_PISTOLEO_META[camposMarcadosOrdenados[parcial.length]].label : ...`) PRESERVADO.
+
+6. PREVIEW EN VIVO (línea 725):
+   - `mt-3 rounded-lg border border-border bg-muted/40 p-3` → `mt-3 rounded-lg border border-border bg-muted/20 p-3`.
+   - Lógica de chips de campos escaneados (camposMarcadosOrdenados, parcial[idx], escaneado, esActual, estilos border-foreground/bg-foreground/text-background) PRESERVADA.
+
+7. FEEDBACK: Sin cambios. AnimatePresence + motion.div con key={feedback.ts}, spring, Color (text-foreground ok / text-destructive error) preservado.
+
+8. BANNERS DE DUPLICADOS: Sin cambios. Los banners "duplicadosSistema" (motion.button clickeable → setShowDuplicadosModal) y "duplicadosEnLote" conservan su `bg-muted/30` (no eran parte de los paneles a rediseñar).
+
+9. BOTONES (Guardar / Descartar / Exportar Excel): Sin cambios. Los 3 motion.div whileTap 0.97 + Button preservados.
+
+10. TABLA DE FILAS ESCANEADAS: Sin cambios estructurales. El padding ya usaba `px-3 py-2.5` (no `p-3`), por lo que no requería reducción. AnimatePresence + motion.tr con `initial/animate/exit x:-20→0→20` + layout + cubic-bezier [0.34, 1.56, 0.64, 1] (oversoot spring) PRESERVADOS. Estados de edición (motion.tr con bg-muted/40), badges "registrada"/"repetida", botones Pencil/Trash2 whileTap 0.9 con group-hover opacity-0→100, paginación "Cargar más" setVisibleCount(c+100) PRESERVADOS.
+
+11. MODALES (Preview + Duplicados): Sin cambios. Ambos Dialog con DialogContent `max-h-[85vh] gap-0 overflow-hidden rounded-lg p-0` y motion.div `initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} transition={{ type: "spring", stiffness: 300, damping: 25 }}` PRESERVADOS.
+
+12. RESUMEN CARDS: Sin cambios. Las 4 ResumenCard (Capturadas, Última serie, Campos, Estado destino) preservadas con su componente helper externo.
+
+Reglas estrictas respetadas:
+- ✅ NO se tocaron colores, paleta, tema, tipografía base.
+- ✅ NO se añadieron emojis.
+- ✅ NO se cambió la lógica de escaneo (handleScan, onKeyDown, pushFeedback, playBeepError con Web Audio API, addPistoleoFila, confirmarPistoleo, clearPistoleoFilas, handleConfirmar, handleConfirmarReal, handleClear, startEdit, cancelEdit, saveEdit, detectarDuplicadosEnLote, detectarDuplicadosEnSistema, validarPrefijo, detectarModelo).
+- ✅ Preservados todos los useState, useRef, useMemo, useEffect, useCallback existentes.
+- ✅ Preservado el beep de error con Web Audio API (osc1 880Hz + osc2 440Hz square wave).
+- ✅ Preservada la validación de duplicados (3 niveles: misma lectura parcial, sesión completa, sistema).
+- ✅ Solo se cambiaron className y estructura del JSX (wrapper, header, KPIs wrapper, panels, input h-12→h-14, preview bg-muted/40→bg-muted/20, eliminación del patrón de puntos de fondo).
+
+Verificación:
+- `bun run lint`: 0 errores, 1 warning preexistente en splash-screen.tsx (no introducido por este cambio).
+- `rm -rf .next && bun run build`: ✓ Compiled successfully in 18.3s, ✓ Generating static pages (36/36) en 575.4ms. Build de producción pasa limpio (única advertencia preexistente: Module not found 'pdf-parse' en api/import-pedido/route.ts, archivo NO tocado por esta tarea).
+- Tamaño final: 1300 líneas (vs 1304 original, -4 líneas por eliminar patrón de puntos y wrapper z-10 redundantes).
+
+Stage Summary:
+- El componente pistolear-view.tsx ahora sigue el mismo patrón visual coherente de inventario-view.tsx, equipos-view.tsx y series-view.tsx:
+  * Wrapper sin patrón de puntos de fondo, con `select-text cursor-text px-6 py-4 anim-fade-in` para selección rápida de series escaneadas.
+  * Header con H1 "Pistolear" + subtítulo dinámico "{N} series escaneadas · {M} en sistema" y botón Configuración a la derecha.
+  * KPIs envueltos en `sticky-kpis` para permanecer visibles al hacer scroll por listas largas de series.
+  * Paneles de modelo/prefijo/config/checkboxes con `border border-border p-3` más limpio y compacto.
+  * Input de escaneo más alto (h-14) con focus:bg-muted/20 sutil (sin ring azul).
+  * Preview en vivo con bg-muted/20 más sutil.
+- Toda la lógica de pistoleo (Web Audio beep, 3 niveles de validación de duplicados, edición inline de filas, modales de preview/duplicados, exportar Excel) 100% preservada.
