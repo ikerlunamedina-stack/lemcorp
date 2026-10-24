@@ -58,6 +58,18 @@ import { useCountUp } from "@/lib/hooks/use-count-up";
 
 const ICON_PROPS = { strokeWidth: 1.5 } as const;
 
+// Sonido de error (beep) para rechazos al pistolear
+let beepAudio: HTMLAudioElement | null = null;
+function playBeepError() {
+  try {
+    if (!beepAudio) {
+      beepAudio = new Audio("/beep-error.mp3");
+    }
+    beepAudio.currentTime = 0;
+    beepAudio.play().catch(() => {});
+  } catch {}
+}
+
 const ESTADOS: EstadoEquipo[] = ["disponible", "averiado", "en_retiro"];
 
 interface FeedbackMsg {
@@ -189,6 +201,8 @@ export function PistolearView() {
   const duplicadosEnLote = useMemo(() => detectarDuplicadosEnLote(pistoleoFilas), [pistoleoFilas]);
 
   const pushFeedback = (ok: boolean, text: string) => {
+    // Sonar beep de error si es un rechazo (ok=false)
+    if (!ok) playBeepError();
     setFeedback({ ok, text, ts: Date.now() });
   };
 
