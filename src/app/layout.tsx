@@ -5,31 +5,31 @@ import { ThemeProvider } from "@/components/lem/theme-provider";
 import { SplashScreen } from "@/components/lem/splash-screen";
 
 export const metadata: Metadata = {
-  title: "VRS — Resource Management Platform",
+  title: "LEMCORP — LEMCORP Logistics",
   description:
     "Plataforma para gestión de recursos, trazabilidad de equipos por serie, control de entradas y análisis con IA.",
   keywords: [
-    "VRS",
+    "LEMCORP",
     "Resource Management",
     "sistema de almacén",
     "software logística",
     "asistente IA almacén",
   ],
-  authors: [{ name: "VRS" }],
-  creator: "VRS",
-  publisher: "VRS",
+  authors: [{ name: "LEMCORP" }],
+  creator: "LEMCORP",
+  publisher: "LEMCORP",
   robots: { index: true, follow: true },
   openGraph: {
-    title: "VRS — Resource Management Platform",
+    title: "LEMCORP — LEMCORP Logistics",
     description: "Control total de tus recursos, equipos y operaciones.",
-    siteName: "VRS",
+    siteName: "LEMCORP",
     type: "website",
     locale: "es_PE",
   },
   twitter: {
     card: "summary_large_image",
-    title: "VRS",
-    description: "Resource Management Platform con IA integrada.",
+    title: "LEMCORP",
+    description: "LEMCORP Logistics con IA integrada.",
   },
 };
 

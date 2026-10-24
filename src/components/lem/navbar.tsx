@@ -13,7 +13,7 @@ import {
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { ROL_META, type Permiso, type Tema } from "@/lib/types";
-import { RmpLogo } from "@/components/lem/rmp-logo";
+import { LemcorpLogo } from "@/components/lem/lemcorp-logo";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -134,10 +134,10 @@ export function Navbar() {
       style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       <div className="flex h-12 items-center gap-1 px-4 lg:px-6">
-        {/* Logo RMP + nombre */}
+        {/* Logo LEMCORP + nombre */}
         <Link href="/" className="press flex shrink-0 items-center gap-2">
-          <RmpLogo size={22} className="text-foreground" />
-          <span className="text-[15px] font-semibold tracking-tight text-foreground">RMP</span>
+          <LemcorpLogo size={22} className="text-foreground" />
+          <span className="text-[15px] font-semibold tracking-tight text-foreground">LEMCORP</span>
         </Link>
 
         <div className="mx-1 h-7 w-px bg-border" />
@@ -211,7 +211,7 @@ export function Navbar() {
           {/* Badge de empresa (como SpaceCom) */}
           <div className="flex h-8 items-center gap-1.5 rounded-md border border-border px-3 text-xs text-muted-foreground">
             <Building2 className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />
-            <span className="truncate max-w-[140px]">{empresa?.nombre || "VRS"}</span>
+            <span className="truncate max-w-[140px]">{empresa?.nombre || "LEMCORP"}</span>
           </div>
           {/* Tema */}
           <button onClick={cycleTema} title={`Tema: ${settings.tema}`} className="press flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-foreground">
@@ -309,8 +309,8 @@ export function Navbar() {
           <aside className="fixed left-0 top-0 z-[100] flex h-full w-[300px] max-w-[85vw] flex-col border-r border-border bg-card shadow-2xl anim-drawer-in lg:hidden" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
             <div className="flex items-center justify-between border-b border-border px-4 py-3.5">
               <div className="flex items-center gap-2">
-                <RmpLogo size={20} className="text-foreground" />
-                <span className="text-[15px] font-semibold tracking-tight text-foreground">RMP</span>
+                <LemcorpLogo size={20} className="text-foreground" />
+                <span className="text-[15px] font-semibold tracking-tight text-foreground">LEMCORP</span>
               </div>
               <button onClick={() => setDrawerOpen(false)} className="press flex h-9 w-9 items-center justify-center text-muted-foreground hover:text-foreground" aria-label="Cerrar menú">
                 <X className="h-5 w-5" strokeWidth={1.5} />

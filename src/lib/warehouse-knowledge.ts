@@ -22,7 +22,7 @@ export const WAREHOUSE_KNOWLEDGE: KnowledgeEntry[] = [
 • Clase B: 30% de los productos, 15% del valor. Control moderado, revisiones mensuales.
 • Clase C: 50% de los productos, 5% del valor. Control simple, pedidos en lote, revisiones trimestrales.
 
-Para aplicarlo en VRS: clasifica productos por valor de consumo anual (cantidad × precio). Clase A = routers, ONTs (alto valor). Clase C = conectores, cables cortos (bajo valor).
+Para aplicarlo en LEMCORP: clasifica productos por valor de consumo anual (cantidad × precio). Clase A = routers, ONTs (alto valor). Clase C = conectores, cables cortos (bajo valor).
 
 Prioriza: control estricto en Clase A (revisiones semanales), moderado en B, simple en C.`,
   },
@@ -39,7 +39,7 @@ ROP = (Demanda diaria × Tiempo de entrega en días) + Stock de seguridad
 Ejemplo: consumes 5 routers/día, proveedor tarda 7 días, stock de seguridad 10:
 ROP = (5 × 7) + 10 = 45 routers
 
-Cuando el stock llega a 45, pide más. En VRS, el campo "stock mínimo" funciona como ROP — cuando baja, se activa la alerta.
+Cuando el stock llega a 45, pide más. En LEMCORP, el campo "stock mínimo" funciona como ROP — cuando baja, se activa la alerta.
 
 Revisa puntos de reorden mensualmente porque el consumo cambia.`,
   },
@@ -56,7 +56,7 @@ Fórmula: SS = (Demanda máxima diaria × Tiempo entrega máximo) - (Demanda pro
 Ejemplo: normalmente 5/día pero a veces 8, proveedor tarda 7 días pero a veces 10:
 SS = (8 × 10) - (5 × 7) = 80 - 35 = 45 unidades extra
 
-En VRS, el campo "minStock" es tu stock de seguridad. Para Clase A (alto valor), usa SS más alto. Para Clase C, más bajo.`,
+En LEMCORP, el campo "minStock" es tu stock de seguridad. Para Clase A (alto valor), usa SS más alto. Para Clase C, más bajo.`,
   },
   {
     keywords: ["fifo", "lifo", "primeras entradas", "ultimas entradas", "peps", "ueps"],
@@ -67,12 +67,12 @@ En VRS, el campo "minStock" es tu stock de seguridad. Para Clase A (alto valor),
 FIFO: los productos que entraron primero deben salir primero.
 • Evita obsolescencia, productos más frescos. Método más común.
 • Ideal para: equipos electrónicos (routers, ONTs), productos con fecha de vencimiento.
-• En VRS: despacha primero los equipos con series más antiguas.
+• En LEMCORP: despacha primero los equipos con series más antiguas.
 
 LIFO: los últimos en entrar son los primeros en salir.
 • Reduce impacto de inflación en costos. Útil para productos no perecederos.
 
-Para un almacén de telecomunicaciones como VRS, FIFO es correcto porque los equipos electrónicos se vuelven obsoletos. Verifica la antigüedad en /equipos.`,
+Para un almacén de telecomunicaciones como LEMCORP, FIFO es correcto porque los equipos electrónicos se vuelven obsoletos. Verifica la antigüedad en /equipos.`,
   },
   {
     keywords: ["eoq", "economic order quantity", "cantidad economica de pedido", "lote optimo", "cuanto pedir"],
@@ -112,7 +112,7 @@ Interpretación:
 • Rotación alta (8+): inventario eficiente, poco capital inmovilizado
 • Rotación baja (<3): exceso de inventario, capital inmovilizado
 
-En VRS puedes ver el valor total del inventario en el Dashboard y comparar con los despachos del año.`,
+En LEMCORP puedes ver el valor total del inventario en el Dashboard y comparar con los despachos del año.`,
   },
   {
     keywords: ["conteo ciclico", "cycle counting", "inventario fisico", "auditoria inventario", "recuento", "conteo"],
@@ -129,7 +129,7 @@ Tipos:
 
 Ventajas: no paraliza el almacén, detecta errores pronto, mejora precisión continuamente.
 
-En VRS: usa /pistolear para conteos cíclicos. Escanea series, compara con el sistema, registra diferencias. El sistema guarda todo para auditoría.
+En LEMCORP: usa /pistolear para conteos cíclicos. Escanea series, compara con el sistema, registra diferencias. El sistema guarda todo para auditoría.
 
 Meta: precisión de inventario >95%.`,
   },
@@ -153,7 +153,7 @@ Costos del quiebre:
 Prevención:
 1. Mantén stock de seguridad adecuado
 2. Revisa puntos de reorden mensualmente
-3. Monitorea alertas de bajo stock en VRS diariamente
+3. Monitorea alertas de bajo stock en LEMCORP diariamente
 4. Diversifica proveedores para Clase A
 5. Usa conteos cíclicos para mantener precisión del inventario`,
   },
@@ -175,7 +175,7 @@ Prevención:
 
 5. Ubicación: llevar productos a su ubicación asignada en el almacén.
 
-6. Actualizar inventario: en VRS, la recepción se registra en /recepciones subiendo la guía SUNAT en PDF.
+6. Actualizar inventario: en LEMCORP, la recepción se registra en /recepciones subiendo la guía SUNAT en PDF.
 
 7. Documentar: guardar la guía firmada como comprobante.
 
@@ -195,11 +195,11 @@ NUNCA recibas mercancía sin guía de remisión. Si hay diferencias, anota "reci
 
 4. Verificación: doble check de SKU, cantidad y series.
 
-5. Registro: en VRS, registrar en /despachos. El sistema descuenta el stock automáticamente.
+5. Registro: en LEMCORP, registrar en /despachos. El sistema descuenta el stock automáticamente.
 
 6. Firma: el destinatario firma conformidad.
 
-Tipos en VRS:
+Tipos en LEMCORP:
 • Despacho a técnico: equipos para instalación en campo
 • Transferencia: traslado entre almacenes
 • Devolución: equipos que regresan del campo (cambiar estado a averiado o retiro)`,
@@ -212,7 +212,7 @@ Tipos en VRS:
 
 Herramienta para registrar equipos por su número de serie usando un lector de código de barras.
 
-Usos en VRS:
+Usos en LEMCORP:
 1. Recepción: escanear series de equipos nuevos que ingresan al almacén
 2. Devoluciones: escanear equipos averiados o de retiro que regresan del campo
 3. Conteo cíclico: verificar que las series físicas coincidan con el sistema
@@ -242,7 +242,7 @@ Principios:
 • Productos similares agrupados
 • Pasillos despejados y etiquetados
 
-En VRS: el campo "ubicación" de cada equipo indica dónde está guardado. Opciones:
+En LEMCORP: el campo "ubicación" de cada equipo indica dónde está guardado. Opciones:
 • Almacén: zona principal de stock
 • Taller: equipos en reparación
 • Cuarto Técnico: equipos reservados
@@ -250,7 +250,7 @@ En VRS: el campo "ubicación" de cada equipo indica dónde está guardado. Opcio
 • Bodega de Retiro: equipos cambiados en campo
 • Estantería: ubicación específica
 
-Consejo: etiqueta cada estante con un código (A1, B2, etc.) y úsalo en el campo ubicación de VRS para encontrar equipos rápidamente.`,
+Consejo: etiqueta cada estante con un código (A1, B2, etc.) y úsalo en el campo ubicación de LEMCORP para encontrar equipos rápidamente.`,
   },
 
   // ─── LOGÍSTICA ───
@@ -267,7 +267,7 @@ Consejo: etiqueta cada estante con un código (A1, B2, etc.) y úsalo en el camp
 5. Tiempo de entrega interno = Recepción → Disponibilidad (meta <24h)
 6. Tasa de devoluciones = Devoluciones / Despachos × 100 (menor = mejor)
 
-En VRS puedes ver estos KPIs en el Dashboard y en /kpis.`,
+En LEMCORP puedes ver estos KPIs en el Dashboard y en /kpis.`,
   },
   {
     keywords: ["5s", "metodo 5s", "organizacion almacen", "seiri", "seiton", "seiso", "seiketsu", "shitsuke"],
@@ -277,7 +277,7 @@ En VRS puedes ver estos KPIs en el Dashboard y en /kpis.`,
 
 1. Seiri (Clasificar): separar lo necesario de lo innecesario. Elimina averiados, obsoletos, embalajes vacíos.
 
-2. Seiton (Ordenar): cada cosa en su lugar. Etiqueta estantes, define ubicaciones. En VRS usa el campo "ubicación".
+2. Seiton (Ordenar): cada cosa en su lugar. Etiqueta estantes, define ubicaciones. En LEMCORP usa el campo "ubicación".
 
 3. Seiso (Limpiar): almacén limpio. Detecta derrames, daños, problemas rápido.
 
@@ -298,7 +298,7 @@ Filosofía de recibir productos exactamente cuando se necesitan, minimizando inv
 Ventajas: menor costo de almacenamiento, menos espacio, menos obsolescencia, mejor flujo de caja.
 Desventajas: requiere proveedores confiables, mayor riesgo de quiebres, necesita sistema robusto.
 
-¿Aplica a VRS? Parcialmente:
+¿Aplica a LEMCORP? Parcialmente:
 • Clase A (routers, ONTs): stocks bajos, reposición frecuente
 • Clase C (conectores, cables): mantener stock de seguridad (costo almacenamiento mínimo)
 
@@ -315,7 +315,7 @@ Recibir mercancía y enviarla inmediatamente sin almacenarla. El producto pasa d
 Ventajas: reduce costos de almacenamiento, acelera el flujo, menos manipulación.
 Desventajas: requiere coordinación precisa, necesita espacio de tránsito.
 
-Aplica a VRS cuando: recibes equipos que ya están asignados a un técnico/despacho específico. En vez de almacenarlos, los entregas directamente.`,
+Aplica a LEMCORP cuando: recibes equipos que ya están asignados a un técnico/despacho específico. En vez de almacenarlos, los entregas directamente.`,
   },
   {
     keywords: ["lead time", "tiempo de entrega", "tiempo de respuesta proveedor", "plazo"],
@@ -350,14 +350,14 @@ Tipos:
 • Decodificador IPTV: para TV. Serie única.
 • Repetidor WiFi: amplía señal WiFi.
 
-Estados en VRS:
+Estados en LEMCORP:
 • Disponible: en almacén, listo para despachar
 • Averiado: no funciona, necesita reparación o baja
 • En retiro: fue cambiado por nuevo en casa del cliente, regresó al almacén
 
 Control por serie: cada equipo tiene serie única (etiqueta del fabricante). Permite trazabilidad, garantía y detección de robos.
 
-En VRS: usa /pistolear para escanear series. /equipos para ver estado por modelo. /series para buscar serie específica.
+En LEMCORP: usa /pistolear para escanear series. /equipos para ver estado por modelo. /series para buscar serie específica.
 
 Consejo: al recibir devolución, escanea con /pistolear y marca estado correcto (averiado o retiro).`,
   },
@@ -376,7 +376,7 @@ Consejo: al recibir devolución, escanea con /pistolear y marca estado correcto 
 
 Diferencia con equipos: los materiales NO tienen número de serie. Se controlan por cantidad (stock). Los equipos (routers, ONTs) SÍ tienen serie y se controlan individualmente.
 
-En VRS: los materiales están en /inventario con su stock mínimo. Los equipos están en /equipos y /series con control por serie.
+En LEMCORP: los materiales están en /inventario con su stock mínimo. Los equipos están en /equipos y /series con control por serie.
 
 Consejo: define stock de seguridad para conectores y cables (Clase C) porque su costo de almacenamiento es mínimo pero un quiebre puede detener una instalación.`,
   },
@@ -401,7 +401,7 @@ Tipos:
 • Guía de remisión del remitente (transporte desde el almacén hacia el campo)
 • Guía de remisión del transportista (cuando un tercero transporta)
 
-En VRS: /recepciones acepta guías en PDF. El sistema extrae automáticamente los datos y registra la recepción.
+En LEMCORP: /recepciones acepta guías en PDF. El sistema extrae automáticamente los datos y registra la recepción.
 
 NUNCA recibas mercancía sin guía. Si hay diferencias, anota "con observaciones" antes de firmar.`,
   },
@@ -433,7 +433,7 @@ NUNCA recibas mercancía sin guía. Si hay diferencias, anota "con observaciones
     category: "general",
     response: `Glosario de logística:
 
-• SKU: código único de un producto (en VRS: campo "sku")
+• SKU: código único de un producto (en LEMCORP: campo "sku")
 • Lead Time: tiempo desde pedido hasta recepción
 • Picking: extraer productos del inventario para despacho
 • Putaway: ubicar productos recibidos en su lugar
@@ -451,13 +451,13 @@ NUNCA recibas mercancía sin guía. Si hay diferencias, anota "con observaciones
 • ABC: clasificación por valor (Pareto 80/20)
 • KPI: indicador clave de rendimiento
 • JIT: just in time (inventario mínimo)
-• WMS: warehouse management system (como VRS)`,
+• WMS: warehouse management system (como LEMCORP)`,
   },
   {
     keywords: ["mision", "que haces", "para que sirves", "que puedes hacer", "ayuda", "comandos"],
     topic: "Capacidades de Alana",
     category: "general",
-    response: `Soy Alana, asistente del almacén VRS. Puedo:
+    response: `Soy Alana, asistente del almacén LEMCORP. Puedo:
 
 1. ANÁLISIS DE STOCK: detectar bajo stock, calcular ratios, priorizar compras
 2. CÁLCULO DE CONSUMO: usar datos reales de despachos de 7 y 30 días

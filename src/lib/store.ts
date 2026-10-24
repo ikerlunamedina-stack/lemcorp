@@ -1,4 +1,4 @@
-// Store global VRS WMS — Zustand + persist (localStorage)
+// Store global LEMCORP WMS — Zustand + persist (localStorage)
 // Premium build — REBUILD-1
 
 import { create } from "zustand";
@@ -1728,15 +1728,15 @@ export const useStore = create<StoreState>()(
           const rows: any[][] = [];
 
           // Fila 1: Título principal
-          rows.push(["INVENTARIO VRS", "", "", "", "", "", "", "", ""]);
+          rows.push(["INVENTARIO LEMCORP", "", "", "", "", "", "", "", ""]);
           // Fila 2: subtítulo empresa
-          rows.push([empresa.nombre || "VRS", "", "", "", "", "", "", "", ""]);
+          rows.push([empresa.nombre || "LEMCORP", "", "", "", "", "", "", "", ""]);
           // Fila 3: vacía
           rows.push(Array(ncols).fill(""));
           // Fila 4-7: bloque info
           rows.push(["Exportado por:", usuario, "", "Fecha:", fechaStr, "", "Hora:", horaStr, ""]);
           rows.push(["Productos en catálogo:", productos.length, "", "Unidades totales:", totalUnidades.toLocaleString("es-PE"), "", "Productos en bajo stock:", bajoCount, ""]);
-          rows.push(["Empresa:", empresa.nombre || "VRS", "", "RUC:", empresa.ruc || "—", "", "Teléfono:", empresa.telefono || "—", ""]);
+          rows.push(["Empresa:", empresa.nombre || "LEMCORP", "", "RUC:", empresa.ruc || "—", "", "Teléfono:", empresa.telefono || "—", ""]);
           rows.push(["Dirección:", empresa.direccion || "—", "", "Correo:", empresa.correo || "—", "", "", "", ""]);
           // Fila 8: vacía
           rows.push(Array(ncols).fill(""));
@@ -1973,7 +1973,7 @@ export const useStore = create<StoreState>()(
           const wb = XLSX.utils.book_new();
           XLSX.utils.book_append_sheet(wb, ws, "Inventario");
           XLSX.utils.book_append_sheet(wb, ws2, "Resumen por UDM");
-          XLSX.writeFile(wb, `Inventario_VRS_${new Date().toISOString().slice(0, 10)}.xlsx`);
+          XLSX.writeFile(wb, `Inventario_LEMCORP_${new Date().toISOString().slice(0, 10)}.xlsx`);
         });
       },
 
@@ -2032,8 +2032,8 @@ export const useStore = create<StoreState>()(
 
           const rows: any[][] = [];
           // Título
-          rows.push(["SERIES CAPTURADAS — VRS"]);
-          rows.push([`Empresa: ${empresa.nombre || "VRS"}  ·  Fecha: ${fechaStr}  ·  Hora: ${horaStr}  ·  Usuario: ${usuario}`]);
+          rows.push(["SERIES CAPTURADAS — LEMCORP"]);
+          rows.push([`Empresa: ${empresa.nombre || "LEMCORP"}  ·  Fecha: ${fechaStr}  ·  Hora: ${horaStr}  ·  Usuario: ${usuario}`]);
           rows.push([`Campos: ${camposAExportar.map((c) => LABELS[c]).join(" · ")}  ·  Total: ${filas.length}  ·  Estado destino: ${estado}`]);
           rows.push([]);
           // Headers
@@ -2129,7 +2129,7 @@ export const useStore = create<StoreState>()(
 
           const wb = XLSX.utils.book_new();
           XLSX.utils.book_append_sheet(wb, ws, "Series Capturadas");
-          XLSX.writeFile(wb, `Series_Pistoleo_VRS_${new Date().toISOString().slice(0, 10)}.xlsx`);
+          XLSX.writeFile(wb, `Series_Pistoleo_LEMCORP_${new Date().toISOString().slice(0, 10)}.xlsx`);
         });
       },
 
@@ -2277,9 +2277,9 @@ export const useStore = create<StoreState>()(
         if (!Array.isArray(p.horario)) p.horario = [];
         if (!Array.isArray(p.memoriaIA)) p.memoriaIA = [];
         if (!p.empresa) p.empresa = { ...DEFAULT_EMPRESA };
-        // Migrar empresa: si era "VRS" o vacío, cambiar a "VRS"
-        if (!p.empresa.nombre || p.empresa.nombre === "VRS") {
-          p.empresa = { ...DEFAULT_EMPRESA, ...p.empresa, nombre: "VRS" };
+        // Migrar empresa: si era "LEMCORP" o vacío, cambiar a "LEMCORP"
+        if (!p.empresa.nombre || p.empresa.nombre === "LEMCORP") {
+          p.empresa = { ...DEFAULT_EMPRESA, ...p.empresa, nombre: "LEMCORP" };
         }
         // Mergear settings con defaults (para añadir campos nuevos)
         const mergedSettings = { ...DEFAULT_SETTINGS, ...(p.settings || {}) };

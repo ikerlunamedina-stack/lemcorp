@@ -1,4 +1,4 @@
-// API route para Alana — asistente del almacén VRS con Groq (Llama 3.3 70B) + RAG
+// API route para Alana — asistente del almacén LEMCORP con Groq (Llama 3.3 70B) + RAG
 // Sistema SIMPLE: system prompt corto + datos del inventario + knowledge base + Groq
 import { NextRequest, NextResponse } from "next/server";
 import { buscarConocimiento, buscarContextoConocimiento } from "@/lib/warehouse-knowledge";
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
     // ─── System prompt SIMPLE (sin 872 líneas de instrucciones) ───
     const conocimientoRAG = buscarContextoConocimiento(mensaje);
 
-    const systemPrompt = `Eres Alana, asistente del almacén VRS. Responde en español peruano, claro y directo.
+    const systemPrompt = `Eres Alana, asistente del almacén LEMCORP. Responde en español peruano, claro y directo.
 
 OPERADOR: ${usuarioNombre}
 FECHA: ${new Date().toLocaleString("es-PE", { timeZone: "America/Lima" })}
@@ -138,7 +138,7 @@ ${conocimientoRAG ? `\nCONOCIMIENTO DE LOGÍSTICA RELEVANTE:\n${conocimientoRAG}
           "Content-Type": "application/json",
           "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
           "HTTP-Referer": "https://lemcorp.vercel.app",
-          "X-Title": "VRS WMS",
+          "X-Title": "LEMCORP WMS",
         },
         signal: controller.signal,
         body: JSON.stringify({
@@ -190,7 +190,7 @@ ${conocimientoRAG ? `\nCONOCIMIENTO DE LOGÍSTICA RELEVANTE:\n${conocimientoRAG}
         } else if (/equipo/i.test(msg)) {
           respuesta = `Equipos registrados: ${eqs.length} (${eqs.filter(e => e.estado === "disponible").length} disponibles, ${eqs.filter(e => e.estado === "averiado").length} averiados, ${eqs.filter(e => e.estado === "en_retiro").length} en retiro)`;
         } else if (/quien eres|c[oó]mo te llamas|tu nombre/i.test(msg)) {
-          respuesta = `Soy Alana, asistente del almacén VRS. Tengo conocimiento de logística, inventario, equipos y despachos. ¿Qué necesitas?`;
+          respuesta = `Soy Alana, asistente del almacén LEMCORP. Tengo conocimiento de logística, inventario, equipos y despachos. ¿Qué necesitas?`;
         } else {
           respuesta = `No estoy segura de entender. Puedo ayudarte con:\n• Inventario: "qué productos tengo", "qué falta"\n• Equipos: "cómo están los equipos"\n• Logística: "qué es ABC", "cómo recibo mercancía", "qué es FIFO"\n• Matemáticas: "cuánto es 5 por 3"\n\n¿Qué necesitas?`;
         }
