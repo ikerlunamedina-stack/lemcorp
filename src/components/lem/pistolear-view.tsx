@@ -815,7 +815,7 @@ export function PistolearView() {
           )}
 
           {/* Acciones — sticky bottom de la columna izquierda */}
-          <div className="sticky bottom-0 flex flex-wrap items-center gap-2 border-t border-border bg-background/80 pt-3 backdrop-blur-sm">
+          <div className="sticky bottom-0 flex flex-wrap items-center gap-2 bg-background/80 pt-3 backdrop-blur-sm">
             <motion.div
               whileTap={{ scale: 0.97 }}
               transition={{ type: "spring", stiffness: 300, damping: 15 }}
