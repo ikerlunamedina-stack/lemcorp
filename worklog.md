@@ -3568,3 +3568,132 @@ Stage Summary:
   * Input de escaneo más alto (h-14) con focus:bg-muted/20 sutil (sin ring azul).
   * Preview en vivo con bg-muted/20 más sutil.
 - Toda la lógica de pistoleo (Web Audio beep, 3 niveles de validación de duplicados, edición inline de filas, modales de preview/duplicados, exportar Excel) 100% preservada.
+
+---
+Task ID: PISTOLEAR-LAYOUT-2COL
+Agent: frontend-styling-expert
+Task: Rediseñar pistolear-view.tsx con layout de 2 columnas en desktop (cambio GRANDE y visible)
+
+Work Log:
+- Reorganizado el layout completo del componente en 2 columnas en pantallas grandes (lg:) y 1 columna en móvil, según especificación del usuario que pidió "algo que se note" tras cambios anteriores demasiado pequeños.
+- Wrapper externo PRESERVADO: `select-text cursor-text px-6 py-4 anim-fade-in`.
+- Header PRESERVADO (cambio menor `mb-3` → `mb-4` para respirar antes del grid).
+
+CAMBIO ESTRUCTURAL PRINCIPAL — Grid de 2 columnas:
+- Antes: layout vertical de 1 sola columna con todos los paneles apilados (selector → prefijo → config → checkboxes → KPIs → input → banners → acciones → tabla → resumen).
+- Después: `<div className="grid grid-cols-1 gap-4 lg:grid-cols-3">` con:
+  * COLUMNA IZQUIERDA (lg:col-span-2 — 2/3 del ancho): área de escaneo activa.
+    - Input GRANDE (h-16, más prominente que antes h-14).
+    - Preview parcial de campos escaneados.
+    - Feedback en vivo (AnimatePresence).
+    - Tabla de filas escaneadas con borde `border border-border`.
+    - Banners de duplicados (sistema + lote).
+    - Aviso de límite (900/1000).
+    - Barra de acciones STICKY en el fondo de la columna: `sticky bottom-0 ... border-t border-border bg-background/80 backdrop-blur-sm`.
+  * COLUMNA DERECHA (1/3 del ancho): configuración y KPIs.
+    - KPIs en grid 2x2 (4 tarjetas compactas con p-2.5).
+    - Selector de equipo del inventario con etiqueta "Equipo del inventario".
+    - Panel de configuración colapsable (estado + ubicación) con etiqueta "Estado y ubicación de guardado".
+    - Checkboxes de campos con etiqueta "Campos a pistolear" y chips más compactos (`text-[11px] py-1 px-2.5`).
+    - Panel de prefijo de validación con etiqueta "Prefijo de validación".
+- Sección Resumen (4 cards) reubicada como fila full-width debajo de las 2 columnas.
+
+CAMBIOS DETALLADOS:
+1. INPUT GRANDE (más prominente):
+   - `h-14` → `h-16` (4 píxeles más alto, el cambio más visible del escaneo).
+   - `text-[15px]` → `text-[18px]` (texto del código escaneado más grande).
+   - Añadido `text-center` (texto centrado estilo hero search bar).
+   - `tracking-wide` → `tracking-wider` (más espaciado mono-espaciado tipo scanner).
+   - `focus:bg-muted/20` → `focus:bg-muted/10` (highlight más sutil al enfocar).
+   - PRESERVADO: motion.input con `key={pistoleoFilas.length}` + `animate={{ scale: [1, 1.01, 1] }}` + cubic-bezier [0.34, 1.56, 0.64, 1] (pulse animation al escanear).
+   - PRESERVADO: ScanLine icon a la izquierda (pointer-events-none).
+   - PRESERVADO: useEffect que recupera el foco tras el remount del motion.input al añadir filas.
+
+2. PREVIEW PARCIAL:
+   - `mt-3 rounded-lg border border-border bg-muted/20 p-3` → `mt-3 rounded-lg border border-border bg-background p-3` (cambio de bg-muted/20 a bg-background plano, más limpio).
+   - Lógica de chips exacta: camposMarcadosOrdenados.map, parcial[idx], escaneado/esActual estados, coloración border-foreground/bg-foreground/text-background, CAMPOS_PISTOLEO_META[c].short.
+
+3. FEEDBACK:
+   - PRESERVADO exacto: AnimatePresence + motion.div key={feedback.ts} con spring, color text-foreground/text-destructive, iconos Check/AlertCircle.
+
+4. KPIs (movidos a columna derecha, grid 2x2):
+   - Antes: `sticky-kpis mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4` (4 columnas en sm+, sticky arriba).
+   - Después: `grid grid-cols-2 gap-2` (2x2 fijo en la columna derecha de 1/3, NO sticky porque ya está en sidebar lateral).
+   - Compactación: `p-3` → `p-2.5` en las 4 tarjetas KPI.
+   - PRESERVADO: motion.div whileHover scale 1.02, useCountUp para escaneadasCount y enSistemaCount, stagger delays (0ms, 60ms, 120ms, 180ms), anim-pulse-dot para estado averiado, iconos ScanLine/MapPin/Boxes.
+
+5. SELECTOR DE EQUIPO (movido a columna derecha):
+   - Antes: panel sin etiqueta, solo el select con icono Search.
+   - Después: añade etiqueta arriba `<p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Equipo del inventario</p>`.
+   - PRESERVADO: lógica del select con productosUnicos, motion.button "Cambiar" con whileTap 0.97.
+
+6. CONFIG PANEL COLAPSABLE (movido a columna derecha):
+   - Antes: cuando showConfig=true, panel con selects de Estado + Guardar en en una sola fila horizontal.
+   - Después: añade etiqueta arriba "Estado y ubicación de guardado" y wraper flex-col sm:flex-row para que en móvil apile verticalmente.
+   - PRESERVADO: lógica showConfig toggle, Selects ESTADOS/ubicaciones, Label uppercase tracking-wider.
+
+7. CHECKBOXES DE CAMPOS (movidos a columna derecha):
+   - Chips compactos: `text-[12px] px-3.5 py-1.5` → `text-[11px] px-2.5 py-1` (más densos para caber en sidebar).
+   - Añade etiqueta arriba "Campos a pistolear".
+   - PRESERVADO: toggleCampoMarcado, ORDEN_CAMPOS.map, motion.button whileTap 0.97, indicador parcial.length/camposEsperados.
+
+8. PREFIJO DE VALIDACIÓN (movido a columna derecha):
+   - Añade etiqueta arriba "Prefijo de validación".
+   - PRESERVADO: Switch on/off + Input + motion.button Limpiar.
+
+9. BANNERS DE DUPLICADOS:
+   - PRESERVADOS exactos: motion.button (sistema, clickeable → setShowDuplicadosModal) y div (lote).
+   - Mantienen su `bg-muted/30` original (especificado por el usuario: "Mantener exactos").
+
+10. ACCIONES (sticky bottom en columna izquierda):
+    - Antes: `anim-slide-up mb-4 flex flex-wrap items-center gap-2` (barra estática).
+    - Después: `sticky bottom-0 flex flex-wrap items-center gap-2 border-t border-border bg-background/80 pt-3 backdrop-blur-sm` (barra flotante que permanece visible al hacer scroll por la tabla).
+    - ORDEN de botones: Guardar (primary bg-foreground) → Exportar Excel (outline) → Descartar (outline con Trash2).
+    - PRESERVADO: handleConfirmar (abre preview), exportarPistoleoExcel (SheetJS), handleClear (clearPistoleoFilas), motion.div whileTap 0.97 wrappers.
+
+11. AVISO DE LÍMITE (900+): PRESERVADO, reubicado entre los banners y la barra de acciones.
+
+12. TABLA DE FILAS ESCANEADAS:
+    - Añadido `border border-border` al wrapper de la tabla (antes solo `bg-card` sin borde explícito).
+    - PRESERVADO: AnimatePresence + motion.tr con initial/animate/exit x:-20→0→20 + layout + cubic-bezier overshoot, estados de edición (motion.tr con bg-muted/40), badges "registrada"/"repetida", botones Pencil/Trash2 whileTap 0.9 con group-hover opacity-0→100, paginación "Cargar más" setVisibleCount(c+100), Input de edición inline con autoFocus={idx===0}, select de modelo autodetectar vs productosUnicos.
+
+13. MODALES (Preview + Duplicados): PRESERVADOS exactos, sin cambios. Ambos Dialog con motion.div scale spring, DialogHeader/DialogFooter con border-b/border-t border-border.
+
+14. RESUMEN CARDS (4 tarjetas full-width debajo de las 2 columnas):
+    - `bg-muted/30` → `border border-border bg-card` (mejor coherencia visual con el resto del rediseño).
+
+Reglas estrictas respetadas:
+- ✅ NO se tocaron colores, paleta, tema ni tipografía base.
+- ✅ NO se añadieron emojis.
+- ✅ NO se cambiaron los imports (todos los lucide-react, store, types, ui components, framer-motion, hooks preservados).
+- ✅ PRESERVADA TODA LA LÓGICA:
+  * handleScan (3 niveles de validación de duplicados: misma lectura parcial, sesión completa, sistema).
+  * onKeyDown (Enter = submit, Escape = cancelar parcial).
+  * pushFeedback + playBeepError (Web Audio API con osc1 880Hz + osc2 440Hz square wave).
+  * motion.input key={pistoleoFilas.length} + pulse animation cubic-bezier overshoot.
+  * AnimatePresence en filas de tabla con layout animations.
+  * Modales de preview y duplicados con motion.div scale spring.
+  * Editar/borrar filas (startEdit, cancelEdit, saveEdit con toast + updatePistoleoFila).
+  * Exportar Excel (exportarPistoleoExcel con SheetJS + toast).
+  * Todos los useState, useRef, useMemo, useEffect existentes.
+  * Toggle de campos marcados (toggleCampoMarcado con mínimo 1 campo).
+  * Catálogo productosUnicos (deduplicado por name.toLowerCase()).
+  * Paginación visibleCount + hayMasFilas + "Cargar más".
+- ✅ `select-text cursor-text` en el wrapper exterior.
+- ✅ `ICON_PROPS = { strokeWidth: 1.5 }` en TODOS los iconos lucide-react.
+- ✅ Sin shadows (sin shadow-* ni drop-shadow-*).
+- ✅ Eliminado patrón `bg-muted/30`/`bg-muted/20` en paneles rediseñados (selector, prefijo, config, checkboxes, resumen) → reemplazado por `border border-border` + `bg-card`/`bg-background`.
+- ✅ Responsive: `grid-cols-1` en móvil, `lg:grid-cols-3` en desktop (≥1024px).
+
+Verificación:
+- `bun run lint`: ✓ 0 errores (1 warning preexistente en splash-screen.tsx no introducido por este cambio).
+- `rm -rf .next && bun run build`: ✓ Compiled successfully in 17.1s con Turbopack. ✓ Generating static pages (36/36) en 635.0ms. Ruta /pistolear lista como ○ (Static) prerendered. Únicas advertencias preexistentes: Module not found 'pdf-parse' en api/import-pedido/route.ts (archivo NO tocado por esta tarea) y una advertencia CSS sobre `var(--muted-foreground/10)` en skeleton (globals.css, también preexistente).
+
+Stage Summary:
+- El componente pistolear-view.tsx ahora ofrece un layout profesional de 2 columnas que maximiza el espacio en desktop:
+  * COLUMNA IZQUIERDA (2/3): el operador ve el input grande, la tabla de capturas y los botones sticky — todo lo que necesita para escanear sin distracciones.
+  * COLUMNA DERECHA (1/3): la configuración (modelo, estado, ubicación, campos, prefijo) y los KPIs quedan como un sidebar persistente y scrolleable.
+- El input de escaneo es ahora MÁS PROMINENTE: h-16 (64px) + text-[18px] + text-center + font-mono tracking-wider — el cambio más visible y el que el usuario esperaba ver.
+- La barra de acciones es sticky bottom, así que el operador siempre ve Guardar/Exportar/Descartar incluso cuando la lista de capturas es larga.
+- En móvil todo se apila en 1 columna (input primero, configuración después) manteniendo el flujo natural de pistoleo.
+- Toda la lógica crítica de pistoleo (Web Audio beep, 3 niveles de validación de duplicados, edición inline de filas, modales de preview/duplicados, exportar Excel, paginación) 100% preservada y funcional.
