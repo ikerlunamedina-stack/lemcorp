@@ -749,7 +749,7 @@ export function IAView() {
                       {/* Message content */}
                       <div
                         className={cn(
-                          "select-text cursor-text rounded-xl px-4 py-3 text-[14px] leading-relaxed whitespace-pre-wrap break-words",
+                          "select-text rounded-xl px-4 py-3 text-[14px] leading-relaxed whitespace-pre-wrap break-words",
                           isUser
                             ? "bg-muted text-foreground"
                             : "bg-card border border-border text-foreground"
@@ -912,7 +912,7 @@ export function IAView() {
           </div>
           <div className="flex-1 overflow-y-auto scroll-thin p-4">
             {previewContent ? (
-              <div className="select-text cursor-text text-[13px] leading-relaxed whitespace-pre-wrap break-words text-foreground">
+              <div className="select-text text-[13px] leading-relaxed whitespace-pre-wrap break-words text-foreground">
                 {previewContent}
               </div>
             ) : (

@@ -195,7 +195,7 @@ export function EquiposView() {
   const animModelos = useCountUp(kpis.modelosDistintos);
 
   return (
-    <div className="select-text cursor-text px-6 py-4 anim-fade-in">
+    <div className="select-text px-6 py-4 anim-fade-in">
       {/* Header */}
       <header className="anim-slide-up mb-4 flex flex-wrap items-end justify-between gap-4">
         <div>
