@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LEMCORP LOGISTICS — Intro Animation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --lem-white: #FFFFFF;
+      --lem-blue: #003882;
+      --lem-red: #D11218;
+      --lem-black: #0A0A0A;
+      --lem-curb: #B8C2CC;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: var(--lem-white);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif;
+    }
+
+    /* Escenario 100% puro centrado en pantalla */
+    #intro-viewport {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--lem-white);
+      cursor: default;
+    }
+
+    #main-svg {
+      width: 92vw;
+      max-width: 1040px;
+      height: auto;
+      max-height: 88vh;
+      overflow: visible;
+      will-change: transform;
+    }
+
+    /* Botón mínimo de repetición (invisible durante los 7.5s de la intro) */
+    #replay-trigger {
+      position: fixed;
+      bottom: 28px;
+      right: 32px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 9999px;
+      background-color: #FFFFFF;
+      border: 1px solid rgba(10, 10, 10, 0.12);
+      color: var(--lem-black);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      opacity: 0;
+      transform: translateY(6px);
+      pointer-events: none;
+      transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                  border-color 0.25s ease;
+    }
+
+    #replay-trigger.is-ready {
+      opacity: 0.55;
+      transform: translateY(0);
+      pointer-events: auto;
+      cursor: pointer;
+    }
+
+    #replay-trigger.is-ready:hover {
+      opacity: 1;
+      border-color: var(--lem-blue);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ESCENARIO EXCLUSIVO DE LA INTRO (SIN INTERFACES DETRÁS) -->
+  <main id="intro-viewport" aria-label="Animación de Introducción Lemcorp Logistics">
+    
+    <svg id="main-svg" viewBox="0 0 1000 580" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- ==================================================================
+             MÁSCARAS DE REVELADO DEL ARCO VIAL Y CARRETERA EN PERSPECTIVA
+             ================================================================== -->
+        <!-- Máscara principal que despliega la carretera azul y su borde gris en curva -->
+        <mask id="highway-unfurl-mask" maskUnits="userSpaceOnUse">
+          <!-- Trazo principal de apertura progresiva -->
+          <path
+            id="mask-highway-stroke"
+            d="M 272 232 C 415 112, 668 65, 818 148 C 915 202, 885 352, 610 508 L 412 332"
+            fill="none"
+            stroke="#FFFFFF"
+            stroke-width="0"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </mask>
+
+        <!-- ClipPath exacto de la silueta del asfalto azul para contener los destellos y líneas -->
+        <clipPath id="asphalt-exact-clip">
+          <path d="M 275 232
+                   C 402 128, 600 80, 756 96
+                   C 855 107, 905 166, 888 242
+                   C 872 316, 808 390, 722 440
+                   L 698 376
+                   L 576 422
+                   L 430 335
+                   C 556 316, 678 282, 742 226
+                   C 788 186, 784 142, 718 128
+                   C 596 102, 418 150, 290 232 Z" />
+        </clipPath>
+
+        <!-- ClipPath de todo el logotipo ensamblado para el barrido de luz especular final -->
+        <clipPath id="full-logo-sheen-clip">
+          <!-- Silueta de la carretera -->
+          <path d="M 275 232 C 402 128, 600 80, 756 96 C 855 107, 905 166, 888 242 C 872 316, 808 390, 722 440 L 698 376 L 576 422 L 430 335 C 556 316, 678 282, 742 226 C 788 186, 784 142, 718 128 C 596 102, 418 150, 290 232 Z" />
+          <!-- Silueta de LEM -->
+          <rect x="65" y="220" width="315" height="106" />
+          <!-- Silueta de CORP -->
+          <rect x="368" y="220" width="390" height="106" />
+          <!-- Silueta de LOGISTICS -->
+          <rect x="65" y="344" width="625" height="44" />
+        </clipPath>
+
+        <!-- ==================================================================
+             MÁSCARAS DE RECORTE MODULAR PARA CADA LETRA DE "LEMCORP"
+             ================================================================== -->
+        <clipPath id="clip-letter-L">
+          <rect x="60" y="218" width="82" height="108" />
+        </clipPath>
+        <clipPath id="clip-letter-E">
+          <rect x="142" y="218" width="84" height="108" />
+        </clipPath>
+        <!-- Máscara inclinada a 64 grados para las barras diagonales de la M y su bloque derecho -->
+        <clipPath id="clip-letter-M">
+          <rect x="205" y="215" width="175" height="112" />
+        </clipPath>
+        <clipPath id="clip-letter-C">
+          <rect x="364" y="215" width="106" height="112" />
+        </clipPath>
+        <clipPath id="clip-letter-O">
+          <rect x="454" y="215" width="118" height="112" />
+        </clipPath>
+        <clipPath id="clip-letter-R">
+          <rect x="568" y="215" width="102" height="112" />
+        </clipPath>
+        <clipPath id="clip-letter-P">
+          <rect x="664" y="215" width="102" height="112" />
+        </clipPath>
+
+        <!-- Máscara de ascenso vertical para el bloque "LOGISTICS" -->
+        <clipPath id="clip-logistics-row">
+          <rect x="55" y="340" width="640" height="50" />
+        </clipPath>
+      </defs>
+
+      <!-- GRUPO MAESTRO CON CÁMARA ÓPTICA SUAVE -->
+      <g id="camera-rig" transform="translate(500, 290) scale(0.95) translate(-500, -290)">
+
+        <!-- ==================================================================
+             FASE 1: GÉNESIS ARQUITECTÓNICA (GUÍAS DE CONSTRUCCIÓN VECTORIAL)
+             Se dibujan con precisión milimétrica y se desvanecen al final
+             ================================================================== -->
+        <g id="architectural-blueprint">
+          <!-- Ejes horizontales tipográficos (Cap-height, Baseline LEMCORP, Baseline LOGISTICS) -->
+          <line id="guide-hline-top" x1="40" y1="228" x2="820" y2="228" stroke="#003882" stroke-width="0.75" stroke-opacity="0.22" />
+          <line id="guide-hline-mid" x1="40" y1="323" x2="820" y2="323" stroke="#003882" stroke-width="0.85" stroke-opacity="0.28" />
+          <line id="guide-hline-bot" x1="40" y1="382" x2="740" y2="382" stroke="#0A0A0A" stroke-width="0.75" stroke-opacity="0.22" />
+
+          <!-- Ejes verticales de modulación estructural -->
+          <line id="guide-vline-left" x1="72" y1="150" x2="72" y2="425" stroke="#003882" stroke-width="0.75" stroke-opacity="0.2" />
+          <line id="guide-vline-split" x1="373" y1="150" x2="373" y2="425" stroke="#D11218" stroke-width="0.75" stroke-opacity="0.25" />
+          <line id="guide-vline-right" x1="752" y1="70" x2="752" y2="425" stroke="#003882" stroke-width="0.75" stroke-opacity="0.18" />
+
+          <!-- Las 2 Guías Diagonales de 64° exactos de la "M" de LEMCORP -->
+          <line id="guide-m-diag-1" x1="175" y1="420" x2="314" y2="120" stroke="#003882" stroke-width="0.9" stroke-opacity="0.32" />
+          <line id="guide-m-diag-2" x1="207" y1="420" x2="346" y2="120" stroke="#D11218" stroke-width="0.9" stroke-opacity="0.32" />
+
+          <!-- Arco elíptico de construcción de la ruta logística -->
+          <path
+            id="guide-orbit-outer"
+            d="M 240 258 C 395 112, 622 58, 782 86 C 895 106, 932 182, 902 268 C 872 352, 765 442, 608 518"
+            fill="none"
+            stroke="#003882"
+            stroke-width="0.9"
+            stroke-opacity="0.28"
+          />
+          <path
+            id="guide-orbit-inner"
+            d="M 275 232 C 420 132, 605 94, 726 122 C 798 139, 800 188, 742 232 C 672 285, 558 318, 405 340"
+            fill="none"
+            stroke="#D11218"
+            stroke-width="0.8"
+            stroke-opacity="0.26"
+          />
+
+          <!-- Cruces de precisión (+) en las intersecciones clave del diseño -->
+          <g id="blueprint-crosshairs" stroke-width="1" fill="none">
+            <!-- Cruz 1: Inicio del arco sobre la M (275, 232) -->
+            <g class="crosshair-node" transform="translate(275, 232)">
+              <line x1="-7" y1="0" x2="7" y2="0" stroke="#D11218" />
+              <line x1="0" y1="-7" x2="0" y2="7" stroke="#D11218" />
+              <circle cx="0" cy="0" r="3.5" stroke="#D11218" stroke-width="0.8" />
+            </g>
+            <!-- Cruz 2: Esquina superior izquierda L (72, 228) -->
+            <g class="crosshair-node" transform="translate(72, 228)">
+              <line x1="-6" y1="0" x2="6" y2="0" stroke="#003882" />
+              <line x1="0" y1="-6" x2="0" y2="6" stroke="#003882" />
+            </g>
+            <!-- Cruz 3: Transición LEM / CORP (373, 323) -->
+            <g class="crosshair-node" transform="translate(373, 323)">
+              <line x1="-7" y1="0" x2="7" y2="0" stroke="#D11218" />
+              <line x1="0" y1="-7" x2="0" y2="7" stroke="#D11218" />
+              <rect x="-3" y="-3" width="6" height="6" stroke="#003882" stroke-width="0.8" />
+            </g>
+            <!-- Cruz 4: Ápice derecho de la curva vial (888, 215) -->
+            <g class="crosshair-node" transform="translate(888, 215)">
+              <line x1="-7" y1="0" x2="7" y2="0" stroke="#003882" />
+              <line x1="0" y1="-7" x2="0" y2="7" stroke="#003882" />
+              <circle cx="0" cy="0" r="4" stroke="#003882" stroke-width="0.8" />
+            </g>
+            <!-- Cruz 5: Punta inferior derecha de la carretera (604, 502) -->
+            <g class="crosshair-node" transform="translate(604, 502)">
+              <line x1="-7" y1="0" x2="7" y2="0" stroke="#0A0A0A" />
+              <line x1="0" y1="-7" x2="0" y2="7" stroke="#0A0A0A" />
+            </g>
+            <!-- Cruz 6: Base izquierda de LOGISTICS (72, 382) -->
+            <g class="crosshair-node" transform="translate(72, 382)">
+              <line x1="-6" y1="0" x2="6" y2="0" stroke="#0A0A0A" />
+              <line x1="0" y1="-6" x2="0" y2="6" stroke="#0A0A0A" />
+            </g>
+          </g>
+        </g>
+
+        <!-- ==================================================================
+             FASE 2: CARRETERA EN PERSPECTIVA Y FLUJO DE RUTA LOGÍSTICA
+             ================================================================== -->
+        <g id="highway-master-layer">
+          
+          <!-- Superficie completa de la carretera revelada mediante la máscara curva -->
+          <g mask="url(#highway-unfurl-mask)">
+            
+            <!-- 2A. Borde Exterior Gris/Plata Original (#B8C2CC) en la curva derecha -->
+            <path
+              id="highway-curb-outer"
+              d="M 484 128
+                 C 662 66, 872 85, 914 198
+                 C 942 274, 875 378, 736 454
+                 L 725 426
+                 C 844 354, 906 262, 882 195
+                 C 846 95, 654 78, 484 128 Z"
+              fill="#B8C2CC"
+            />
+
+            <!-- 2B. Borde Inferior Gris/Plata en perspectiva (cola inferior bajo ICS) -->
+            <path
+              id="highway-curb-tail"
+              d="M 584 412
+                 L 710 373
+                 L 736 454
+                 C 684 482, 642 498, 604 512
+                 L 616 446 Z"
+              fill="#B8C2CC"
+            />
+
+            <!-- 2C. Triángulo de perspectiva interior Gris/Plata bajo la C y O de CORP -->
+            <path
+              id="highway-curb-inner-tuck"
+              d="M 409 334 L 488 310 L 524 338 L 446 355 Z"
+              fill="#B8C2CC"
+            />
+
+            <!-- 2D. Asfalto Principal Azul Corporativo (#003882) -->
+            <path
+              id="highway-asphalt-main"
+              d="M 275 232
+                 C 402 128, 600 80, 756 96
+                 C 855 107, 905 166, 888 242
+                 C 872 316, 808 390, 722 440
+                 L 698 376
+                 L 576 422
+                 L 430 335
+                 C 556 316, 678 282, 742 226
+                 C 788 186, 784 142, 718 128
+                 C 596 102, 418 150, 290 232 Z"
+              fill="#003882"
+            />
+
+            <!-- 2E. Rastro de Luz Blanca Continua que viaja por el centro antes de separarse en las líneas -->
+            <g clip-path="url(#asphalt-exact-clip)">
+              <path
+                id="highway-white-lightstream"
+                d="M 290 222 C 425 130, 622 92, 765 116 C 858 132, 868 214, 792 296 C 734 358, 646 408, 558 446"
+                fill="none"
+                stroke="#FFFFFF"
+                stroke-width="10"
+                stroke-linecap="round"
+                opacity="0"
+              />
+            </g>
+
+            <!-- 2F. Franja Blanca Ancha Inferior en Perspectiva (bajo las letras ICS) -->
+            <path
+              id="highway-wide-lane-cut"
+              d="M 568 403 L 718 322 L 744 352 L 605 430 Z"
+              fill="#FFFFFF"
+              opacity="0"
+            />
+
+            <!-- 2G. Las 7 Líneas Blancas Discontinuas Centrales en Perspectiva Exacta -->
+            <g id="highway-dashes-group" fill="#FFFFFF">
+              <!-- Dash 1 (Fino, saliendo sobre la M/C) -->
+              <path
+                class="hw-dash"
+                d="M 382 178 C 402 169, 424 160, 446 153 L 449 158 C 427 165, 405 174, 385 183 Z"
+              />
+              <!-- Dash 2 (Sobre la C/O) -->
+              <path
+                class="hw-dash"
+                d="M 468 145 C 495 136, 524 128, 552 122 L 555 128 C 527 134, 498 142, 471 151 Z"
+              />
+              <!-- Dash 3 (Sobre la O/R) -->
+              <path
+                class="hw-dash"
+                d="M 580 116 C 610 110, 640 106, 668 104 L 670 111 C 642 113, 612 117, 582 123 Z"
+              />
+              <!-- Dash 4 (Cima del arco sobre R/P) -->
+              <path
+                class="hw-dash"
+                d="M 698 103 C 728 103, 756 106, 780 112 L 777 120 C 754 114, 727 111, 698 111 Z"
+              />
+              <!-- Dash 5 (Curva superior derecha) -->
+              <path
+                class="hw-dash"
+                d="M 808 121 C 832 130, 849 144, 859 162 L 849 168 C 840 151, 824 139, 802 130 Z"
+              />
+              <!-- Dash 6 (Curva media derecha junto a la P) -->
+              <path
+                class="hw-dash"
+                d="M 867 186 C 871 206, 866 229, 853 254 L 840 247 C 852 225, 857 205, 853 188 Z"
+              />
+              <!-- Dash 7 (Curva ancha inferior derecha acercándose a ICS) -->
+              <path
+                class="hw-dash"
+                d="M 838 275 C 822 298, 800 320, 774 339 L 760 326 C 785 308, 806 287, 822 265 Z"
+              />
+            </g>
+          </g>
+
+          <!-- Trazador Cinético Rojo/Azul que lidera la apertura de la ruta -->
+          <path
+            id="kinetic-route-tracer-red"
+            d="M 275 232 C 402 128, 600 80, 756 96 C 855 107, 905 166, 888 242 C 872 316, 808 390, 722 440 L 604 512"
+            fill="none"
+            stroke="#D11218"
+            stroke-width="3.5"
+            stroke-linecap="round"
+            opacity="0"
+          />
+          <path
+            id="kinetic-route-tracer-blue"
+            d="M 275 232 C 430 132, 618 96, 732 124 C 795 140, 796 186, 742 226 C 678 282, 556 316, 430 335"
+            fill="none"
+            stroke="#003882"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            opacity="0"
+          />
+        </g>
+
+        <!-- ==================================================================
+             FASE 3: ENSAMBLAJE MODULAR DE PRECISIÓN — "LEMCORP"
+             ================================================================== -->
+        <g id="lemcorp-wordmark-layer">
+
+          <!-- 3A. BLOQUE "L E M" EN AZUL CORPORATIVO (#003882) -->
+          <!-- Letra L -->
+          <g clip-path="url(#clip-letter-L)">
+            <g id="anim-letter-L">
+              <!-- Destello cinético guía -->
+              <path id="accent-L" d="M 72 228 H 99 V 302 H 139 V 323 H 72 Z" fill="#D11218" />
+              <!-- Forma titular azul -->
+              <path d="M 72 228 H 99 V 302 H 139 V 323 H 72 Z" fill="#003882" />
+            </g>
+          </g>
+
+          <!-- Letra E -->
+          <g clip-path="url(#clip-letter-E)">
+            <g id="anim-letter-E">
+              <path id="accent-E" d="M 149 228 H 219 V 249 H 175 V 265 H 212 V 285 H 175 V 302 H 220 V 323 H 149 Z" fill="#D11218" />
+              <path d="M 149 228 H 219 V 249 H 175 V 265 H 212 V 285 H 175 V 302 H 220 V 323 H 149 Z" fill="#003882" />
+            </g>
+          </g>
+
+          <!-- Letra M (Diseño Exacto: 2 Barras Diagonales // a 64° + Cuerpo Derecho) -->
+          <g clip-path="url(#clip-letter-M)">
+            <!-- Primera Barra Diagonal Izquierda (/) -->
+            <g id="anim-M-slash-1">
+              <path id="accent-M-slash-1" d="M 222 323 L 264 228 H 288 L 246 323 Z" fill="#D11218" />
+              <path d="M 222 323 L 264 228 H 288 L 246 323 Z" fill="#003882" />
+            </g>
+
+            <!-- Segunda Barra Diagonal Paralela (//) -->
+            <g id="anim-M-slash-2">
+              <path id="accent-M-slash-2" d="M 254 323 L 296 228 H 318 L 276 323 Z" fill="#D11218" />
+              <path d="M 254 323 L 296 228 H 318 L 276 323 Z" fill="#003882" />
+            </g>
+
+            <!-- Cuerpo Derecho de la M (Valle diagonal + Columna vertical derecha) -->
+            <g id="anim-M-right-stem">
+              <path
+                d="M 276 228 L 301 228 L 323 287 L 344 228 L 371 228 L 371 323 L 346 323 L 346 264 L 329 313 L 314 313 L 294 260 Z"
+                fill="#003882"
+              />
+            </g>
+          </g>
+
+          <!-- 3B. BLOQUE "C O R P" EN ROJO CORPORATIVO (#D11218) CON FILETE BLANCO PURO (#FFFFFF) -->
+          <!-- Cada letra tiene una capa base de contorno blanco (stencil lead) + relleno rojo -->
+
+          <!-- Letra C -->
+          <g clip-path="url(#clip-letter-C)">
+            <!-- Capa 1: Stencil Blanco + Trazo técnico -->
+            <g id="anim-C-stencil">
+              <path
+                d="M 463 247 C 453 238, 439 233, 423 233 C 395 233, 377 252, 377 276 C 377 300, 395 319, 423 319 C 439 319, 453 313, 463 304 L 448 288 C 441 294, 433 297, 424 297 C 410 297, 402 288, 402 276 C 402 264, 410 255, 424 255 C 433 255, 441 258, 448 264 Z"
+                fill="#FFFFFF"
+                stroke="#FFFFFF"
+                stroke-width="10"
+                stroke-linejoin="round"
+              />
+            </g>
+            <!-- Capa 2: Relleno Rojo Corporativo (#D11218) -->
+            <g id="anim-C-fill">
+              <path
+                d="M 463 247 C 453 238, 439 233, 423 233 C 395 233, 377 252, 377 276 C 377 300, 395 319, 423 319 C 439 319, 453 313, 463 304 L 448 288 C 441 294, 433 297, 424 297 C 410 297, 402 288, 402 276 C 402 264, 410 255, 424 255 C 433 255, 441 258, 448 264 Z"
+                fill="#D11218"
+                stroke="#FFFFFF"
+                stroke-width="9"
+                stroke-linejoin="round"
+                paint-order="stroke fill"
+              />
+            </g>
+          </g>
+
+          <!-- Letra O -->
+          <g clip-path="url(#clip-letter-O)">
+            <g id="anim-O-stencil">
+              <path
+                fill-rule="evenodd"
+                d="M 516 232 C 547 232, 568 252, 568 276 C 568 300, 547 320, 516 320 C 485 320, 464 300, 464 276 C 464 252, 485 232, 516 232 Z M 516 254 C 501 254, 491 263, 491 276 C 491 289, 501 298, 516 298 C 531 298, 541 289, 541 276 C 541 263, 531 254, 516 254 Z"
+                fill="#FFFFFF"
+                stroke="#FFFFFF"
+                stroke-width="10"
+                stroke-linejoin="round"
+              />
+            </g>
+            <g id="anim-O-fill">
+              <path
+                fill-rule="evenodd"
+                d="M 516 232 C 547 232, 568 252, 568 276 C 568 300, 547 320, 516 320 C 485 320, 464 300, 464 276 C 464 252, 485 232, 516 232 Z M 516 254 C 501 254, 491 263, 491 276 C 491 289, 501 298, 516 298 C 531 298, 541 289, 541 276 C 541 263, 531 254, 516 254 Z"
+                fill="#D11218"
+                stroke="#FFFFFF"
+                stroke-width="9"
+                stroke-linejoin="round"
+                paint-order="stroke fill"
+              />
+            </g>
+          </g>
+
+          <!-- Letra R -->
+          <g clip-path="url(#clip-letter-R)">
+            <g id="anim-R-stencil">
+              <path
+                fill-rule="evenodd"
+                d="M 578 233 H 627 C 648 233, 661 244, 661 261 C 661 274, 653 283, 640 286 L 664 319 H 634 L 614 289 H 603 V 319 H 578 Z M 603 253 V 271 H 624 C 632 271, 637 268, 637 262 C 637 256, 632 253, 624 253 Z"
+                fill="#FFFFFF"
+                stroke="#FFFFFF"
+                stroke-width="10"
+                stroke-linejoin="round"
+              />
+            </g>
+            <g id="anim-R-fill">
+              <path
+                fill-rule="evenodd"
+                d="M 578 233 H 627 C 648 233, 661 244, 661 261 C 661 274, 653 283, 640 286 L 664 319 H 634 L 614 289 H 603 V 319 H 578 Z M 603 253 V 271 H 624 C 632 271, 637 268, 637 262 C 637 256, 632 253, 624 253 Z"
+                fill="#D11218"
+                stroke="#FFFFFF"
+                stroke-width="9"
+                stroke-linejoin="round"
+                paint-order="stroke fill"
+              />
+            </g>
+          </g>
+
+          <!-- Letra P -->
+          <g clip-path="url(#clip-letter-P)">
+            <g id="anim-P-stencil">
+              <path
+                fill-rule="evenodd"
+                d="M 674 233 H 721 C 742 233, 756 245, 756 263 C 756 281, 742 293, 721 293 H 699 V 319 H 674 Z M 699 253 V 274 H 719 C 727 274, 732 269, 732 263 C 732 257, 727 253, 719 253 Z"
+                fill="#FFFFFF"
+                stroke="#FFFFFF"
+                stroke-width="10"
+                stroke-linejoin="round"
+              />
+            </g>
+            <g id="anim-P-fill">
+              <path
+                fill-rule="evenodd"
+                d="M 674 233 H 721 C 742 233, 756 245, 756 263 C 756 281, 742 293, 721 293 H 699 V 319 H 674 Z M 699 253 V 274 H 719 C 727 274, 732 269, 732 263 C 732 257, 727 253, 719 253 Z"
+                fill="#D11218"
+                stroke="#FFFFFF"
+                stroke-width="9"
+                stroke-linejoin="round"
+                paint-order="stroke fill"
+              />
+            </g>
+          </g>
+        </g>
+
+        <!-- ==================================================================
+             FASE 4: FUNDACIÓN TÉCNICA — "L O G I S T I C S"
+             Tipografía industrial cuadrada en Negro (#0A0A0A) con halo Blanco (#FFFFFF)
+             ================================================================== -->
+        <g id="logistics-subbrand-layer">
+          <!-- Rieles horizontales dinámicos que escoltan la aparición de LOGISTICS -->
+          <line id="logistics-track-top" x1="72" y1="346" x2="72" y2="346" stroke="#003882" stroke-width="1.2" opacity="0" />
+          <line id="logistics-track-bot" x1="72" y1="382" x2="72" y2="382" stroke="#D11218" stroke-width="1.5" opacity="0" />
+
+          <g
+            clip-path="url(#clip-logistics-row)"
+            fill="#0A0A0A"
+            stroke="#FFFFFF"
+            stroke-width="7"
+            stroke-linejoin="round"
+            paint-order="stroke fill"
+          >
+            <!-- 1. L -->
+            <path class="log-char" d="M 74 349 H 86 V 372 H 112 V 380 H 74 Z" />
+            <!-- 2. O -->
+            <path class="log-char" fill-rule="evenodd" d="M 146 349 H 183 C 187 349, 190 351, 190 356 V 373 C 190 378, 187 380, 183 380 H 146 C 142 380, 139 378, 139 373 V 356 C 139 351, 142 349, 146 349 Z M 151 357 V 372 H 178 V 357 Z" />
+            <!-- 3. G -->
+            <path class="log-char" d="M 227 349 H 264 C 268 349, 271 351, 271 356 V 358 H 259 V 356 H 232 V 372 H 259 V 367 H 245 V 361 H 271 V 373 C 271 378, 268 380, 264 380 H 227 C 223 380, 220 378, 220 373 V 356 C 220 351, 223 349, 227 349 Z" />
+            <!-- 4. I -->
+            <path class="log-char" d="M 303 349 H 315 V 380 H 303 Z" />
+            <!-- 5. S -->
+            <path class="log-char" d="M 354 349 H 391 C 394 349, 397 351, 397 355 V 357 H 385 V 356 H 359 V 361 H 390 C 394 361, 397 363, 397 367 V 373 C 397 378, 394 380, 390 380 H 353 C 349 380, 347 378, 347 374 V 371 H 359 V 373 H 385 V 367 H 354 C 349 367, 347 365, 347 361 V 356 C 347 351, 349 349, 354 349 Z" />
+            <!-- 6. T -->
+            <path class="log-char" d="M 426 349 H 472 V 357 H 455 V 380 H 443 V 357 H 426 Z" />
+            <!-- 7. I -->
+            <path class="log-char" d="M 502 349 H 514 V 380 H 502 Z" />
+            <!-- 8. C -->
+            <path class="log-char" d="M 553 349 H 588 C 592 349, 595 351, 595 356 V 359 H 583 V 357 H 558 V 372 H 583 V 370 H 595 V 373 C 595 378, 592 380, 588 380 H 553 C 549 380, 546 378, 546 373 V 356 C 546 351, 549 349, 553 349 Z" />
+            <!-- 9. S -->
+            <path class="log-char" d="M 632 349 H 669 C 672 349, 675 351, 675 355 V 357 H 663 V 356 H 637 V 361 H 668 C 672 361, 675 363, 675 367 V 373 C 675 378, 672 380, 668 380 H 631 C 627 380, 625 378, 625 374 V 371 H 637 V 373 H 663 V 367 H 632 C 627 367, 625 365, 625 361 V 356 C 625 351, 627 349, 632 349 Z" />
+          </g>
+        </g>
+
+        <!-- ==================================================================
+             FASE 5: PULIDO ÓPTICO FINAL (BARRIDO DE LUZ BLANCA SOBRE EL LOGO)
+             ================================================================== -->
+        <g clip-path="url(#full-logo-sheen-clip)">
+          <polygon
+            id="optical-white-sheen"
+            points="-220,0 -110,0 -240,580 -350,580"
+            fill="#FFFFFF"
+            opacity="0"
+          />
+        </g>
+
+      </g>
+    </svg>
+
+  </main>
+
+  <!-- Disparador minimalista que solo aparece cuando concluye la intro de 7.5s -->
+  <button id="replay-trigger" type="button" aria-label="Repetir animación de introducción">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path d="M3 3v5h5" />
+    </svg>
+    <span>Replay</span>
+  </button>
+
+  <!-- ==========================================================================
+       MOTOR DE COREOGRAFÍA DE ALTA PRECISIÓN (60FPS REQUESTANIMATIONFRAME)
+       Controla las 5 fases durante 7.5 segundos con curvas estilo Apple Keynote
+       ========================================================================== -->
+  <script>
+    (function () {
+      // Funciones de aceleración (Easing) de nivel profesional
+      const Easing = {
+        // Desaceleración exponencial suave estilo Apple
+        outExpo: (t) => (t === 1 ? 1 : 1 - Math.pow(2, -10 * t)),
+        // Desaceleración cúbica limpia
+        outCubic: (t) => 1 - Math.pow(1 - t, 3),
+        // Desaceleración quíntica para encajes tipográficos
+        outQuint: (t) => 1 - Math.pow(1 - t, 5),
+        // Curva simétrica arquitectónica para trazados de líneas
+        inOutCubic: (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2),
+        // Curva cinética pronunciada para barridos de ruta
+        inOutQuint: (t) => (t < 0.5 ? 16 * t * t * t * t * t : 1 - Math.pow(-2 * t + 2, 5) / 2),
+        // Asentamiento con micro-elasticidad controlada (para los dashes de la pista)
+        outBackSubtle: (t) => {
+          const c1 = 1.15;
+          const c3 = c1 + 1;
+          return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+        }
+      };
+
+      // Normaliza el tiempo actual (sec) dentro de una ventana [start, end]
+      function progress(time, start, end, easingFn = (x) => x) {
+        if (time <= start) return 0;
+        if (time >= end) return 1;
+        const raw = (time - start) / (end - start);
+        return easingFn(raw);
+      }
+
+      // Interpolación lineal
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      // Referencias a los elementos SVG
+      const cameraRig = document.getElementById('camera-rig');
+      const replayBtn = document.getElementById('replay-trigger');
+      const viewport = document.getElementById('intro-viewport');
+
+      // Elementos Fase 1: Blueprint Arquitectónico
+      const blueprintGroup = document.getElementById('architectural-blueprint');
+      const blueprintPaths = [
+        { el: document.getElementById('guide-hline-mid'), start: 0.05, end: 1.10 },
+        { el: document.getElementById('guide-hline-top'), start: 0.15, end: 1.20 },
+        { el: document.getElementById('guide-hline-bot'), start: 0.25, end: 1.30 },
+        { el: document.getElementById('guide-m-diag-1'), start: 0.20, end: 1.25 },
+        { el: document.getElementById('guide-m-diag-2'), start: 0.30, end: 1.35 },
+        { el: document.getElementById('guide-vline-left'), start: 0.35, end: 1.30 },
+        { el: document.getElementById('guide-vline-split'), start: 0.40, end: 1.35 },
+        { el: document.getElementById('guide-vline-right'), start: 0.45, end: 1.40 },
+        { el: document.getElementById('guide-orbit-outer'), start: 0.30, end: 1.65 },
+        { el: document.getElementById('guide-orbit-inner'), start: 0.45, end: 1.75 }
+      ];
+      const crosshairs = Array.from(document.querySelectorAll('.crosshair-node'));
+
+      // Elementos Fase 2: Ruta Logística y Carretera
+      const maskHighwayStroke = document.getElementById('mask-highway-stroke');
+      const tracerRed = document.getElementById('kinetic-route-tracer-red');
+      const tracerBlue = document.getElementById('kinetic-route-tracer-blue');
+      const whiteLightstream = document.getElementById('highway-white-lightstream');
+      const wideLaneCut = document.getElementById('highway-wide-lane-cut');
+      const highwayDashes = Array.from(document.querySelectorAll('.hw-dash'));
+
+      // Elementos Fase 3: Ensamblaje Modular LEMCORP
+      const animL = document.getElementById('anim-letter-L');
+      const accentL = document.getElementById('accent-L');
+      const animE = document.getElementById('anim-letter-E');
+      const accentE = document.getElementById('accent-E');
+
+      const animMSlash1 = document.getElementById('anim-M-slash-1');
+      const accentMSlash1 = document.getElementById('accent-M-slash-1');
+      const animMSlash2 = document.getElementById('anim-M-slash-2');
+      const accentMSlash2 = document.getElementById('accent-M-slash-2');
+      const animMRightStem = document.getElementById('anim-M-right-stem');
+
+      const corpLetters = [
+        {
+          stencil: document.getElementById('anim-C-stencil'),
+          fill: document.getElementById('anim-C-fill'),
+          start: 3.85
+        },
+        {
+          stencil: document.getElementById('anim-O-stencil'),
+          fill: document.getElementById('anim-O-fill'),
+          start: 4.02
+        },
+        {
+          stencil: document.getElementById('anim-R-stencil'),
+          fill: document.getElementById('anim-R-fill'),
+          start: 4.19
+        },
+        {
+          stencil: document.getElementById('anim-P-stencil'),
+          fill: document.getElementById('anim-P-fill'),
+          start: 4.36
+        }
+      ];
+
+      // Elementos Fase 4: Fundación Técnica LOGISTICS
+      const logisticsTrackTop = document.getElementById('logistics-track-top');
+      const logisticsTrackBot = document.getElementById('logistics-track-bot');
+      const logChars = Array.from(document.querySelectorAll('.log-char'));
+
+      // Elemento Fase 5: Barrido de luz óptica final
+      const opticalSheen = document.getElementById('optical-white-sheen');
+
+      // Precalcular longitudes exactas de todos los trazos SVG para dasharray / dashoffset
+      function prepareStrokeGeometry(el) {
+        const len = el.getTotalLength ? el.getTotalLength() : 1000;
+        el.dataset.length = len;
+        el.style.strokeDasharray = `${len} ${len}`;
+        el.style.strokeDashoffset = `${len}`;
+        return len;
+      }
+
+      blueprintPaths.forEach((item) => prepareStrokeGeometry(item.el));
+      const maskHighwayLen = prepareStrokeGeometry(maskHighwayStroke);
+      const tracerRedLen = prepareStrokeGeometry(tracerRed);
+      const tracerBlueLen = prepareStrokeGeometry(tracerBlue);
+      const lightstreamLen = prepareStrokeGeometry(whiteLightstream);
+
+      // Configurar transform-origin en cada dash de la pista y cada letra de LOGISTICS
+      highwayDashes.forEach((dash) => {
+        const bbox = dash.getBBox();
+        dash.style.transformOrigin = `${bbox.x + bbox.width / 2}px ${bbox.y + bbox.height / 2}px`;
+      });
+
+      logChars.forEach((ch) => {
+        const bbox = ch.getBBox();
+        ch.style.transformOrigin = `${bbox.x + bbox.width / 2}px ${bbox.y + bbox.height / 2}px`;
+      });
+
+      let startTime = null;
+      let rafId = null;
+      let isCompleted = false;
+      const TOTAL_DURATION = 7.5; // 7.5 segundos de coreografía completa
+
+      // Bucle principal de renderizado cuadro por cuadro
+      function renderFrame(now) {
+        if (!startTime) startTime = now;
+        const t = (now - startTime) / 1000; // Tiempo en segundos
+
+        /* ====================================================================
+           0. CÁMARA ÓPTICA GENERAL (0.0s -> 7.5s)
+           Respiración de escala cinematográfica sutil (0.945 -> 1.0)
+           ==================================================================== */
+        const camProgress = progress(t, 0.0, 7.2, Easing.outCubic);
+        const camScale = lerp(0.945, 1.0, camProgress);
+        cameraRig.setAttribute(
+          'transform',
+          `translate(500, 290) scale(${camScale.toFixed(4)}) translate(-500, -290)`
+        );
+
+        /* ====================================================================
+           1. FASE 1: GÉNESIS ARQUITECTÓNICA (0.0s -> 1.8s, Retracción 5.6s -> 6.6s)
+           ==================================================================== */
+        const blueprintFadeOut = 1 - progress(t, 5.6, 6.6, Easing.inOutCubic);
+        blueprintGroup.style.opacity = blueprintFadeOut.toFixed(3);
+
+        blueprintPaths.forEach((item) => {
+          const len = parseFloat(item.el.dataset.length);
+          const drawP = progress(t, item.start, item.end, Easing.inOutCubic);
+          const retractP = progress(t, 5.5, 6.5, Easing.inOutCubic);
+          // Se dibuja en Fase 1 y se retrae limpiamente en Fase 5
+          const offset = len * (1 - drawP) - len * retractP;
+          item.el.style.strokeDashoffset = offset.toFixed(2);
+        });
+
+        crosshairs.forEach((node, idx) => {
+          const appear = progress(t, 0.25 + idx * 0.12, 0.85 + idx * 0.12, Easing.outBackSubtle);
+          const vanish = 1 - progress(t, 5.5 + idx * 0.05, 6.2 + idx * 0.05, Easing.outCubic);
+          const s = appear * vanish;
+          const baseTransform = node.getAttribute('transform').split(' scale')[0];
+          node.setAttribute('transform', `${baseTransform} scale(${s.toFixed(3)})`);
+          node.style.opacity = (appear * vanish * 0.75).toFixed(3);
+        });
+
+        /* ====================================================================
+           2. FASE 2: FLUJO DE RUTA LOGÍSTICA Y CARRETERA (1.2s -> 3.9s)
+           ==================================================================== */
+        // 2.1 Trazadores cinéticos Rojo y Azul que encabezan el movimiento de la curva
+        const traceRedIn = progress(t, 1.15, 2.35, Easing.inOutQuint);
+        const traceRedOut = progress(t, 1.65, 2.75, Easing.inOutQuint);
+        tracerRed.style.opacity = t >= 1.15 && t <= 2.8 ? '1' : '0';
+        tracerRed.style.strokeDasharray = `${(tracerRedLen * (traceRedIn - traceRedOut)).toFixed(2)} ${tracerRedLen}`;
+        tracerRed.style.strokeDashoffset = `${(-tracerRedLen * traceRedOut).toFixed(2)}`;
+
+        const traceBlueIn = progress(t, 1.30, 2.50, Easing.inOutQuint);
+        const traceBlueOut = progress(t, 1.80, 2.90, Easing.inOutQuint);
+        tracerBlue.style.opacity = t >= 1.30 && t <= 2.95 ? '1' : '0';
+        tracerBlue.style.strokeDasharray = `${(tracerBlueLen * (traceBlueIn - traceBlueOut)).toFixed(2)} ${tracerBlueLen}`;
+        tracerBlue.style.strokeDashoffset = `${(-tracerBlueLen * traceBlueOut).toFixed(2)}`;
+
+        // 2.2 Despliegue longitudinal y de grosor de la carretera en perspectiva
+        const hwDrawP = progress(t, 1.45, 3.05, Easing.inOutCubic);
+        const hwWidthP = progress(t, 1.50, 3.25, Easing.outExpo);
+        maskHighwayStroke.style.strokeDashoffset = (maskHighwayLen * (1 - hwDrawP)).toFixed(2);
+        maskHighwayStroke.setAttribute('stroke-width', lerp(0, 285, hwWidthP).toFixed(1));
+
+        // 2.3 Haz de luz blanca central que recorre el asfalto antes de fijar los 7 dashes
+        const streamIn = progress(t, 2.15, 3.15, Easing.inOutCubic);
+        const streamOut = progress(t, 2.55, 3.55, Easing.inOutCubic);
+        whiteLightstream.style.opacity = t >= 2.15 && t <= 3.6 ? '0.92' : '0';
+        whiteLightstream.style.strokeDasharray = `${(lightstreamLen * Math.max(0, streamIn - streamOut)).toFixed(2)} ${lightstreamLen}`;
+        whiteLightstream.style.strokeDashoffset = `${(-lightstreamLen * streamOut).toFixed(2)}`;
+
+        // 2.4 Fijación secuencial en cascada de las 7 líneas blancas centrales
+        highwayDashes.forEach((dash, i) => {
+          const dStart = 2.35 + i * 0.13;
+          const dEnd = dStart + 0.65;
+          const dp = progress(t, dStart, dEnd, Easing.outBackSubtle);
+          const op = progress(t, dStart, dStart + 0.25, Easing.outCubic);
+          dash.style.opacity = op.toFixed(3);
+          dash.style.transform = `scale(${lerp(0.35, 1, dp).toFixed(3)})`;
+        });
+
+        // 2.5 Franja blanca ancha en perspectiva bajo ICS
+        const laneCutP = progress(t, 2.95, 3.70, Easing.outExpo);
+        wideLaneCut.style.opacity = laneCutP.toFixed(3);
+        wideLaneCut.style.transformOrigin = '655px 376px';
+        wideLaneCut.style.transform = `translateX(${lerp(35, 0, laneCutP).toFixed(2)}px) scaleX(${lerp(0.7, 1, laneCutP).toFixed(3)})`;
+
+        /* ====================================================================
+           3. FASE 3: ENSAMBLAJE MODULAR DE PRECISIÓN — "LEMCORP" (3.0s -> 5.4s)
+           ==================================================================== */
+        // 3.1 Las dos barras diagonales (//) de la M entran deslizándose en su ángulo de 64°
+        // Vector unitario de 64 grados: dx = -42, dy = +95
+        const m1P = progress(t, 3.05, 3.95, Easing.outExpo);
+        const m1AccentLag = progress(t, 3.00, 3.85, Easing.outExpo);
+        animMSlash1.style.opacity = progress(t, 3.05, 3.25).toFixed(3);
+        animMSlash1.style.transform = `translate(${lerp(-42, 0, m1P).toFixed(2)}px, ${lerp(95, 0, m1P).toFixed(2)}px)`;
+        accentMSlash1.style.transform = `translate(${lerp(-10, 0, m1AccentLag).toFixed(2)}px, ${lerp(22, 0, m1AccentLag).toFixed(2)}px)`;
+        accentMSlash1.style.opacity = (1 - m1P).toFixed(3);
+
+        // Segunda barra diagonal (//) entra desde el sentido opuesto (+42, -95)
+        const m2P = progress(t, 3.20, 4.10, Easing.outExpo);
+        const m2AccentLag = progress(t, 3.15, 4.00, Easing.outExpo);
+        animMSlash2.style.opacity = progress(t, 3.20, 3.40).toFixed(3);
+        animMSlash2.style.transform = `translate(${lerp(42, 0, m2P).toFixed(2)}px, ${lerp(-95, 0, m2P).toFixed(2)}px)`;
+        accentMSlash2.style.transform = `translate(${lerp(10, 0, m2AccentLag).toFixed(2)}px, ${lerp(-22, 0, m2AccentLag).toFixed(2)}px)`;
+        accentMSlash2.style.opacity = (1 - m2P).toFixed(3);
+
+        // Cuerpo derecho de la M se acopla horizontalmente
+        const mStemP = progress(t, 3.40, 4.25, Easing.outExpo);
+        animMRightStem.style.opacity = progress(t, 3.40, 3.60).toFixed(3);
+        animMRightStem.style.transform = `translateX(${lerp(-38, 0, mStemP).toFixed(2)}px)`;
+
+        // 3.2 Letras "E" y "L" se despliegan desde sus máscaras hacia la izquierda
+        const eP = progress(t, 3.45, 4.30, Easing.outExpo);
+        animE.style.opacity = progress(t, 3.45, 3.65).toFixed(3);
+        animE.style.transform = `translateX(${lerp(68, 0, eP).toFixed(2)}px)`;
+        accentE.style.transform = `translateX(${lerp(-8, 0, eP).toFixed(2)}px)`;
+        accentE.style.opacity = (1 - eP).toFixed(3);
+
+        const lP = progress(t, 3.60, 4.45, Easing.outExpo);
+        animL.style.opacity = progress(t, 3.60, 3.80).toFixed(3);
+        animL.style.transform = `translateX(${lerp(68, 0, lP).toFixed(2)}px)`;
+        accentL.style.transform = `translateX(${lerp(-8, 0, lP).toFixed(2)}px)`;
+        accentL.style.opacity = (1 - lP).toFixed(3);
+
+        // 3.3 Bloque "C O R P" en doble capa: primero el Stencil Blanco y 95ms después el Rojo Corporativo
+        corpLetters.forEach((item) => {
+          const stencilP = progress(t, item.start, item.start + 0.78, Easing.outExpo);
+          const fillP = progress(t, item.start + 0.095, item.start + 0.88, Easing.outExpo);
+
+          item.stencil.style.opacity = progress(t, item.start, item.start + 0.18).toFixed(3);
+          item.stencil.style.transform = `translateX(${lerp(-88, 0, stencilP).toFixed(2)}px)`;
+
+          item.fill.style.opacity = progress(t, item.start + 0.095, item.start + 0.25).toFixed(3);
+          item.fill.style.transform = `translateX(${lerp(-88, 0, fillP).toFixed(2)}px)`;
+        });
+
+        /* ====================================================================
+           4. FASE 4: FUNDACIÓN TÉCNICA — "LOGISTICS" (4.7s -> 6.5s)
+           ==================================================================== */
+        // Rieles horizontales que se abren bajo LEMCORP y luego se retraen hacia la derecha
+        const trackIn = progress(t, 4.65, 5.45, Easing.outExpo);
+        const trackOut = progress(t, 5.65, 6.45, Easing.inOutCubic);
+        const trackActiveOpacity = t >= 4.65 && t <= 6.5 ? (1 - trackOut) * 0.65 : 0;
+
+        logisticsTrackTop.style.opacity = trackActiveOpacity.toFixed(3);
+        logisticsTrackTop.setAttribute('x1', lerp(72, 680, trackOut).toFixed(1));
+        logisticsTrackTop.setAttribute('x2', lerp(72, 680, trackIn).toFixed(1));
+
+        logisticsTrackBot.style.opacity = (trackActiveOpacity * 1.2).toFixed(3);
+        logisticsTrackBot.setAttribute('x1', lerp(72, 680, trackOut).toFixed(1));
+        logisticsTrackBot.setAttribute('x2', lerp(72, 680, trackIn).toFixed(1));
+
+        // Cada letra de L O G I S T I C S emerge en ola armónica desde su máscara inferior
+        logChars.forEach((ch, idx) => {
+          const cStart = 4.80 + idx * 0.085;
+          const cEnd = cStart + 0.75;
+          const cp = progress(t, cStart, cEnd, Easing.outExpo);
+          const op = progress(t, cStart, cStart + 0.22, Easing.outCubic);
+          ch.style.opacity = op.toFixed(3);
+          ch.style.transform = `translateY(${lerp(42, 0, cp).toFixed(2)}px)`;
+        });
+
+        /* ====================================================================
+           5. FASE 5: PULIDO ÓPTICO Y BARRIDO DE LUZ BLANCA (6.0s -> 7.5s)
+           ==================================================================== */
+        const sheenP = progress(t, 6.05, 7.15, Easing.inOutCubic);
+        const sheenX = lerp(0, 1280, sheenP);
+        // Opacidad suave que aparece al entrar al logo y se disipa al salir
+        const sheenOpacity = Math.sin(sheenP * Math.PI) * 0.42;
+        opticalSheen.style.opacity = (t >= 6.05 && t <= 7.15 ? sheenOpacity : 0).toFixed(3);
+        opticalSheen.setAttribute('transform', `translate(${sheenX.toFixed(1)}, 0)`);
+
+        // Continuar el bucle hasta completar los 7.5 segundos
+        if (t < TOTAL_DURATION) {
+          rafId = requestAnimationFrame(renderFrame);
+        } else if (!isCompleted) {
+          isCompleted = true;
+          replayBtn.classList.add('is-ready');
+          viewport.style.cursor = 'pointer';
+        }
+      }
+
+      // Reiniciar la animación desde el segundo 0.00s
+      function startIntroAnimation() {
+        if (rafId) cancelAnimationFrame(rafId);
+        isCompleted = false;
+        startTime = null;
+        replayBtn.classList.remove('is-ready');
+        viewport.style.cursor = 'default';
+        rafId = requestAnimationFrame(renderFrame);
+      }
+
+      // Eventos limpios para volver a reproducir (Botón, Clic tras finalizar o Barra Espaciadora / R)
+      replayBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        startIntroAnimation();
+      });
+
+      viewport.addEventListener('click', () => {
+        if (isCompleted) startIntroAnimation();
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' || e.code === 'KeyR') {
+          e.preventDefault();
+          startIntroAnimation();
+        }
+      });
+
+      window.addEventListener('load', startIntroAnimation);
+    })();
+  </script>
+</body>
+</html>
