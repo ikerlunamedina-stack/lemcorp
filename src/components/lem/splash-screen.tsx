@@ -5,15 +5,14 @@ import { useEffect, useState } from "react";
 export function SplashScreen() {
   const [visible, setVisible] = useState(true);
   const [fading, setFading] = useState(false);
-  const [bgColor, setBgColor] = useState("#FFFFFF");
-
-  // Detectar tema para el fondo de la intro
-  // El inline script del layout ya aplicó la clase 'dark' o 'light' al HTML element
-  // antes de que React monte. Solo leemos esa clase.
-  useEffect(() => {
-    const isDark = document.documentElement.classList.contains("dark");
-    setBgColor(isDark ? "#242220" : "#FFFFFF");
-  }, []);
+  // Leer el tema INMEDIATAMENTE (no en useEffect) — el inline script del <head>
+  // ya aplicó la clase 'dark' antes de que React renderice
+  const [bgColor] = useState(() => {
+    if (typeof document !== "undefined" && document.documentElement.classList.contains("dark")) {
+      return "#242220";
+    }
+    return "#FFFFFF";
+  });
 
   // Timeline: la animación del HTML dura ~7.5s
   useEffect(() => {
