@@ -5,6 +5,24 @@ import { useEffect, useState } from "react";
 export function SplashScreen() {
   const [visible, setVisible] = useState(true);
   const [fading, setFading] = useState(false);
+  const [bgColor, setBgColor] = useState("#FFFFFF");
+
+  // Detectar tema para el fondo de la intro
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("lemcorp-v3");
+      let tema = "claro";
+      if (raw) {
+        const s = JSON.parse(raw);
+        tema = s?.state?.settings?.tema || "claro";
+      }
+      const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const dark = tema === "oscuro" || (tema === "sistema" && prefersDark);
+      setBgColor(dark ? "#242220" : "#FFFFFF");
+    } catch {
+      setBgColor("#FFFFFF");
+    }
+  }, []);
 
   // Timeline: la animación del HTML dura ~7.5s
   useEffect(() => {
@@ -36,7 +54,7 @@ export function SplashScreen() {
         position: "fixed",
         inset: 0,
         zIndex: 9999,
-        background: "#FFFFFF",
+        background: bgColor,
         opacity: fading ? 0 : 1,
         transition: "opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1)",
         pointerEvents: fading ? "none" : "auto",
@@ -55,6 +73,7 @@ export function SplashScreen() {
           border: "none",
           margin: 0,
           padding: 0,
+          background: "transparent",
         }}
         title="Intro LEMCORP Logistics"
       />
