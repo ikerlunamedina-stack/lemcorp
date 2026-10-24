@@ -446,7 +446,7 @@ export function PistolearView() {
   }, [products]);
 
   return (
-    <div className="select-text cursor-text px-6 py-4 anim-fade-in">
+    <div className="select-text px-6 py-4 anim-fade-in">
       {/* Header */}
       <header className="anim-slide-up mb-4 flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -495,14 +495,14 @@ export function PistolearView() {
                     ? CAMPOS_PISTOLEO_META[camposMarcadosOrdenados[parcial.length]].label
                     : CAMPOS_PISTOLEO_META[camposMarcadosOrdenados[0]]?.label ?? "Serie"
                 }
-                className="h-16 w-full rounded-lg border border-border bg-background pl-11 pr-3 text-center font-mono text-[18px] font-medium tracking-wider text-foreground outline-none transition-colors focus:border-foreground focus:bg-muted/10"
+                className="h-16 w-full rounded-lg border-transparent bg-muted/20 pl-11 pr-3 text-center font-mono text-[18px] font-medium tracking-wider text-foreground outline-none transition-colors focus:border-foreground focus:bg-muted/10"
                 autoComplete="off"
                 spellCheck={false}
               />
             </div>
             {/* Preview en vivo: qué llevo escaneado hasta ahora */}
             {hayParcial && (
-              <div className="mt-3 rounded-lg border border-border bg-background p-3">
+              <div className="mt-3 rounded-lg bg-muted/20 p-3">
                 <div className="flex flex-wrap gap-2">
                   {camposMarcadosOrdenados.map((c, idx) => {
                     const val = parcial[idx];
@@ -562,8 +562,8 @@ export function PistolearView() {
           </div>
 
           {/* Tabla de capturas */}
-          <div className="anim-slide-up overflow-hidden rounded-lg border border-border bg-card">
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <div className="anim-slide-up overflow-hidden rounded-lg bg-card">
+            <div className="flex items-center justify-between px-4 py-3">
               <span className="text-[11px] tabular-nums text-muted-foreground">
                 {pistoleoFilas.length}
               </span>
@@ -576,7 +576,7 @@ export function PistolearView() {
               <div className="max-h-96 overflow-y-auto scroll-thin">
                 <table className="w-full text-[13px]">
                   <thead className="sticky top-0 bg-background">
-                    <tr className="border-b border-border text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+                    <tr className="border-b border-border/30 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
                       <th className="px-3 py-2.5 font-medium">#</th>
                       {camposTabla.map((c) => (
                         <th key={c} className="px-3 py-2.5 font-medium">{CAMPOS_PISTOLEO_META[c].label}</th>
@@ -586,7 +586,7 @@ export function PistolearView() {
                       <th className="px-3 py-2.5"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border">
+                  <tbody className="divide-y divide-border/30">
                     <AnimatePresence>
                     {filasVisibles.map((f, i) => {
                       // Campos de ESTA fila (no los globales)
@@ -643,7 +643,7 @@ export function PistolearView() {
                               <select
                                 value={editingModelo}
                                 onChange={(e) => setEditingModelo(e.target.value)}
-                                className="h-8 w-full rounded-lg border border-border bg-background px-2 text-[11px] font-medium text-foreground outline-none focus:border-foreground"
+                                className="h-8 w-full rounded-lg bg-background px-2 text-[11px] font-medium text-foreground outline-none focus:border-foreground"
                               >
                                 <option value="">Autodetectar</option>
                                 {productosUnicos.map((p) => (
@@ -766,7 +766,7 @@ export function PistolearView() {
                       whileTap={{ scale: 0.97 }}
                       transition={{ type: "spring", stiffness: 300, damping: 15 }}
                       onClick={() => setVisibleCount((c) => c + 100)}
-                      className="press rounded-lg border border-border bg-background px-4 py-2 text-[12px] font-medium text-foreground hover:bg-muted"
+                      className="press rounded-lg bg-background px-4 py-2 text-[12px] font-medium text-foreground hover:bg-muted"
                     >
                       Cargar más
                     </motion.button>
@@ -875,7 +875,7 @@ export function PistolearView() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="press-card anim-slide-up rounded-lg border border-border bg-card p-2.5 text-card-foreground"
+              className="press-card anim-slide-up rounded-lg bg-muted/20 p-2.5 text-card-foreground"
               style={{ animationDelay: "0ms" }}
             >
               <div className="flex items-center gap-1.5">
@@ -893,7 +893,7 @@ export function PistolearView() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="press-card anim-slide-up rounded-lg border border-border bg-card p-2.5 text-card-foreground"
+              className="press-card anim-slide-up rounded-lg bg-muted/20 p-2.5 text-card-foreground"
               style={{ animationDelay: "60ms" }}
             >
               <div className="flex items-center gap-1.5">
@@ -913,7 +913,7 @@ export function PistolearView() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="press-card anim-slide-up rounded-lg border border-border bg-card p-2.5 text-card-foreground"
+              className="press-card anim-slide-up rounded-lg bg-muted/20 p-2.5 text-card-foreground"
               style={{ animationDelay: "120ms" }}
             >
               <div className="flex items-center gap-1.5">
@@ -931,7 +931,7 @@ export function PistolearView() {
             <motion.div
               whileHover={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="press-card anim-slide-up rounded-lg border border-border bg-card p-2.5 text-card-foreground"
+              className="press-card anim-slide-up rounded-lg bg-muted/20 p-2.5 text-card-foreground"
               style={{ animationDelay: "180ms" }}
             >
               <div className="flex items-center gap-1.5">
@@ -947,7 +947,7 @@ export function PistolearView() {
           </div>
 
           {/* Selector de modelo del inventario */}
-          <div className="anim-slide-up rounded-lg border border-border p-3">
+          <div className="anim-slide-up rounded-lg p-3">
             <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               Equipo del inventario
             </p>
@@ -975,7 +975,7 @@ export function PistolearView() {
                 whileTap={{ scale: 0.97 }}
                 transition={{ type: "spring", stiffness: 300, damping: 15 }}
                 onClick={() => setModeloSeleccionado("")}
-                className="press mt-2 inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="press mt-2 inline-flex items-center gap-1 rounded-full bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 <X className="h-3 w-3" {...ICON_PROPS} /> Cambiar
               </motion.button>
@@ -984,7 +984,7 @@ export function PistolearView() {
 
           {/* Config panel avanzado (colapsable) — estado de destino + ubicación de guardado */}
           {showConfig && (
-            <div className="anim-slide-up rounded-lg border border-border p-3">
+            <div className="anim-slide-up rounded-lg p-3">
               <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 Estado y ubicación de guardado
               </p>
@@ -1066,7 +1066,7 @@ export function PistolearView() {
               })}
               <div className="ml-auto flex items-center gap-2 text-[11px] text-muted-foreground">
                 {hayParcial && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] text-muted-foreground">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-background px-2.5 py-1 text-[11px] text-muted-foreground">
                     <span className="h-1.5 w-1.5 rounded-full bg-foreground" />
                     {parcial.length}/{camposEsperados}
                   </span>
@@ -1076,7 +1076,7 @@ export function PistolearView() {
           </div>
 
           {/* Panel: prefijo de validación (con toggle on/off) */}
-          <div className="anim-slide-up rounded-lg border border-border p-3">
+          <div className="anim-slide-up rounded-lg p-3">
             <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               Prefijo de validación
             </p>
@@ -1097,7 +1097,7 @@ export function PistolearView() {
                   whileTap={{ scale: 0.97 }}
                   transition={{ type: "spring", stiffness: 300, damping: 15 }}
                   onClick={() => setSetting("pistoleoPrefijo", "")}
-                  className="press inline-flex items-center gap-1 rounded-full border border-border bg-background px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                  className="press inline-flex items-center gap-1 rounded-full bg-background px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
                 >
                   <X className="h-3 w-3" {...ICON_PROPS} /> Limpiar
                 </motion.button>
@@ -1153,7 +1153,7 @@ export function PistolearView() {
             <div className="max-h-64 overflow-y-auto scroll-thin rounded-lg border border-border bg-background">
               <table className="w-full text-[13px]">
                 <thead className="sticky top-0 bg-background">
-                  <tr className="border-b border-border text-left text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <tr className="border-b border-border/30 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
                     <th className="px-3 py-2 font-medium">#</th>
                     {camposTabla.map((c) => (
                       <th key={c} className="px-3 py-2 font-medium">{CAMPOS_PISTOLEO_META[c].label}</th>
@@ -1161,7 +1161,7 @@ export function PistolearView() {
                     <th className="px-3 py-2 font-medium">Estado</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-y divide-border/30">
                   {pistoleoFilas.map((f, i) => {
                     // Campos de ESTA fila
                     const camposFila = (f.camposMarcados && f.camposMarcados.length > 0)
