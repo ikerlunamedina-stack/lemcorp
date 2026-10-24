@@ -446,18 +446,15 @@ export function PistolearView() {
   }, [products]);
 
   return (
-    <div className="anim-fade-in px-6 py-6 lg:px-8 relative">
-      {/* Fondo elegante: patrón de puntos sutil */}
-      <div
-        className="pointer-events-none fixed inset-0 z-0 opacity-[0.025]"
-        style={{
-          backgroundImage: "radial-gradient(circle, var(--foreground) 1px, transparent 1px)",
-          backgroundSize: "24px 24px",
-        }}
-      />
-      <div className="relative z-10">
+    <div className="select-text cursor-text px-6 py-4 anim-fade-in">
       {/* Header */}
-      <header className="anim-slide-up mb-3 flex flex-wrap items-center justify-end gap-4">
+      <header className="anim-slide-up mb-3 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            {pistoleoFilas.length} series escaneadas · {equipos.length} en sistema
+          </p>
+          <h1 className="mt-1 text-[28px] font-semibold tracking-tight text-foreground sm:text-[32px]">Pistolear</h1>
+        </div>
         <motion.div
           whileTap={{ scale: 0.97 }}
           transition={{ type: "spring", stiffness: 300, damping: 15 }}
@@ -478,7 +475,7 @@ export function PistolearView() {
       </header>
 
       {/* Panel: seleccionar equipo del inventario */}
-      <div className="anim-slide-up mb-4 rounded-lg bg-muted/30 p-4">
+      <div className="anim-slide-up mb-3 rounded-lg border border-border p-3">
         <div className="relative">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" {...ICON_PROPS} />
           <select
@@ -511,7 +508,7 @@ export function PistolearView() {
       </div>
 
       {/* Panel: prefijo de validación (con toggle on/off) */}
-      <div className="anim-slide-up mb-4 rounded-lg bg-muted/30 p-4">
+      <div className="anim-slide-up mb-3 rounded-lg border border-border p-3">
         <div className="flex flex-wrap items-center gap-3">
           <Switch
             checked={settings.pistoleoPrefijoEnabled}
@@ -539,7 +536,7 @@ export function PistolearView() {
 
       {/* Config panel avanzado (colapsable) — estado de destino + ubicación de guardado */}
       {showConfig && (
-        <div className="anim-slide-up mb-4 rounded-lg bg-muted/30 p-4">
+        <div className="anim-slide-up mb-3 rounded-lg border border-border p-3">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Estado</Label>
@@ -584,7 +581,7 @@ export function PistolearView() {
       )}
 
       {/* Checkboxes: marcar qué campos se van a pistolear */}
-      <div className="anim-slide-up mb-4">
+      <div className="anim-slide-up mb-3">
         <div className="flex flex-wrap items-center gap-2">
           {ORDEN_CAMPOS.map((campo) => {
             const marcado = pistoleoCamposMarcados.includes(campo);
@@ -625,7 +622,7 @@ export function PistolearView() {
       </div>
 
       {/* KPIs compactos del pistoleo actual */}
-      <div className="anim-slide-up mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="sticky-kpis mb-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
         {/* KPI 1: Series escaneadas (este lote) */}
         <motion.div
           whileHover={{ scale: 1.02 }}
@@ -718,14 +715,14 @@ export function PistolearView() {
                 ? CAMPOS_PISTOLEO_META[camposMarcadosOrdenados[parcial.length]].label
                 : CAMPOS_PISTOLEO_META[camposMarcadosOrdenados[0]]?.label ?? "Serie"
             }
-            className="h-12 w-full rounded-lg border border-border bg-background pl-11 pr-3 font-mono text-[15px] font-medium tracking-wide text-foreground outline-none transition-colors focus:border-foreground"
+            className="h-14 w-full rounded-lg border border-border bg-background pl-11 pr-3 font-mono text-[15px] font-medium tracking-wide text-foreground outline-none transition-colors focus:border-foreground focus:bg-muted/20"
             autoComplete="off"
             spellCheck={false}
           />
         </div>
         {/* Preview en vivo: qué llevo escaneado hasta ahora */}
         {hayParcial && (
-          <div className="mt-3 rounded-lg border border-border bg-muted/40 p-3">
+          <div className="mt-3 rounded-lg border border-border bg-muted/20 p-3">
             <div className="flex flex-wrap gap-2">
               {camposMarcadosOrdenados.map((c, idx) => {
                 const val = parcial[idx];
@@ -1274,7 +1271,6 @@ export function PistolearView() {
           </motion.div>
         </DialogContent>
       </Dialog>
-      </div>
     </div>
   );
 }
