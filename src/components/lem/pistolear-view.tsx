@@ -58,15 +58,41 @@ import { useCountUp } from "@/lib/hooks/use-count-up";
 
 const ICON_PROPS = { strokeWidth: 1.5 } as const;
 
-// Sonido de error (beep) para rechazos al pistolear
-let beepAudio: HTMLAudioElement | null = null;
+// Sonido de error (beep) para rechazos al pistolear — usa Web Audio API (no MP3)
+let audioCtx: AudioContext | null = null;
 function playBeepError() {
   try {
-    if (!beepAudio) {
-      beepAudio = new Audio("/beep-error.mp3");
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
-    beepAudio.currentTime = 0;
-    beepAudio.play().catch(() => {});
+    // Si el contexto está suspendido (autoplay policy), reanudar
+    if (audioCtx.state === "suspended") {
+      audioCtx.resume();
+    }
+    // Crear dos beeps cortos (estilo error de scanner)
+    const now = audioCtx.currentTime;
+    // Primer beep (agudo)
+    const osc1 = audioCtx.createOscillator();
+    const gain1 = audioCtx.createGain();
+    osc1.frequency.value = 880; // La5
+    osc1.type = "square";
+    gain1.gain.setValueAtTime(0.3, now);
+    gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+    osc1.connect(gain1);
+    gain1.connect(audioCtx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.15);
+    // Segundo beep (grave) — medio segundo después
+    const osc2 = audioCtx.createOscillator();
+    const gain2 = audioCtx.createGain();
+    osc2.frequency.value = 440; // La4
+    osc2.type = "square";
+    gain2.gain.setValueAtTime(0.3, now + 0.2);
+    gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+    osc2.connect(gain2);
+    gain2.connect(audioCtx.destination);
+    osc2.start(now + 0.2);
+    osc2.stop(now + 0.35);
   } catch {}
 }
 
