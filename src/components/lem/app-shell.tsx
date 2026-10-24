@@ -184,17 +184,6 @@ export function AppShell({ children, isChat = false }: AppShellProps) {
         <NotificationStack />
         <ScrollToTop />
 
-        {/* Botón flotante de Alana — aparece en todas las páginas excepto /ia */}
-        {!isChat && (
-          <button
-            onClick={askAlana}
-            aria-label="Abrir Alana"
-            className="fixed bottom-5 left-5 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-foreground text-background transition-transform hover:scale-105 active:scale-95"
-            style={{ bottom: "max(env(safe-area-inset-bottom, 0px), 20px)" }}
-          >
-            <Sparkles className="h-5 w-5" strokeWidth={1.5} />
-          </button>
-        )}
 
       </div>
 
