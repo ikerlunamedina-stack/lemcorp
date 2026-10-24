@@ -218,12 +218,32 @@ export function PistolearView() {
     const campoActual = camposMarcadosOrdenados[idxEnFila];
 
     // === DETECTAR DUPLICADO EN LA MISMA LECTURA ===
-    // Si el valor actual ya fue escaneado en esta misma lectura (misma serie en MAC, CM MAC, etc.)
-    // lo rechazamos para evitar errores de doble pistoleo
     if (parcial.some((valor) => valor.toUpperCase() === v.toUpperCase())) {
-      const msg = `Rechazada: "${v}" repetida en esta lectura (¿doble escaneo?)`;
-      pushFeedback(false, msg);
-      if (false) speak("Serie repetida, revisa");
+      pushFeedback(false, `Rechazada: "${v}" repetida en esta lectura (¿doble escaneo?)`);
+      setValor("");
+      return;
+    }
+
+    // === DETECTAR DUPLICADO EN TODA LA SESIÓN (cualquier campo de cualquier fila) ===
+    // Serie, MAC, CM MAC, MTA MAC, UA — NADA se puede repetir, como un DNI
+    const yaEnSesion = pistoleoFilas.some((f) =>
+      f.valores.some((valor) => valor?.toUpperCase() === v.toUpperCase())
+    );
+    if (yaEnSesion) {
+      pushFeedback(false, `Rechazada: "${v}" ya fue capturada en esta sesión (serie, MAC o UA repetida)`);
+      setValor("");
+      return;
+    }
+
+    // === DETECTAR DUPLICADO EN EL SISTEMA (cualquier campo de cualquier equipo) ===
+    // Verificar contra serie, mac, cmMac, mtaMac, ua de TODOS los equipos existentes
+    const existeEnSistema = equipos.some((e) =>
+      [e.serie, e.mac, e.cmMac, e.mtaMac, e.ua].some(
+        (field) => field && field.trim().toUpperCase() === v.toUpperCase()
+      )
+    );
+    if (existeEnSistema) {
+      pushFeedback(false, `Rechazada: "${v}" ya existe en el sistema (serie, MAC o UA ya registrada)`);
       setValor("");
       return;
     }
@@ -231,25 +251,9 @@ export function PistolearView() {
     // Validar prefijo solo si está activado y el primer campo marcado es "serie"
     const primerCampoEsSerie = camposMarcadosOrdenados[0] === "serie";
     if (esSerie && primerCampoEsSerie && settings.pistoleoPrefijoEnabled && settings.pistoleoPrefijo && !validarPrefijo(v, settings.pistoleoPrefijo)) {
-      const msg = `Rechazada: no empieza con ${settings.pistoleoPrefijo}`;
-      pushFeedback(false, msg);
-      if (false) speak(`Rechazada, no empieza con ${settings.pistoleoPrefijo}`);
+      pushFeedback(false, `Rechazada: no empieza con ${settings.pistoleoPrefijo}`);
       setValor("");
       return;
-    }
-
-    if (esSerie && primerCampoEsSerie && findEquipmentBySerie(v)) {
-      // Ya existe en el sistema → la añadimos igual pero marcamos como duplicada
-      pushFeedback(false, `Esta serie YA está registrada en el sistema`);
-    }
-
-    if (esSerie && primerCampoEsSerie) {
-      const yaEnFilas = pistoleoFilas.some((f) => f.valores[0]?.toUpperCase() === v.toUpperCase());
-      if (yaEnFilas) {
-        pushFeedback(false, `Rechazada: ya capturada en esta sesión`);
-        setValor("");
-        return;
-      }
     }
 
     const nuevosParcial = [...parcial, v];
